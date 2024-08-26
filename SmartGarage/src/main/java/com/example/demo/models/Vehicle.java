@@ -15,6 +15,7 @@ import java.util.Set;
 public class Vehicle {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "vehicle_id")
     private int id;
 
     @Column(name = "vehicle_plate", nullable = false)

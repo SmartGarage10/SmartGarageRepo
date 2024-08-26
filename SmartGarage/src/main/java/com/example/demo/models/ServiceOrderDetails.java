@@ -14,6 +14,7 @@ public class ServiceOrderDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "service_order_detail_id")
     private int serviceOrderDetailId;
 
     @ManyToOne

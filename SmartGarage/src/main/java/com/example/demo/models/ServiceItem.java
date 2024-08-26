@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class ServiceItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "service_id")
     private int serviceId;
 
     @Column(name = "name", nullable = false, length = 100)
