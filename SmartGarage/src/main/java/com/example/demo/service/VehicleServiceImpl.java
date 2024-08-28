@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class VehicleServiceImpl {
+public class VehicleServiceImpl implements VehicleService{
     private final VehicleRepository vehicleRepository;
     private final UserRepository userRepository;
 
@@ -22,6 +22,7 @@ public class VehicleServiceImpl {
         this.userRepository = userRepository;
     }
 
+    @Override
     public Vehicle saveVehicle(Vehicle vehicle){
         if (vehicleRepository.existsByVin(vehicle.getVin()) || vehicleRepository.existsByVehiclePlate(vehicle.getVehiclePlate())){
             throw new EntityDuplicateException("This vehicle already exist!");
@@ -34,10 +35,12 @@ public class VehicleServiceImpl {
         return vehicleRepository.save(vehicle);
     }
 
+    @Override
     public Optional<Vehicle> getVehicleById(int vehicleId){
         return vehicleRepository.findById(vehicleId);
     }
 
+    @Override
     public Optional<Vehicle> getVehicleByLicencePlate(String licencePLate){
         if (licencePLate.isEmpty() || licencePLate.isBlank()){
             throw new EntityNotFoundException("Vehicle", "licence plate", licencePLate);
@@ -50,10 +53,11 @@ public class VehicleServiceImpl {
         }
         return vehicleRepository.findByVehiclePlate(vin);
     }
+    @Override
     public List<Vehicle> getAllVehicles(){
         return vehicleRepository.findAll();
     }
-
+    @Override
     public void deleteVehicle(int vehicleId){
         if (vehicleId < 0) {
             throw new IllegalArgumentException("Vehicle ID must be greater than zero.");

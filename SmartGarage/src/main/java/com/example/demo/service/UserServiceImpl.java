@@ -2,15 +2,23 @@ package com.example.demo.service;
 
 import com.example.demo.exceptions.EntityDuplicateException;
 import com.example.demo.exceptions.EntityNotFoundException;
+import com.example.demo.filter.UserSpecifications;
 import com.example.demo.models.User;
 import com.example.demo.repositories.UserRepository;
+import com.example.demo.response.AuthenticationResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -19,14 +27,19 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JWTService jwtService;
+    private final AuthenticationManager authenticationManager;
 
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JWTService jwtService, @Lazy AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
     }
 
-    public User saveUser(User user) {
+    @Override
+    public AuthenticationResponse register(User user) {
         if (userRepository.existsByUsername(user.getUsername())) {
             throw new EntityDuplicateException("User", "username", user.getUsername());
         }
@@ -36,9 +49,25 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
+        userRepository.save(user);
+        String token = jwtService.generateToken(user);
+        return new AuthenticationResponse(token);
     }
 
+    @Override
+    public AuthenticationResponse authenticate(User user) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        user.getUsername(),
+                        user.getPassword())
+        );
+        Optional<User> findUser = userRepository.findUserByUsername(user.getUsername());
+        String token = jwtService.generateToken(user);
+
+        return new AuthenticationResponse(token);
+    }
+
+    @Override
     public User updateUser(int userId, User userDetails) {
         if (!userRepository.existsById(userId)) {
             throw new EntityNotFoundException("User", "id", String.valueOf(userId));
@@ -68,7 +97,7 @@ public class UserServiceImpl implements UserService {
 
         return userRepository.save(existingUser);
     }
-
+    @Override
     public void changePassword(int userId, String oldPassword, String newPassword) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with ID " + userId + " not found."));
@@ -84,33 +113,67 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
-
+    @Override
     public Optional<User> getUserById(int userId) {
         return userRepository.findById(userId);
     }
-
+    @Override
     public Optional<User> getUserByUsername(String username) {
         if (username.isEmpty() || username.isBlank()) {
             throw new EntityNotFoundException("User", "username", username);
         }
         return userRepository.findUserByUsername(username);
     }
-
+    @Override
     public Optional<User> getUserByEmail(String email) {
         if (email.isEmpty() || email.isBlank()) {
             throw new EntityNotFoundException("User", "email", email);
         }
         return userRepository.findUserByEmail(email);
     }
-
+    @Override
     public Optional<User> getUserByPhone(String phone) {
         return userRepository.findByPhone(phone);
     }
+    @Override
+    public List<User> getAllUsers(String name, String email, String phone, String vehicleModel, String vehicleMake,
+                                  LocalDateTime visitStartDate, LocalDateTime visitEndDate, String sortField, String sortDirection) {
+        Specification<User> spec = Specification.where(null);
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+        if (name != null && !name.isEmpty()) {
+            spec = spec.and(UserSpecifications.hasName(name));
+        }
+
+        if (email != null && !email.isEmpty()) {
+            spec = spec.and(UserSpecifications.hasEmail(email));
+        }
+
+        if (phone != null && !phone.isEmpty()) {
+            spec = spec.and(UserSpecifications.hasPhone(phone));
+        }
+
+        if ((vehicleModel != null && !vehicleModel.isEmpty()) || (vehicleMake != null && !vehicleMake.isEmpty())) {
+            spec = spec.and(UserSpecifications.hasVehicleModelOrMake(vehicleModel, vehicleMake));
+        }
+
+        if (visitStartDate != null && visitEndDate != null) {
+            spec = spec.and(UserSpecifications.visitsInRange(visitStartDate, visitEndDate));
+        }
+
+        if (sortField == null || sortField.isEmpty()) {
+            sortField = "username";
+        }
+        if (sortDirection == null || sortDirection.isEmpty()) {
+            sortDirection = "asc";
+        }
+
+        Sort.Order order = "desc".equalsIgnoreCase(sortDirection) ? Sort.Order.desc(sortField) : Sort.Order.asc(sortField);
+        Sort sort = Sort.by(order);
+
+        return userRepository.findAll(spec, sort);
     }
 
+    @Override
     public void deleteUser(int userId) {
         if (userId < 0) {
             throw new IllegalArgumentException("User ID must be greater than zero.");

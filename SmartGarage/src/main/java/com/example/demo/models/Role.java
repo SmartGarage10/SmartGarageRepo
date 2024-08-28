@@ -19,8 +19,14 @@ public class Role {
     private Long roleId;
 
     @Column(name = "role_name", nullable = false, length = 50)
-    private String roleName;
+    private RoleType roleName;
 
     @OneToMany(mappedBy = "role")
     private Set<User> users;
+
+    public enum RoleType{
+        CUSTOMER,
+        EMPLOYEE,
+        ADMIN
+    }
 }

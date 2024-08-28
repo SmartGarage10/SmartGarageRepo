@@ -1,14 +1,18 @@
 package com.example.demo.service;
 
 import com.example.demo.models.User;
+import com.example.demo.response.AuthenticationResponse;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 public interface UserService extends UserDetailsService {
-    User saveUser(User user);
+    AuthenticationResponse register(User user);
+    AuthenticationResponse authenticate(User user);
 
     User updateUser(int userId, User userDetails);
     public void changePassword(int userId, String oldPassword, String newPassword);
@@ -21,7 +25,7 @@ public interface UserService extends UserDetailsService {
 
     Optional<User> getUserByPhone(String phone);
 
-    List<User> getAllUsers();
-
+    List<User> getAllUsers(String name, String email, String phone, String vehicleModel, String vehicleMake,
+                           LocalDateTime visitStartDate, LocalDateTime visitEndDate, String sortField, String sortDirection);
     void deleteUser(int userId);
 }
