@@ -13,12 +13,12 @@ public class UserSpecifications {
 
     public static Specification<User> hasEmail(String email) {
         return (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("email"), email);
+                criteriaBuilder.like(root.get("email"), "%" + email.toLowerCase() + "%");
     }
 
     public static Specification<User> hasPhone(String phone) {
         return (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("phone"), phone);
+                criteriaBuilder.like(root.get("phone"), "%" + phone + "%");
     }
 
     public static Specification<User> hasVehicleModelOrMake(String model, String make) {

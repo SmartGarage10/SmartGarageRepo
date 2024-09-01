@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.example.demo.exceptions.EntityDuplicateException;
 import com.example.demo.exceptions.EntityNotFoundException;
 import com.example.demo.filter.UserSpecifications;
+import com.example.demo.helpers.RestrictHelper;
 import com.example.demo.models.User;
 import com.example.demo.repositories.UserRepository;
 import com.example.demo.response.AuthenticationResponse;
@@ -29,28 +30,36 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final JWTService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final RestrictHelper restrictHelper;
 
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JWTService jwtService, @Lazy AuthenticationManager authenticationManager) {
+    public UserServiceImpl(UserRepository userRepository,
+                           PasswordEncoder passwordEncoder,
+                           JWTService jwtService,
+                           @Lazy AuthenticationManager authenticationManager,
+                           @Lazy RestrictHelper restrictHelper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.restrictHelper = restrictHelper;
     }
 
     @Override
-    public AuthenticationResponse register(User user) {
-        if (userRepository.existsByUsername(user.getUsername())) {
-            throw new EntityDuplicateException("User", "username", user.getUsername());
+    public AuthenticationResponse register(User user, User request) {
+        restrictHelper.isUserAdminOrEmployee(user);
+
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new EntityDuplicateException("User", "username", request.getUsername());
         }
 
-        if (userRepository.existsByEmail(user.getEmail())) {
-            throw new EntityDuplicateException("User", "email", user.getEmail());
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new EntityDuplicateException("User", "email", request.getEmail());
         }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        userRepository.save(user);
-        String token = jwtService.generateToken(user);
+        request.setPassword(passwordEncoder.encode(request.getPassword()));
+        userRepository.save(request);
+        String token = jwtService.generateToken(request);
         return new AuthenticationResponse(token);
     }
 
@@ -68,7 +77,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User updateUser(int userId, User userDetails) {
+    public User updateUser(User user, int userId, User userDetails) {
+        restrictHelper.isUserAdminOrEmployee(user);
         if (!userRepository.existsById(userId)) {
             throw new EntityNotFoundException("User", "id", String.valueOf(userId));
         }
@@ -77,23 +87,19 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new EntityNotFoundException("Id", userId));
 
         String newUsername = userDetails.getUsername();
-
-        if (newUsername == null || userRepository.existsByUsername(newUsername)) {
-            throw new EntityDuplicateException("User", "username", newUsername);
+        if (newUsername != null && !userRepository.existsByUsername(newUsername)) {
+            existingUser.setUsername(newUsername);
         }
-        existingUser.setUsername(newUsername);
 
         String newEmail = userDetails.getEmail();
-        if (newEmail == null || userRepository.existsByEmail(newEmail)) {
-            throw new EntityDuplicateException("User", "email", newEmail);
+        if (newEmail != null && !userRepository.existsByEmail(newEmail)) {
+            existingUser.setEmail(newEmail);
         }
-        existingUser.setEmail(newEmail);
 
         String newPhone = userDetails.getPhone();
-        if (newPhone == null || userRepository.existsByPhone(newPhone)) {
-            throw new EntityDuplicateException("User", "phone", newPhone);
+        if (newPhone != null && !userRepository.existsByPhone(newPhone)) {
+            existingUser.setPhone(newPhone);
         }
-        existingUser.setPhone(newPhone);
 
         return userRepository.save(existingUser);
     }
@@ -136,12 +142,12 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByPhone(phone);
     }
     @Override
-    public List<User> getAllUsers(String name, String email, String phone, String vehicleModel, String vehicleMake,
+    public List<User> getAllUsers(String username, String email, String phone, String vehicleModel, String vehicleMake,
                                   LocalDateTime visitStartDate, LocalDateTime visitEndDate, String sortField, String sortDirection) {
         Specification<User> spec = Specification.where(null);
 
-        if (name != null && !name.isEmpty()) {
-            spec = spec.and(UserSpecifications.hasName(name));
+        if (username != null && !username.isEmpty()) {
+            spec = spec.and(UserSpecifications.hasName(username));
         }
 
         if (email != null && !email.isEmpty()) {
@@ -169,19 +175,19 @@ public class UserServiceImpl implements UserService {
 
         Sort.Order order = "desc".equalsIgnoreCase(sortDirection) ? Sort.Order.desc(sortField) : Sort.Order.asc(sortField);
         Sort sort = Sort.by(order);
-
-        return userRepository.findAll(spec, sort);
+        List<User> users = userRepository.findAll(spec, sort);
+        return users;
     }
 
     @Override
-    public void deleteUser(int userId) {
+    public void deleteUser(User user, int userId) {
+        restrictHelper.isUserAdminOrEmployee(user);
         if (userId < 0) {
             throw new IllegalArgumentException("User ID must be greater than zero.");
         }
         if (!userRepository.existsById(userId)) {
             throw new EntityNotFoundException("Id", userId);
         }
-
         userRepository.deleteById(userId);
     }
 

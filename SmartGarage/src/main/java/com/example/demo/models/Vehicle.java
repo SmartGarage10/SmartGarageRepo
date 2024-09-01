@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.time.Year;
 import java.util.Set;
 
 @Entity
@@ -27,6 +29,15 @@ public class Vehicle {
     @ManyToOne
     @JoinColumn(name = "client_id", nullable = false)
     private User client;
+
+    @Column(name = "brand", nullable = false)
+    private String brand;
+
+    @Column(name = "model", nullable = false)
+    private String model;
+
+    @Column(name = "year", nullable = false)
+    private Year year;
 
     @OneToMany(mappedBy = "vehicle")
     private Set<ServiceOrder> serviceOrders;

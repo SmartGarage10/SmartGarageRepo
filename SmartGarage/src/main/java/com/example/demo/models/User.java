@@ -3,9 +3,7 @@ package com.example.demo.models;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.Set;
 
@@ -14,6 +12,8 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(exclude = {"roles"})
+@ToString(exclude = "roles")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,8 +26,6 @@ public class User {
     @Column(name = "password", nullable = false)
     private String password;
 
-    @Email(message = "Email should be valid")
-    @NotEmpty(message = "Email cannot be empty")
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
@@ -38,6 +36,6 @@ public class User {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
-    @OneToMany(mappedBy = "client")
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<Vehicle> vehicles;
 }

@@ -1,0 +1,33 @@
+package com.example.demo.DTO;
+
+import com.example.demo.models.Role;
+import jakarta.validation.constraints.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.checkerframework.common.aliasing.qual.Unique;
+
+@Data
+@NoArgsConstructor
+public class UserDTO {
+    @NotNull
+    @Size(min = 2, max = 20,
+            message = "Username should be between 2 and 20 symbols")
+    private String username;
+
+    @NotNull
+    @Size(min = 4,
+            message = "Password should be at least 4 symbols")
+    private String password;
+
+    @Unique
+    @Email(message = "Email should be valid")
+    @NotEmpty(message = "Email cannot be empty")
+    private String email;
+
+    @Unique
+    @Pattern(regexp = "\\d{10}", message = "Phone number must be exactly 10 digits")
+    private String phone;
+
+    @NotNull
+    private RoleDTO role;
+}

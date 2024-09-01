@@ -25,8 +25,8 @@ public class JWTService {
     }
     public boolean isValid(String token, UserDetails user) {
         try {
-            String email = extractUsername(token);
-            boolean valid = email.equals(user.getUsername()) && !isTokenExpired(token);
+            String username = extractUsername(token);
+            boolean valid = username.equals(user.getUsername()) && !isTokenExpired(token);
             return valid;
         } catch (Exception e) {
             logger.error("Token validation error: ", e);

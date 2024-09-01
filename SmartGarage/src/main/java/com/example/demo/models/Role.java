@@ -1,9 +1,7 @@
 package com.example.demo.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.Set;
 
@@ -12,6 +10,8 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(exclude = {"users"})
+@ToString(exclude = "users")
 public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,13 +19,13 @@ public class Role {
     private Long roleId;
 
     @Column(name = "role_name", nullable = false, length = 50)
+    @Enumerated(EnumType.STRING)
     private RoleType roleName;
 
     @OneToMany(mappedBy = "role")
     private Set<User> users;
-
     public enum RoleType{
-        CUSTOMER,
+        CLIENT,
         EMPLOYEE,
         ADMIN
     }

@@ -19,13 +19,22 @@ public class AuthenticationHelper {
     public AuthenticationHelper(UserService service){
         this.service = service;
     }
-    public User extractUserFromToken(Authentication authentication) throws AuthorizationException {
-        if (authentication != null && authentication.getDetails() instanceof CustomWebAuthenticationDetails) {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            String email = userDetails.getUsername();
-            logger.debug("Extracted username: " + userDetails.getUsername());
 
-            Optional<User> optionalUser = service.getUserByUsername(email);
+    public User extractUserFromToken(Authentication authentication) throws AuthorizationException {
+        if (authentication == null) {
+            throw new AuthorizationException("Authentication object is null");
+        }
+
+        logger.debug("Authentication object: " + authentication);
+        logger.debug("Authentication principal: " + authentication.getPrincipal());
+        logger.debug("Authentication details: " + authentication.getDetails());
+
+        if (authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            String username = userDetails.getUsername();
+            logger.debug("Extracted username: " + username);
+
+            Optional<User> optionalUser = service.getUserByUsername(username);
             if (optionalUser.isEmpty()) {
                 throw new AuthorizationException("User not found");
             }
@@ -34,6 +43,8 @@ public class AuthenticationHelper {
             logger.debug("User found: " + user);
             return user;
         }
+
         throw new AuthorizationException("Authentication details are missing or invalid");
     }
 }
+

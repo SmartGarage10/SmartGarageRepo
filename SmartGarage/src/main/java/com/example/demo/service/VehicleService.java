@@ -1,20 +1,21 @@
 package com.example.demo.service;
 
+import com.example.demo.models.User;
 import com.example.demo.models.Vehicle;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface VehicleService {
-    Vehicle saveVehicle(Vehicle vehicle);
+    Vehicle createNewVehicle(Vehicle vehicle);
 
     Optional<Vehicle> getVehicleById(int vehicleId);
-
+    Vehicle update(User user, Vehicle vehicle);
     Optional<Vehicle> getVehicleByLicencePlate(String licencePlate);
 
     Optional<Vehicle> getVehicleByVin(String vin);
 
-    List<Vehicle> getAllVehicles();
+    List<Vehicle> getAllVehicles(String ownerName, String sortDirection);
 
-    void deleteVehicle(int vehicleId);
+    void deleteVehicle(User user, int vehicleId);
 }

@@ -11,10 +11,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserService extends UserDetailsService {
-    AuthenticationResponse register(User user);
+    AuthenticationResponse register(User user, User request);
     AuthenticationResponse authenticate(User user);
 
-    User updateUser(int userId, User userDetails);
+    User updateUser(User user, int userId, User userDetails);
     public void changePassword(int userId, String oldPassword, String newPassword);
 
     Optional<User> getUserById(int userId);
@@ -25,7 +25,7 @@ public interface UserService extends UserDetailsService {
 
     Optional<User> getUserByPhone(String phone);
 
-    List<User> getAllUsers(String name, String email, String phone, String vehicleModel, String vehicleMake,
+    List<User> getAllUsers(String username, String email, String phone, String vehicleModel, String vehicleMake,
                            LocalDateTime visitStartDate, LocalDateTime visitEndDate, String sortField, String sortDirection);
-    void deleteUser(int userId);
+    void deleteUser(User user, int userId);
 }

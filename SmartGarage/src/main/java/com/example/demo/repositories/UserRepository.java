@@ -18,10 +18,8 @@ public interface UserRepository extends JpaRepository<User, Integer>, JpaSpecifi
     Optional<User> findUserByUsername(String username);
     Optional<User> findUserByEmail(String email);
     Optional<User> findByPhone(String phone);
-
     @Query("SELECT u FROM User u LEFT JOIN Vehicle v ON u.id = v.client.id LEFT JOIN Visit vis ON v.id = vis.vehicle.id WHERE u.role.roleId = 1")
     List<User> findAllCustomersWithVehiclesAndVisits(Specification<User> spec, Sort sort);
-
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
     boolean existsByPhone(String phone);
