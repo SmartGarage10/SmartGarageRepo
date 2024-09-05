@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 @Entity
 @Table(name = "visits")
@@ -16,7 +18,7 @@ public class Visit {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "visit_id")
-    private Long visitId;
+    private int visitId;
 
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
@@ -28,5 +30,18 @@ public class Visit {
 
     @Column(name = "date", nullable = false)
     private LocalDateTime visitDate;
+
+    @OneToMany(mappedBy = "visit", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ServiceOrderDetails> serviceOrderDetails;
+
+    public void addServiceOrderDetails(ServiceOrderDetails detail) {
+        serviceOrderDetails.add(detail);
+        detail.setVisit(this);
+    }
+
+    public void removeServiceOrderDetails(ServiceOrderDetails detail) {
+        serviceOrderDetails.remove(detail);
+        detail.setVisit(null);
+    }
 
 }

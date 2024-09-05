@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "ServiceOrder")
@@ -38,4 +39,7 @@ public class ServiceOrder {
 
     @Column(name = "currency", nullable = false)
     private String currency;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ServiceOrderDetails> serviceOrderDetails;
 }

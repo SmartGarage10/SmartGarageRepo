@@ -2,6 +2,8 @@ package com.example.demo.service;
 
 import com.example.demo.exceptions.EntityNotFoundException;
 import com.example.demo.models.ServiceItem;
+import com.example.demo.models.User;
+import com.example.demo.models.Visit;
 import com.example.demo.repositories.ServiceRepository;
 import org.springframework.stereotype.Service;
 
@@ -32,8 +34,9 @@ public class ServiceServiceImpl implements ServiceService {
     }
 
     @Override
-    public Optional<ServiceItem> getServiceById(int serviceId) {
-        return repository.findById(serviceId);
+    public ServiceItem  getServiceById(int serviceId){
+        return repository.findById(serviceId)
+                .orElseThrow(() -> new EntityNotFoundException("Service with ID" + serviceId + "not found"));
     }
 
     @Override
@@ -48,7 +51,11 @@ public class ServiceServiceImpl implements ServiceService {
 
     @Override
     public void deleteService(int serviceId) {
+        if (!repository.existsById(serviceId)){
+            throw new EntityNotFoundException("Service with ID" + serviceId + "not found");
+        }
         repository.deleteById(serviceId);
 
     }
+
 }

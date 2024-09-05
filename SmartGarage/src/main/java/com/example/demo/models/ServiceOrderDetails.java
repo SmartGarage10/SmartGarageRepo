@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "ServiceOrderDetails")
@@ -24,4 +25,10 @@ public class ServiceOrderDetails {
     @ManyToOne
     @JoinColumn(name = "service_id", nullable = false)
     private ServiceItem service;
+
+    @Setter
+    @ManyToOne
+    @JoinColumn(name = "visit_id", nullable = false)
+    private Visit visit;
+
 }
