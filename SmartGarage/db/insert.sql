@@ -1,2 +1,24 @@
-INSERT INTO garage_schema.users (email, password, phone, username, role_id)
-VALUES ('admin@example.com', '$2a$10$F4z4lV.T4y7J0mroDWuI.uvHpeJ5hXWewDZnOm9neA4DQ/TI4WJ2i', '1234567890', 'admin', 1);
+INSERT INTO service (price, name) VALUES (49.99, 'Oil Change');
+INSERT INTO service (price, name) VALUES (29.99, 'Tire Rotation');
+INSERT INTO service (price, name) VALUES (199.99, 'Brake Pad Replacement');
+INSERT INTO service (price, name) VALUES (99.99, 'Battery Replacement');
+INSERT INTO service (price, name) VALUES (149.99, 'Wheel Alignment');
+INSERT INTO service (price, name) VALUES (79.99, 'Air Filter Replacement');
+INSERT INTO service (price, name) VALUES (399.99, 'Transmission Service');
+INSERT INTO service (price, name) VALUES (59.99, 'Coolant Flush');
+INSERT INTO service (price, name) VALUES (49.99, 'Brake Fluid Flush');
+INSERT INTO service (price, name) VALUES (89.99, 'Spark Plug Replacement');
+INSERT INTO service (price, name) VALUES (599.99, 'Suspension Repair');
+INSERT INTO service (price, name) VALUES (129.99, 'AC Recharge');
+INSERT INTO service (price, name) VALUES (99.99, 'Tire Balancing');
+INSERT INTO service (price, name) VALUES (59.99, 'Wiper Blade Replacement');
+INSERT INTO service (price, name) VALUES (89.99, 'Headlight Replacement');
+INSERT INTO service (price, name) VALUES ( 15.99, 'Oil Filter');
+INSERT INTO service (price, name) VALUES (15.99, 'Oil Filter');
+INSERT INTO service (price, name) VALUES (79.99, 'Brake Pads');
+INSERT INTO service (price, name) VALUES (120.00, 'Car Battery');
+INSERT INTO service (price, name) VALUES (25.99, 'Air Filter');
+INSERT INTO service (price, name) VALUES (120.00, 'Tire');
+INSERT INTO service (price, name) VALUES (12.99, 'Coolant');
+INSERT INTO service (price, name) VALUES (7.99, 'Spark Plugs');
+INSERT INTO service (price, name) VALUES (8.99, 'Brake Fluid');

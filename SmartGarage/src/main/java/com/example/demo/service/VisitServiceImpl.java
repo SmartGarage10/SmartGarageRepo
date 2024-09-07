@@ -6,12 +6,14 @@ import com.example.demo.exceptions.EntityNotFoundException;
 import com.example.demo.models.User;
 import com.example.demo.models.Visit;
 import com.example.demo.repositories.VisitRepository;
+import org.springframework.stereotype.Service;
 import org.webjars.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@Service
 public class VisitServiceImpl implements VisitService{
 
     private final VisitRepository repository;

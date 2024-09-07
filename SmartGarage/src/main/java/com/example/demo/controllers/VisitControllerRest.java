@@ -28,6 +28,7 @@ public class VisitControllerRest {
         this.mapper = mapper;
         this.authenticationHelper = authenticationHelper;
     }
+    
 
     @PostMapping("/create")
     public ResponseEntity<VisitDTO> createVisit(@RequestBody VisitDTO visitDTO){
