@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.models.User;
 import com.example.demo.models.Visit;
 
 import java.time.LocalDateTime;
@@ -11,7 +12,7 @@ public interface VisitService {
         Optional<Visit> getVisitById(int visitId);
         List<Visit> getVisitsByVehicleId(int vehicleId);
         List<Visit> getVisitsByDate(LocalDateTime dateTime);
-        Visit createVisit(Visit visit);
-        void deleteVisit(int visitId);
+        Visit createVisit(User user, Visit visit);
+        void deleteVisit(User user ,int visitId);
 
 }

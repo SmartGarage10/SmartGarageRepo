@@ -33,7 +33,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/user/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll() // Open access to these endpoints
-                        .requestMatchers("/api/vehicle/**").hasAnyRole("CUSTOMER", "ADMIN") // Protected routes
+                        .requestMatchers("/api/vehicle/**", "/api/service/**", "/api/visits/**").hasAnyRole("CUSTOMER", "ADMIN")// Protected routes
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated() // All other requests must be authenticated
                 ).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

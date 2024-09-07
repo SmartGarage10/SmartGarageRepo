@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Entity
 @Table(name = "service")
 @Data
@@ -21,4 +23,12 @@ public class ServiceItem {
 
     @Column(name = "price", nullable = false)
     private double price;
+
+    @OneToMany(mappedBy = "service", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ServiceOrderDetails> serviceOrderDetails;
+
+    public String getServiceDescription() {
+        return serviceOrderDetails.toString();
+    }
+    
 }

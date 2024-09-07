@@ -1,6 +1,9 @@
 package com.example.demo.service;
 
+
+import com.example.demo.exceptions.AuthorizationException;
 import com.example.demo.exceptions.EntityNotFoundException;
+import com.example.demo.models.User;
 import com.example.demo.models.Visit;
 import com.example.demo.repositories.VisitRepository;
 import org.springframework.stereotype.Service;
@@ -11,11 +14,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class VisitServiceimpl implements VisitService{
+public class VisitServiceImpl implements VisitService{
 
     private final VisitRepository repository;
 
-    public VisitServiceimpl(VisitRepository repository) {
+    public VisitServiceImpl(VisitRepository repository) {
         this.repository = repository;
     }
 
@@ -26,7 +29,8 @@ public class VisitServiceimpl implements VisitService{
 
     @Override
     public Optional<Visit> getVisitById(int visitId) {
-        return repository.findById(visitId);
+        return Optional.ofNullable(repository.findById(visitId)
+                .orElseThrow(() -> new EntityNotFoundException("Visit with id" + visitId + "not found")));
     }
 
     @Override
@@ -40,16 +44,26 @@ public class VisitServiceimpl implements VisitService{
     }
 
     @Override
-    public Visit createVisit(Visit visit) {
+    public Visit createVisit(User user, Visit visit) {
+        visit.setEmployee(user);
         return repository.save(visit);
     }
 
 
     @Override
-    public void deleteVisit(int visitId) {
-        repository.findById(visitId)
+    public void deleteVisit(User user, int visitId) {
+        Visit visit = repository.findById(visitId)
                 .orElseThrow(() -> new NotFoundException("Visit with ID " + visitId + " not found"));
         repository.deleteById(visitId);
+
+        if (!userHasPermisiion(user, visit)){
+            throw new AuthorizationException("User does not have permission to delete!");
+        }
+    }
+
+    private boolean userHasPermisiion(User user, Visit visit){
+        return user.getRole().equals("ADMIN") && user.getRole().equals("EMPLOYEE")
+                || user.getId() == visit.getEmployee().getId();
     }
 
 }
