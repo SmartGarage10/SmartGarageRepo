@@ -1,5 +1,6 @@
 package com.example.demo.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,6 +23,7 @@ public class Role {
     @Enumerated(EnumType.STRING)
     private RoleType roleName;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "role")
     private Set<User> users;
     public enum RoleType{

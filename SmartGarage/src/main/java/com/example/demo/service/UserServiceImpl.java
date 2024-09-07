@@ -111,11 +111,6 @@ public class UserServiceImpl implements UserService {
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             throw new IllegalArgumentException("Old password is incorrect.");
         }
-
-//        if (!isValidPassword(newPassword)) {
-//            throw new IllegalArgumentException("New password does not meet the required criteria.");
-//        }
-
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }

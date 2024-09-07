@@ -40,6 +40,14 @@ dependencies {
 	// Swagger dependencies
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.3'
 
+	// Password validation dependency
+	implementation 'org.passay:passay:1.5.0'
+
+	// Message validation dependency
+	implementation 'com.google.guava:guava:32.1.2-jre'
+
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 
