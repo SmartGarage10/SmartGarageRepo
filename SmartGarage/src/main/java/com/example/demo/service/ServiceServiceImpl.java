@@ -1,10 +1,13 @@
 package com.example.demo.service;
 
 import com.example.demo.exceptions.EntityNotFoundException;
+import com.example.demo.filter.ServiceSpecifications;
 import com.example.demo.models.ServiceItem;
 import com.example.demo.models.User;
 import com.example.demo.models.Visit;
 import com.example.demo.repositories.ServiceRepository;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,13 +27,20 @@ public class ServiceServiceImpl implements ServiceService {
     }
 
     @Override
-    public List<ServiceItem> filterServices(String name, Double minPrice, Double maxPrice) {
-        if (name != null && !name.isEmpty()) {
-            return repository.findByServiceNameContaining(name);
-        } else if (minPrice != null && maxPrice != null) {
-            return repository.findByPriceBetween(minPrice, maxPrice);
+    public List<ServiceItem> filterServices(String name, Double minPrice, Double maxPrice){
+        Specification<ServiceItem> specification = Specification.where(null);
+
+        if (name != null && !name.isEmpty()){
+            specification = specification.and(ServiceSpecifications.hasName(name));
         }
-        return repository.findAll();
+        if (minPrice != null){
+            specification = specification.and(ServiceSpecifications.hasMinPrice(minPrice));
+        }
+        if (maxPrice != null){
+            specification = specification.and(ServiceSpecifications.hasMaxPrice(maxPrice));
+        }
+
+        return repository.findAll((Sort) specification);
     }
 
     @Override

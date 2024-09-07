@@ -3,9 +3,12 @@ package com.example.demo.service;
 
 import com.example.demo.exceptions.AuthorizationException;
 import com.example.demo.exceptions.EntityNotFoundException;
+import com.example.demo.filter.VisitSpecification;
 import com.example.demo.models.User;
 import com.example.demo.models.Visit;
 import com.example.demo.repositories.VisitRepository;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.webjars.NotFoundException;
 
@@ -20,6 +23,25 @@ public class VisitServiceImpl implements VisitService{
 
     public VisitServiceImpl(VisitRepository repository) {
         this.repository = repository;
+    }
+
+    public List<Visit> filterVisits(LocalDateTime visitDate, LocalDateTime startDate, LocalDateTime endDate,
+                                    Integer vehicleId){
+        Specification<Visit> specification = Specification.where(null);
+
+        if (visitDate != null){
+            specification = specification.and(VisitSpecification.byDate(visitDate));
+        }
+
+        if (startDate != null && endDate != null){
+            specification = specification.and(VisitSpecification.betweenDates(startDate, endDate));
+        }
+
+        if (vehicleId != null){
+            specification = specification.and(VisitSpecification.byVehicleId(vehicleId));
+        }
+
+        return repository.findAll((Sort) specification);
     }
 
     @Override
