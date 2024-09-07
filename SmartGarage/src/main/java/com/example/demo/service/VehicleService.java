@@ -15,7 +15,6 @@ public interface VehicleService {
 
     Optional<Vehicle> getVehicleByVin(String vin);
 
-    List<Vehicle> getAllVehicles(String ownerName, String sortDirection);
-
+    List<Vehicle> getAllVehicles(User user, String ownerName, String sortDirection);
     void deleteVehicle(User user, int vehicleId);
 }

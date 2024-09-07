@@ -37,7 +37,8 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/api/user/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll() // Open access to these endpoints
-                        .requestMatchers("/api/vehicle/**", "/api/service/**", "/api/visits/**").hasAnyRole("CUSTOMER", "ADMIN")// Protected routes
+                        .requestMatchers("api/vehicle/list").authenticated()
+                        .requestMatchers("/api/vehicle/**", "/api/service/**", "/api/visits/**").hasAnyRole("EMPLOYEE", "ADMIN")// Protected routes
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated() // All other requests must be authenticated
                 ).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
@@ -63,12 +64,17 @@ public class SecurityConfig {
         mailSender.setHost("smtp.gmail.com");
         mailSender.setPort(587);
 
+        mailSender.setUsername("emanuilpavlov2002@gmail.com");
+        mailSender.setPassword("pgvw yxfl csbz htdz"); // Use your actual App Password here
+
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.debug", "true");
+        props.put("mail.debug", "true"); // Enable debugging
 
         return mailSender;
     }
+
+
 }

@@ -28,32 +28,32 @@ public class VisitControllerRest {
         this.mapper = mapper;
         this.authenticationHelper = authenticationHelper;
     }
-    
+
 
     @PostMapping("/create")
-    public ResponseEntity<VisitDTO> createVisit(@RequestBody VisitDTO visitDTO){
+    public ResponseEntity<VisitDTO> createVisit(@RequestBody VisitDTO visitDTO) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             User user = authenticationHelper.extractUserFromToken(authentication);
 
-            Visit visit= mapper.fromDto(visitDTO);
-            service.createVisit(user,visit);
+            Visit visit = mapper.fromDto(visitDTO);
+            service.createVisit(user, visit);
             return ResponseEntity.ok(mapper.toDto(visit));
-        }catch (AuthorizationException e){
+        } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                     e.getMessage());
         }
     }
 
     @DeleteMapping("/{id}")
-    public  ResponseEntity<Void> deleteVisits(@PathVariable int id){
+    public ResponseEntity<Void> deleteVisits(@PathVariable int id) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             User user = authenticationHelper.extractUserFromToken(authentication);
 
             service.deleteVisit(user, id);
             return ResponseEntity.ok().build();
-        }catch (AuthorizationException e){
+        } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
     }

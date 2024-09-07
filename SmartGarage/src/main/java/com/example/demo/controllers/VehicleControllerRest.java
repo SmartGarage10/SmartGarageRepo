@@ -38,7 +38,7 @@ public class VehicleControllerRest {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             User user = authenticationHelper.extractUserFromToken(auth);
 
-            return ResponseEntity.ok(vehicleService.getAllVehicles(username, sortDirection));
+            return ResponseEntity.ok(vehicleService.getAllVehicles(user, username, sortDirection));
         }
         catch (AuthorizationException e){
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
@@ -46,7 +46,7 @@ public class VehicleControllerRest {
     }
 
     @PostMapping
-    public ResponseEntity<Vehicle> getAllVehicles(@RequestBody VehicleDTO vehicleDTO){
+    public ResponseEntity<Vehicle> createVehicle(@RequestBody VehicleDTO vehicleDTO){
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             User user = authenticationHelper.extractUserFromToken(auth);

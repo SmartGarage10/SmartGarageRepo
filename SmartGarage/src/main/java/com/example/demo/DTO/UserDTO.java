@@ -1,6 +1,5 @@
 package com.example.demo.DTO;
 
-import com.example.demo.models.Role;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,16 +7,11 @@ import org.checkerframework.common.aliasing.qual.Unique;
 
 @Data
 @NoArgsConstructor
-public class UserDTO {
+public class UserDTO extends PasswordDTO{
     @NotNull
     @Size(min = 2, max = 20,
             message = "Username should be between 2 and 20 symbols")
     private String username;
-
-    @NotNull
-    @Size(min = 4,
-            message = "Password should be at least 4 symbols")
-    private String password;
 
     @Unique
     @Email(message = "Email should be valid")

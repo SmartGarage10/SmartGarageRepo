@@ -4,6 +4,7 @@ import com.example.demo.exceptions.EntityDuplicateException;
 import com.example.demo.exceptions.EntityNotFoundException;
 import com.example.demo.filter.VehicleSpecifications;
 import com.example.demo.helpers.RestrictHelper;
+import com.example.demo.models.Role;
 import com.example.demo.models.User;
 import com.example.demo.models.Vehicle;
 import com.example.demo.repositories.UserRepository;
@@ -73,10 +74,17 @@ public class VehicleServiceImpl implements VehicleService{
         return vehicleRepository.findByVehiclePlate(vin);
     }
     @Override
-    public List<Vehicle> getAllVehicles(String ownerName, String sortDirection){
+    public List<Vehicle> getAllVehicles(User user, String ownerName, String sortDirection){
+        boolean isClient = user.getRole().getRoleName().equals(Role.RoleType.CLIENT);
+
         Specification<Vehicle> spec = Specification.where(null);
-        if (ownerName != null && !ownerName.isEmpty()) {
-            spec = spec.and(VehicleSpecifications.hasOwnerName(ownerName));
+        if (isClient) {
+            spec = spec.and(VehicleSpecifications.hasOwnerName(user.getUsername()));
+        }
+        else {
+            if (ownerName != null && !ownerName.isEmpty()) {
+                spec = spec.and(VehicleSpecifications.hasOwnerName(ownerName));
+            }
         }
 
         String sortField = "client";
@@ -86,9 +94,11 @@ public class VehicleServiceImpl implements VehicleService{
         Sort.Order order = "desc".equalsIgnoreCase(sortDirection) ? Sort.Order.desc(sortField) : Sort.Order.asc(sortField);
         Sort sort = Sort.by(order);
 
-        List<Vehicle> vehicles = vehicleRepository.findAll(spec, sort);
-        return vehicles;
+
+
+        return vehicleRepository.findAll(spec, sort);
     }
+
     @Override
     public void deleteVehicle(User user, int vehicleId){
         restrictHelper.isUserAdminOrEmployee(user);

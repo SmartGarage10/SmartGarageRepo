@@ -15,7 +15,7 @@ public interface UserService extends UserDetailsService {
     AuthenticationResponse authenticate(User user);
 
     User updateUser(User user, int userId, User userDetails);
-    public void changePassword(int userId, String oldPassword, String newPassword);
+    void changePassword(User user, String oldPassword, String newPassword);
 
     Optional<User> getUserById(int userId);
 

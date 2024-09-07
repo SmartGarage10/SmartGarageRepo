@@ -46,6 +46,8 @@ dependencies {
 	// Message validation dependency
 	implementation 'com.google.guava:guava:32.1.2-jre'
 
+	implementation 'org.eclipse.angus:jakarta.mail:2.0.3'
+
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 
 	compileOnly 'org.projectlombok:lombok'

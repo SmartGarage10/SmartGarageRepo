@@ -1,5 +1,6 @@
 package com.example.demo.controllers;
 
+import com.example.demo.DTO.PasswordDTO;
 import com.example.demo.DTO.UserDTO;
 import com.example.demo.exceptions.AuthorizationException;
 import com.example.demo.helpers.AuthenticationHelper;
@@ -90,6 +91,19 @@ public class UserControllerRest {
             User user = authenticationHelper.extractUserFromToken(auth);
             User updateUser = userMapper.fromDto(request);
             userService.updateUser(user, id, updateUser);
+            return ResponseEntity.ok().build();
+        }
+        catch (AuthorizationException e){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
+        }
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<Void> updateUserPassword(@RequestBody PasswordDTO request) {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            User user = authenticationHelper.extractUserFromToken(auth);
+            userService.changePassword(user, user.getPassword(), request.getPassword());
             return ResponseEntity.ok().build();
         }
         catch (AuthorizationException e){

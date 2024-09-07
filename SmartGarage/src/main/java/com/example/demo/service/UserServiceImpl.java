@@ -31,19 +31,23 @@ public class UserServiceImpl implements UserService {
     private final JWTService jwtService;
     private final AuthenticationManager authenticationManager;
     private final RestrictHelper restrictHelper;
+    private final EmailService emailService;
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
                            JWTService jwtService,
                            @Lazy AuthenticationManager authenticationManager,
-                           @Lazy RestrictHelper restrictHelper) {
+                           @Lazy RestrictHelper restrictHelper,
+                           EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.restrictHelper = restrictHelper;
+        this.emailService = emailService;
     }
+
 
     @Override
     public AuthenticationResponse register(User user, User request) {
@@ -57,6 +61,19 @@ public class UserServiceImpl implements UserService {
             throw new EntityDuplicateException("User", "email", request.getEmail());
         }
 
+        String fromEmail = user.getEmail();
+        String toEmail = request.getEmail();
+        String subject = "Welcome to BMW Garage";
+        String body = "We are thrilled to have you on board. Your registration has been successfully completed, and we are excited for you to begin your journey with us.\n" +
+                "Username: " + request.getUsername() + "\n" +
+                "Password: " + request.getPassword() + "\n\n" +
+                "Please make sure to keep this information secure. You can log in and change your password after your first login.\n\n" +
+                "If you have any questions or need assistance, feel free to reach out.\n\n" +
+                "We look forward to working with you!\n\n" +
+                "Best regards,\n" +
+                "BMW Garage";
+
+        emailService.sendRegistrationEmail(fromEmail, toEmail, subject, body);
         request.setPassword(passwordEncoder.encode(request.getPassword()));
         userRepository.save(request);
         String token = jwtService.generateToken(request);
@@ -104,13 +121,12 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(existingUser);
     }
     @Override
-    public void changePassword(int userId, String oldPassword, String newPassword) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User with ID " + userId + " not found."));
+    public void changePassword(User user, String oldPassword, String newPassword) {
 
-        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-            throw new IllegalArgumentException("Old password is incorrect.");
+        if (passwordEncoder.matches(oldPassword, newPassword)) {
+            throw new IllegalArgumentException("Your new password can't be the same as old one ");
         }
+
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
