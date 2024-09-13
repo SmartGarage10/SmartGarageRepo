@@ -1,4 +1,4 @@
-package com.example.demo.controllers;
+package com.example.demo.controllers.Rest;
 
 import com.example.demo.DTO.ServiceDTO;
 import com.example.demo.helpers.ServiceMapper;

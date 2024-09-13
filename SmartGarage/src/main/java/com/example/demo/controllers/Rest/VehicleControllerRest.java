@@ -1,4 +1,4 @@
-package com.example.demo.controllers;
+package com.example.demo.controllers.Rest;
 
 import com.example.demo.DTO.VehicleDTO;
 import com.example.demo.exceptions.AuthorizationException;

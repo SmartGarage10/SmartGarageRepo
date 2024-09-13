@@ -3,15 +3,12 @@ package com.example.demo.service;
 import com.example.demo.exceptions.EntityNotFoundException;
 import com.example.demo.filter.ServiceSpecifications;
 import com.example.demo.models.ServiceItem;
-import com.example.demo.models.User;
-import com.example.demo.models.Visit;
 import com.example.demo.repositories.ServiceRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class ServiceServiceImpl implements ServiceService {
@@ -66,6 +63,11 @@ public class ServiceServiceImpl implements ServiceService {
         }
         repository.deleteById(serviceId);
 
+    }
+
+    @Override
+    public ServiceItem createService(ServiceItem newServiceItem){
+        return repository.save(newServiceItem);
     }
 
 }

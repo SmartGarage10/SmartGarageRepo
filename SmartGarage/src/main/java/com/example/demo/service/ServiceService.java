@@ -1,11 +1,8 @@
 package com.example.demo.service;
 
 import com.example.demo.models.ServiceItem;
-import com.example.demo.models.ServiceOrder;
-import com.example.demo.models.User;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface ServiceService {
     List<ServiceItem> allServices();
@@ -14,5 +11,6 @@ public interface ServiceService {
     ServiceItem getServiceById(int serviceId);
     ServiceItem updateService(int serviceId, ServiceItem updateServiceItem);
     void deleteService(int serviceId);
+    ServiceItem createService(ServiceItem newServiceItem);
 
 }
