@@ -1,0 +1,33 @@
+<header class="position-fixed w-100 top-0">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/homepage">SocialNest</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/homepage">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/post/new">Create Post</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item" th:if="${session.currentUser == null}">
+                        <a class="nav-link" href="/auth/login"><span class="bi bi-box-arrow-in-right"></span> Login</a>
+                    </li>
+
+                    <li class="nav-item" th:if="${session.currentUser != null and (session.currentUser.role.roleName.toString() == 'ADMIN' or session.currentUser.role.roleName.toString() == 'EMPLOYEE')}">
+                        <a class="nav-link" href="/auth/register"><span class="bi bi-person"></span> Sign Up</a>
+                    </li>
+
+                    <li class="nav-item" th:if="${session.currentUser != null}">
+                        <a class="nav-link" href="/auth/logout"><span class="bi bi-box-arrow-right"></span> Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+</header>

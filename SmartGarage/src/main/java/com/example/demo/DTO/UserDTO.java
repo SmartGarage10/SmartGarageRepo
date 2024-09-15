@@ -7,10 +7,9 @@ import org.checkerframework.common.aliasing.qual.Unique;
 
 @Data
 @NoArgsConstructor
-public class UserDTO extends PasswordDTO{
+public class UserDTO extends PasswordDTO {
     @NotNull
-    @Size(min = 2, max = 20,
-            message = "Username should be between 2 and 20 symbols")
+    @Size(min = 2, max = 20, message = "Username should be between 2 and 20 symbols")
     private String username;
 
     @Unique

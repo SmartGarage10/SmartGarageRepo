@@ -180,14 +180,14 @@ public class UserServiceImpl implements UserService {
         if (sortField == null || sortField.isEmpty()) {
             sortField = "username";
         }
+
         if (sortDirection == null || sortDirection.isEmpty()) {
             sortDirection = "asc";
         }
 
         Sort.Order order = "desc".equalsIgnoreCase(sortDirection) ? Sort.Order.desc(sortField) : Sort.Order.asc(sortField);
         Sort sort = Sort.by(order);
-        List<User> users = userRepository.findAll(spec, sort);
-        return users;
+        return userRepository.findAll(spec, sort);
     }
 
     @Override

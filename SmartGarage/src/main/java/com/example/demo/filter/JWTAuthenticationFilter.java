@@ -34,23 +34,28 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
                                     @NotNull HttpServletResponse response,
                                     @NotNull FilterChain filterChain)
             throws ServletException, IOException {
-        String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
-            String username = jwtService.extractUsername(token);
+        String uri = request.getRequestURI();
 
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                try {
-                    UserDetails userDetails = userService.loadUserByUsername(username);
-                    if (jwtService.isValid(token, userDetails)) {
-                        UsernamePasswordAuthenticationToken authentication =
-                                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
-                    } else {
-                        logger.warn("JWT token is invalid or expired");
+        // Apply JWT filtering only to API paths
+        if (uri.startsWith("/api/")) {
+            String header = request.getHeader("Authorization");
+            if (header != null && header.startsWith("Bearer ")) {
+                String token = header.substring(7);
+                String username = jwtService.extractUsername(token);
+
+                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    try {
+                        UserDetails userDetails = userService.loadUserByUsername(username);
+                        if (jwtService.isValid(token, userDetails)) {
+                            UsernamePasswordAuthenticationToken authentication =
+                                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                            SecurityContextHolder.getContext().setAuthentication(authentication);
+                        } else {
+                            logger.warn("JWT token is invalid or expired");
+                        }
+                    } catch (Exception e) {
+                        logger.error("Error processing authentication", e);
                     }
-                } catch (Exception e) {
-                    logger.error("Error processing authentication", e);
                 }
             }
         }

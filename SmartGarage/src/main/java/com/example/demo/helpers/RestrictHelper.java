@@ -29,13 +29,13 @@ public class RestrictHelper {
         this.encoder = encoder;
     }
 
-//    public boolean isUserAdmin(User user){
-//        if (!user.getRole().getRoleName().equals(Role.RoleType.ADMIN)){
-//            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-//                    ADMIN_ERROR_MESSAGE);
-//        }
-//        return true;
-//    }
+    public boolean isUserAdmin(User user){
+        if (!user.getRole().getRoleName().equals(Role.RoleType.ADMIN)){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    ADMIN_ERROR_MESSAGE);
+        }
+        return true;
+    }
     public void isUserAdminOrEmployee(User user){
         if (!user.getRole().getRoleName().equals(Role.RoleType.ADMIN) && !user.getRole().getRoleName().equals(Role.RoleType.EMPLOYEE)){
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ADMIN_MODERATOR_ERROR_MESSAGE);

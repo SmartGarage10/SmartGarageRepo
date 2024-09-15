@@ -1,6 +1,8 @@
 package com.example.demo.config;
 
 import com.example.demo.filter.JWTAuthenticationFilter;
+import com.example.demo.models.Role;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,8 +22,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import java.util.Properties;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -32,19 +32,38 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Stateless session management
-                )
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/api/user/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll() // Open access to these endpoints
-                        .requestMatchers("api/vehicle/list").authenticated()
-                        .requestMatchers("/api/vehicle/**", "/api/service/**", "/api/visits/**").hasAnyRole("EMPLOYEE", "ADMIN")// Protected routes
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated() // All other requests must be authenticated
-                ).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(withDefaults()); // Enable basic auth for testing
-
+                        // JWT
+                        .requestMatchers("/api/**").permitAll() // Public API endpoints
+                        .requestMatchers("/api/vehicle/**", "/api/service/**", "/api/visits/**").hasAnyRole("EMPLOYEE", "ADMIN") // Protected API routes
+                        // MVC
+                        .requestMatchers("/auth/login", "/auth/logout", "/css/**", "/js/**", "/favicon.ico").permitAll() // Public resources
+                        .requestMatchers("/auth/register","/employee/clients", "/employee/client/{clientId}/edit", "/employee/client/{clientId}/delete").permitAll()
+                        .requestMatchers("/service/**", "/visit/**").permitAll()
+                        .anyRequest().authenticated() // All other routes require authentication
+                )
+//                .formLogin(form -> form
+//                        .loginPage("/auth/login") // Custom login page for MVC
+//                        .defaultSuccessUrl("/employee/clients", true) // Redirect to home on success
+//                        .permitAll()
+//                )
+//                .logout(logout -> logout
+//                        .logoutUrl("/auth/logout")
+//                        .logoutSuccessUrl("/auth/login?logout") // Redirect to login after logout
+//                        .permitAll()
+//                )
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
+                )
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
+                        )
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden")
+                        )
+                );
         return http.build();
     }
 
@@ -65,7 +84,7 @@ public class SecurityConfig {
         mailSender.setPort(587);
 
         mailSender.setUsername("emanuilpavlov2002@gmail.com");
-        mailSender.setPassword("pgvw yxfl csbz htdz"); // Use your actual App Password here
+        mailSender.setPassword("pgvw yxfl csbz htdz");
 
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
@@ -75,6 +94,4 @@ public class SecurityConfig {
 
         return mailSender;
     }
-
-
 }

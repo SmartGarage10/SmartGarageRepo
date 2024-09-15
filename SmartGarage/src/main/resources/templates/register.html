@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/form_style.css">
+    <title>Centered Form</title>
+</head>
+<body>
+
+<div th:replace="~{fragments/header :: header}" class="header"></div>
+
+<div class="content">
+    <div class="form-container">
+        <form class="p-5" action="/auth/register" method="post">
+            <h1 class="text-center">Sign up</h1>
+            <div class="d-flex flex-column gap-4">
+                <div class="form-group">
+                    <label for="exampleInputEmail1">Email address</label>
+                    <input type="email" name="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email">
+                    <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
+                </div>
+                <div class="form-group">
+                    <label for="exampleInputUsername">Username</label>
+                    <input type="text" name="username" class="form-control" id="exampleInputUsername" placeholder="Username">
+                </div>
+                <div class="form-group">
+                    <label for="exampleInputPhone">Phone</label>
+                    <input type="tel" name="phone" class="form-control" id="exampleInputPhone" placeholder="Phone number">
+                </div>
+                <div class="form-group">
+                    <label for="exampleInputPassword1">Password</label>
+                    <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password">
+                </div>
+                <div class="form-group">
+                    <label for="exampleInputPassword2">Confirm Password</label>
+                    <input type="password" name="passwordConfirm" class="form-control" id="exampleInputPassword2" placeholder="Confirm password">
+                </div>
+
+                <!-- Role selection based on user's role -->
+                <div class="form-group">
+                    <label for="roleSelect">Select Role</label>
+                    <select name="role" id="roleSelect" class="form-control">
+                        <option th:each="role : ${roles}"
+                                th:value="${role.roleName}"
+                                th:text="${role.roleName}"
+                                th:if="${session.currentUser.role.roleName.toString() != 'EMPLOYEE' || role.roleName.toString() == 'CLIENT'}">
+                        </option>
+                    </select>
+
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Submit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div th:replace="~{fragments/footer :: footer}" class="footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

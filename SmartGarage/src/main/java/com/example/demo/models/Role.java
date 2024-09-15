@@ -3,7 +3,11 @@ package com.example.demo.models;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -12,7 +16,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(exclude = {"users"})
-@ToString(exclude = "users")
+//@ToString(exclude = "users")
 public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,5 +34,14 @@ public class Role {
         CLIENT,
         EMPLOYEE,
         ADMIN
+    }
+    // This method returns the role as a list of authorities
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_" + this.roleName.name()));
+    }
+
+    @Override
+    public String toString() {
+        return roleName.toString().toUpperCase();
     }
 }
