@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visit List</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5">
+    <h1>Visit List</h1>
+
+    <!-- New Visit Button -->
+    <a href="/visit/create" class="btn btn-primary mb-3">Add New Visit</a>
+
+    <!-- Visit List Table -->
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Visit Date</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- Thymeleaf loop to display visits -->
+        <tr th:each="visit : ${visits}">
+            <td th:text="${visit.id}">1</td>
+            <td th:text="${visit.visitDate}">2024-09-13</td>
+            <td>
+                <form th:action="@{/visit/delete/{id}(id=${visit.id})}" method="post">
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+            </td>
+        </tr>
+        <!-- If no visits are present -->
+        <tr th:if="${#lists.isEmpty(visits)}">
+            <td colspan="3" class="text-center">No visits found.</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
