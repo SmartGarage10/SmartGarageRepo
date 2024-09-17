@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="${_csrf.token}" />
+    <title>Client List Filters</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}" class="header"></div>
+<div class="container mt-5">
+    <h1>Filter Clients</h1>
+    <button class="btn btn-secondary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#filterForm" aria-expanded="false" aria-controls="filterForm">
+        Toggle Filter Form
+    </button>
+
+    <!-- Collapsible Form -->
+    <div class="collapse" id="filterForm">
+        <form action="/vehicle/vehicles" method="get">
+            <div class="row g-3">
+<!--                <div class="col-md-4">-->
+<!--                    <label for="username" class="form-label">Username</label>-->
+<!--                    <input type="text" id="username" name="username" class="form-control" placeholder="Enter username" th:value="${}">-->
+<!--                </div>-->
+                <div class="col-md-4">
+                    <label for="brand" class="form-label">Brand</label>
+                    <input type="text" id="brand" name="brand" class="form-control" placeholder="Enter vehicle make" th:value="${brand}">
+                </div>
+                <div class="col-md-4">
+                    <label for="model" class="form-label">Model</label>
+                    <input type="text" id="model" name="model" class="form-control" placeholder="Enter vehicle model" th:value="${model}">
+                </div>
+                <div class="col-md-4">
+                    <label for="client" class="form-label">Year</label>
+                    <input type="text" id="year" name="year" class="form-control" placeholder="Enter vehicle year" th:value="${year}">
+                </div>
+                <div class="col-md-4">
+                    <label for="client" class="form-label">User</label>
+                    <input type="text" id="client" name="client" class="form-control" placeholder="Enter username" th:value="${client}">
+                </div>
+
+                <div class="col-md-4">
+                    <label for="sortField" class="form-label">Sort Field</label>
+                    <select id="sortField" name="sortField" class="form-select">
+                        <option value="brand" th:selected="${sortField == 'brand'}">Brand</option>
+                        <option value="model" th:selected="${sortField == 'model'}">Model</option>
+                        <option value="year" th:selected="${sortField == 'year'}">Year</option>
+                        <option value="client" th:selected="${sortField == 'client'}">User</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="sortDirection" class="form-label">Sort Direction</label>
+                    <select id="sortDirection" name="sortDirection" class="form-select">
+                        <option value="asc" th:selected="${sortDirection == 'asc'}">Ascending</option>
+                        <option value="desc" th:selected="${sortDirection == 'desc'}">Descending</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <a href="/vehicle/vehicles" class="btn btn-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <main>
+        <section>
+            <h2 class="my-5 text-center">Vehicles</h2>
+            <div class="posts-table">
+                <div class="table-head text-center d-none d-md-flex">
+                    <div class="col-3">Brand</div>
+                    <div class="col-3">Model</div>
+                    <div class="col-3">Year</div>
+                    <div class="col-3">Vehicle Plate</div>
+                    <div class="col-3">User</div>
+                    <div class="col-3">Action</div>
+                </div>
+                <div class="table-row d-md-flex align-items-center" th:each="vehicle : ${vehicles}">
+                    <div class="subjects col-3 text-center">
+                        <span th:text="${vehicle.brand}"></span>
+                    </div>
+                    <div class="col-3 text-center">
+                        <span th:text="${vehicle.model}"></span>
+                    </div>
+                    <div class="col-3 text-center">
+                        <span th:text="${vehicle.year}"></span>
+                    </div>
+                    <div class="col-3 text-center">
+                        <span th:text="${vehicle.vehiclePlate}"></span>
+                    </div>
+                    <div class="col-3 text-center">
+                        <span th:text="${vehicle.client.username}"></span>
+                    </div>
+                    <div class="action col-3 text-center">
+                        <button
+                                type="button"
+                                class="btn btn-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editModal"
+                                th:data-vehicle-id="${vehicle.id}"
+                                th:data-brand="${vehicle.brand}"
+                                th:data-model="${vehicle.model}"
+                                th:data-year="${vehicle.year}"
+                                th:data-client-username="${vehicle.client.username}"
+                                th:data-vehicle-plate="${vehicle.vehiclePlate}">
+                            Edit
+                        </button>
+                        <button type="button" class="btn btn-danger" th:data-vehicle-id="${vehicle.id}">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Edit Vehicle Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="updateVehicleForm" method="post">
+                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
+                        <input type="hidden" id="modal-vehicleId" name="vehicleId">
+                        <div class="mb-3">
+                            <label for="modal-username" class="form-label">User:</label>
+                            <input type="text" id="modal-username" name="username" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="modal-licensePlate" class="form-label">Vehicle plate:</label>
+                            <input type="text" id="modal-licensePlate" name="licensePlate" class="form-control">
+                        </div>
+
+                        <div class="d-flex align-items-center justify-content-center">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/footer :: footer}" class="footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/vehicle_script.js"></script>
+</body>
+</html>
