@@ -1,4 +1,4 @@
-package com.example.demo.controllers.mvc;
+package com.example.demo.controllers.MVC;
 
 import com.example.demo.DTO.EditUserDTO;
 import com.example.demo.helpers.UserMapper;

@@ -35,11 +35,15 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         // JWT
                         .requestMatchers("/api/**").permitAll() // Public API endpoints
-                        .requestMatchers("/api/vehicle/**", "/api/service/**", "/api/visits/**").hasAnyRole("EMPLOYEE", "ADMIN") // Protected API routes
+                        .requestMatchers("/api/vehicle/**", "/api/service/**", "/api/visits/**").
+                        hasAnyRole("EMPLOYEE", "ADMIN") // Protected API routes
                         // MVC
-                        .requestMatchers("/auth/login", "/auth/logout", "/css/**", "/js/**", "/favicon.ico").permitAll() // Public resources
-                        .requestMatchers("/auth/register","/employee/clients", "/employee/client/{clientId}/edit", "/employee/client/{clientId}/delete").permitAll()
+                        .requestMatchers("/auth/login", "/auth/logout", "/css/**", "/js/**", "/favicon.ico")
+                        .permitAll() // Public resources
+                        .requestMatchers("/auth/register","/employee/clients", "/employee/client/{clientId}/edit"
+                                , "/employee/client/{clientId}/delete").permitAll()
                         .requestMatchers("/service/**", "/visit/**").permitAll()
+                        .requestMatchers("/homepage/**").permitAll()
                         .anyRequest().authenticated() // All other routes require authentication
                 )
 //                .formLogin(form -> form

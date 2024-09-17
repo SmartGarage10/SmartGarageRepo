@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Details</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+
+<header th:replace="fragments/header :: header"></header>
+
+<div class="container mt-5">
+    <h1>Service Details</h1>
+    <div class="card mt-4">
+        <div class="card-body">
+            <h2 class="card-title" th:text="${service.serviceName}">Service Name</h2>
+            <p class="card-text" th:text="${service.description}">Service Description</p>
+            <p class="card-text">Price: <span th:text="${service.price}">Service Price</span></p>
+            <p class="card-text">Duration: <span th:text="${service.duration}">Service Duration</span></p>
+            <a th:href="@{/service/edit/{id}(id=${service.id})}" class="btn btn-warning">Edit</a>
+            <a th:href="@{/service/delete/{id}(id=${service.id})}"
+               class="btn btn-danger" onclick="return confirm('Are you sure?')">Delete</a>
+        </div>
+    </div>
+    <a th:href="@{/service}" class="btn btn-secondary mt-4">Back to Services</a>
+</div>
+
+<footer th:replace="fragments/footer :: footer"></footer>
+
+</body>
+</html>
