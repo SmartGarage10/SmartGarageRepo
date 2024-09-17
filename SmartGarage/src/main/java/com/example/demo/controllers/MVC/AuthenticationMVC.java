@@ -111,7 +111,7 @@ public class AuthenticationMVC {
     public String showRegisterPage(HttpSession session, Model model) {
         User currentUser = (User) session.getAttribute("currentUser");
 
-        if (currentUser == null || (!currentUser.getRole().getRoleName().equals(Role.RoleType.ADMIN) && !currentUser.getRole().getRoleName().equals(Role.RoleType.EMPLOYEE))) {
+        if (currentUser != null || (!currentUser.getRole().getRoleName().equals(Role.RoleType.ADMIN) && !currentUser.getRole().getRoleName().equals(Role.RoleType.EMPLOYEE))) {
             return "login";
         }
 

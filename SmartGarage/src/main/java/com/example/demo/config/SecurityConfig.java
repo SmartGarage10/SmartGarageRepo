@@ -1,7 +1,6 @@
 package com.example.demo.config;
 
 import com.example.demo.filter.JWTAuthenticationFilter;
-import com.example.demo.models.Role;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -33,19 +32,35 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authz -> authz
-                        // JWT
-                        .requestMatchers("/api/**").permitAll() // Public API endpoints
-                        .requestMatchers("/api/vehicle/**", "/api/service/**", "/api/visits/**").
-                        hasAnyRole("EMPLOYEE", "ADMIN") // Protected API routes
-                        // MVC
-                        .requestMatchers("/auth/login", "/auth/logout", "/css/**", "/js/**", "/favicon.ico")
-                        .permitAll() // Public resources
-                        .requestMatchers("/auth/register","/employee/clients", "/employee/client/{clientId}/edit"
-                                , "/employee/client/{clientId}/delete").permitAll()
+
+                        .requestMatchers("/api/**").permitAll()
+                        .requestMatchers("/api/vehicle/**", "/api/service/**", "/api/visits/**")
+                        .hasAnyRole("EMPLOYEE", "ADMIN")
+
+                        .requestMatchers("/", "/homepage/**", "/auth/login",
+                                "/auth/logout", "/css/**", "/js/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/auth/register", "/employee/clients",
+                                "/employee/client/{clientId}/edit",
+                                "/employee/client/{clientId}/delete").permitAll()
                         .requestMatchers("/service/**", "/visit/**").permitAll()
-                        .requestMatchers("/homepage/**").permitAll()
-                        .anyRequest().authenticated() // All other routes require authentication
+
+                        .anyRequest().authenticated()
                 )
+//                .csrf(AbstractHttpConfigurer::disable)
+//                .authorizeHttpRequests(authz -> authz
+//                        // JWT
+//                        .requestMatchers("/api/**").permitAll() // Public API endpoints
+//                        .requestMatchers("/api/vehicle/**", "/api/service/**", "/api/visits/**").
+//                        hasAnyRole("EMPLOYEE", "ADMIN") // Protected API routes
+//                        // MVC
+//                        .requestMatchers("/auth/login", "/auth/logout", "/css/**", "/js/**", "/favicon.ico")
+//                        .permitAll() // Public resources
+//                        .requestMatchers("/auth/register","/employee/clients", "/employee/client/{clientId}/edit"
+//                                , "/employee/client/{clientId}/delete").permitAll()
+//                        .requestMatchers("/service/**", "/visit/**").permitAll()
+//                        .requestMatchers("/homepage/**").permitAll()
+//                        .anyRequest().authenticated() // All other routes require authentication
+//                )
 //                .formLogin(form -> form
 //                        .loginPage("/auth/login") // Custom login page for MVC
 //                        .defaultSuccessUrl("/employee/clients", true) // Redirect to home on success

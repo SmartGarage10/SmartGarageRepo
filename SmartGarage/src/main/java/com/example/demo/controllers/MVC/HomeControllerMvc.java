@@ -19,11 +19,12 @@ public class HomeControllerMvc {
         this.mapper = mapper;
     }
 
-    @GetMapping("/homepage")
+    @GetMapping("/")
     public String showHomePage(Model model){
         List<ServiceDTO> serviceDTOS = service.allServices()
                 .stream()
                 .map(mapper::toDto)
+                .limit(5)
                 .toList();
         model.addAttribute("service", serviceDTOS);
         return "home";
