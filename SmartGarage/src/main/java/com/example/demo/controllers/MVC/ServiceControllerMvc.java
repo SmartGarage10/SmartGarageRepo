@@ -28,7 +28,7 @@ public class ServiceControllerMvc {
         this.userMapper = userMapper;
     }
 
-    @GetMapping()
+    @GetMapping("/services")
     public String getAllSerivces(Model model){
         List<ServiceItem> services = service.allServices();
         List<ServiceDTO> serviceDTOS = services.stream()
