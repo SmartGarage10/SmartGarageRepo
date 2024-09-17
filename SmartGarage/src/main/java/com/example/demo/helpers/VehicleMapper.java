@@ -1,5 +1,6 @@
 package com.example.demo.helpers;
 
+import com.example.demo.DTO.EditVehicleDTO;
 import com.example.demo.DTO.UserDTO;
 import com.example.demo.DTO.VehicleDTO;
 import com.example.demo.exceptions.EntityNotFoundException;
@@ -35,6 +36,16 @@ public class VehicleMapper {
         vehicle.setModel(vehicleDTO.getModel());
         vehicle.setYear(vehicleDTO.getYearOfCreation());
 
+        User user = userService.getUserByUsername(vehicleDTO.getUsername())
+                .orElseThrow(() -> new EntityNotFoundException("User", "username", vehicleDTO.getUsername()));
+        vehicle.setClient(user);
+
+        return vehicle;
+    }
+
+    public Vehicle fromDto(EditVehicleDTO vehicleDTO){
+        Vehicle vehicle = new Vehicle();
+        vehicle.setVehiclePlate(vehicleDTO.getLicensePlate());
         User user = userService.getUserByUsername(vehicleDTO.getUsername())
                 .orElseThrow(() -> new EntityNotFoundException("User", "username", vehicleDTO.getUsername()));
         vehicle.setClient(user);

@@ -34,6 +34,6 @@ public class User {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
-    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "client", fetch = FetchType.EAGER)
     private Set<Vehicle> vehicles;
 }

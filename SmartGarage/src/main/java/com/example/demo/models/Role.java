@@ -16,7 +16,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(exclude = {"users"})
-//@ToString(exclude = "users")
+@ToString(exclude = "users")
 public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,10 +38,5 @@ public class Role {
     // This method returns the role as a list of authorities
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + this.roleName.name()));
-    }
-
-    @Override
-    public String toString() {
-        return roleName.toString().toUpperCase();
     }
 }

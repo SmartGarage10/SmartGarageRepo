@@ -1,6 +1,7 @@
 package com.example.demo.helpers;
 
 import com.example.demo.DTO.EditUserDTO;
+import com.example.demo.DTO.LoginDTO;
 import com.example.demo.DTO.RoleDTO;
 import com.example.demo.DTO.UserDTO;
 import com.example.demo.models.Role;
@@ -50,7 +51,6 @@ public class UserMapper {
 
         return user;
     }
-
 
     private Role mapRoleDtoToRole(RoleDTO roleDto) {
         if (roleDto == null) {

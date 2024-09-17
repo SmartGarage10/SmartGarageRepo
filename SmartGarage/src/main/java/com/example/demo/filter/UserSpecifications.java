@@ -20,21 +20,13 @@ public class UserSpecifications {
         return (root, query, criteriaBuilder) ->
                 criteriaBuilder.like(root.get("phone"), "%" + phone + "%");
     }
-
-    public static Specification<User> hasVehicleModelOrMake(String model, String make) {
+    public static Specification<User> hasRole(String rolename) {
         return (root, query, criteriaBuilder) -> {
             query.distinct(true);
-            return criteriaBuilder.or(
-                    criteriaBuilder.like(criteriaBuilder.lower(root.join("vehicles").get("model")), "%" + model.toLowerCase() + "%"),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.join("vehicles").get("make")), "%" + make.toLowerCase() + "%")
+            return criteriaBuilder.equal(
+                    criteriaBuilder.lower(root.join("role").get("roleName")),
+                    rolename.toUpperCase()
             );
-        };
-    }
-
-    public static Specification<User> visitsInRange(LocalDateTime startDate, LocalDateTime endDate) {
-        return (root, query, criteriaBuilder) -> {
-            query.distinct(true);
-            return criteriaBuilder.between(root.join("vehicles").join("visits").get("date"), startDate, endDate);
         };
     }
 }

@@ -1,4 +1,4 @@
-package com.example.demo.controllers.MVC;
+package com.example.demo.controllers.mvc;
 
 import com.example.demo.DTO.LoginDTO;
 import com.example.demo.DTO.RegisterDTO;
@@ -76,8 +76,6 @@ public class AuthenticationMVC {
                 logger.error("User authentication failed: User is null");
                 return "login";
             }
-
-            String role = user.getRole().getRoleName().toString();
 
             logger.info("Authenticated user: {}", user);
             session.setAttribute("currentUser", user);

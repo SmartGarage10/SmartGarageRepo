@@ -1,4 +1,4 @@
-package com.example.demo.controllers.MVC;
+package com.example.demo.controllers.mvc;
 
 import com.example.demo.DTO.EditUserDTO;
 import com.example.demo.helpers.UserMapper;
@@ -35,26 +35,19 @@ public class UserMVC {
                                 @RequestParam(required = false) String username,
                                 @RequestParam(required = false) String email,
                                 @RequestParam(required = false) String phone,
-                                @RequestParam(required = false) String vehicleModel,
-                                @RequestParam(required = false) String vehicleMake,
-                                @RequestParam(required = false) LocalDateTime visitStartDate,
-                                @RequestParam(required = false) LocalDateTime visitEndDate,
+                                @RequestParam(required = false) String roleName,
                                 @RequestParam(required = false, defaultValue = "username") String sortField,
                                 @RequestParam(required = false, defaultValue = "asc") String sortDirection) {
         User currentUser = (User) session.getAttribute("currentUser");
         logger.info("Retrieved 'currentUser' from session: {}", currentUser);
 
-        List<User> clients = userService.getAllUsers(username, email, phone, vehicleModel, vehicleMake,
-                visitStartDate, visitEndDate, sortField, sortDirection);
+        List<User> clients = userService.getAllUsers(username, email, phone, roleName, sortField, sortDirection);
 
         model.addAttribute("clients", clients);
         model.addAttribute("username", username);
         model.addAttribute("email", email);
         model.addAttribute("phone", phone);
-        model.addAttribute("vehicleModel", vehicleModel);
-        model.addAttribute("vehicleMake", vehicleMake);
-        model.addAttribute("visitStartDate", visitStartDate);
-        model.addAttribute("visitEndDate", visitEndDate);
+        model.addAttribute("roleName", roleName);
         model.addAttribute("sortField", sortField);
         model.addAttribute("sortDirection", sortDirection);
 

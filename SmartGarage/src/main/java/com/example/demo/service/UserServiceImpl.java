@@ -153,8 +153,7 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByPhone(phone);
     }
     @Override
-    public List<User> getAllUsers(String username, String email, String phone, String vehicleModel, String vehicleMake,
-                                  LocalDateTime visitStartDate, LocalDateTime visitEndDate, String sortField, String sortDirection) {
+    public List<User> getAllUsers(String username, String email, String phone, String roleName, String sortField, String sortDirection) {
         Specification<User> spec = Specification.where(null);
 
         if (username != null && !username.isEmpty()) {
@@ -169,13 +168,10 @@ public class UserServiceImpl implements UserService {
             spec = spec.and(UserSpecifications.hasPhone(phone));
         }
 
-        if ((vehicleModel != null && !vehicleModel.isEmpty()) || (vehicleMake != null && !vehicleMake.isEmpty())) {
-            spec = spec.and(UserSpecifications.hasVehicleModelOrMake(vehicleModel, vehicleMake));
+        if (roleName != null && !roleName.isEmpty()) {
+            spec = spec.and(UserSpecifications.hasRole(roleName));
         }
 
-        if (visitStartDate != null && visitEndDate != null) {
-            spec = spec.and(UserSpecifications.visitsInRange(visitStartDate, visitEndDate));
-        }
 
         if (sortField == null || sortField.isEmpty()) {
             sortField = "username";

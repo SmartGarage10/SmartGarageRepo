@@ -25,7 +25,6 @@ public interface UserService extends UserDetailsService {
 
     Optional<User> getUserByPhone(String phone);
 
-    List<User> getAllUsers(String username, String email, String phone, String vehicleModel, String vehicleMake,
-                           LocalDateTime visitStartDate, LocalDateTime visitEndDate, String sortField, String sortDirection);
+    List<User> getAllUsers(String username, String email, String phone, String roleName, String sortField, String sortDirection);
     void deleteUser(User user, int userId);
 }
