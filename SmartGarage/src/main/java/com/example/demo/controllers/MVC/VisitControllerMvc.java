@@ -8,6 +8,7 @@ import com.example.demo.helpers.VisitMapper;
 import com.example.demo.models.User;
 import com.example.demo.models.Visit;
 import com.example.demo.service.VisitService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.boot.Banner;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,21 +33,21 @@ public class VisitControllerMvc {
     }
 
     @GetMapping("/create")
-    public String showCreateVisit(Model model){
+    public String showCreateVisit(HttpSession session, Model model){
+        User user = (User) session.getAttribute("currentUser");
         model.addAttribute("visit", new VisitDTO());
-        return "create-viist";
+        return "create-visit";
     }
 
     @PostMapping("/create")
-    public String createVisit(@ModelAttribute("visit") VisitDTO visitDTO, Model model){
+    public String createVisit(HttpSession session, @ModelAttribute("visit") VisitDTO visitDTO, Model model){
         try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            User user = authenticationHelper.extractUserFromToken(authentication);
+            User user = (User) session.getAttribute("currentUser");
 
             Visit visit = mapper.fromDto(visitDTO);
             service.createVisit(user, visit);
 
-            return "redirect:/visits";
+            return "redirect:/visit/visits";
         }catch (AuthorizationException e){
             model.addAttribute("error", "You don't have permission to create visits! ");
             return "error";
@@ -54,25 +55,23 @@ public class VisitControllerMvc {
     }
 
     @PostMapping("/delete/{id}")
-    public String deleteVisit(@PathVariable int id, Model model){
+    public String deleteVisit(HttpSession session, @PathVariable int id, Model model){
         try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            User user = authenticationHelper.extractUserFromToken(authentication);
+            User user = (User) session.getAttribute("currentUser");
 
             service.deleteVisit(user, id);
-            return "redirect:/visits";
+            return "redirect:/visit/visits";
         }catch (AuthorizationException e){
             model.addAttribute("error", "You don't have permission to delete visits");
             return "error";
         }
     }
 
-    @GetMapping
-    public String listVisits(Model model){
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User user = authenticationHelper.extractUserFromToken(authentication);
+    @GetMapping("/visits")
+    public String listVisits(HttpSession session, Model model){
+        User user = (User) session.getAttribute("currentUser");
 
         model.addAttribute("visits", service.getAllVisits());
-        return "visit-listd";
+        return "visit-list";
     }
 }

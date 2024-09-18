@@ -20,6 +20,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Integer> {
     @Query("SELECT v FROM Vehicle v WHERE v.client.username = :username")
     List<Vehicle> findVehiclesByClientUsername(@Param("username") String username);
     List<Vehicle> findAll(Specification<Vehicle> spec, Sort sort);
+    List<Vehicle> findVehiclesByClient(User user);
     boolean existsByVehiclePlate(String vehiclePlate);
     boolean existsByVin(String vin);
 

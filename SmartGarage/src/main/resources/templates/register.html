@@ -13,42 +13,46 @@
 
 <div class="content">
     <div class="form-container">
-        <form class="p-5" action="/auth/register" method="post">
-            <h1 class="text-center">Sign up</h1>
+        <form class="p-5" th:action="@{/auth/register}" method="post" th:object="${register}">
+            <h1 class="text-center">Create User</h1>
             <div class="d-flex flex-column gap-4">
                 <div class="form-group">
                     <label for="exampleInputEmail1">Email address</label>
-                    <input type="email" name="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email">
+                    <input type="email" name="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email" th:field="*{email}">
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
                     <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
                 </div>
                 <div class="form-group">
                     <label for="exampleInputUsername">Username</label>
-                    <input type="text" name="username" class="form-control" id="exampleInputUsername" placeholder="Username">
+                    <input type="text" name="username" class="form-control" id="exampleInputUsername" placeholder="Username" th:field="*{username}">
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></div>
                 </div>
                 <div class="form-group">
                     <label for="exampleInputPhone">Phone</label>
-                    <input type="tel" name="phone" class="form-control" id="exampleInputPhone" placeholder="Phone number">
+                    <input type="tel" name="phone" class="form-control" id="exampleInputPhone" placeholder="Phone number" th:field="*{phone}">
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></div>
                 </div>
                 <div class="form-group">
                     <label for="exampleInputPassword1">Password</label>
-                    <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password">
+                    <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password" th:field="*{password}">
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
                 </div>
                 <div class="form-group">
                     <label for="exampleInputPassword2">Confirm Password</label>
-                    <input type="password" name="passwordConfirm" class="form-control" id="exampleInputPassword2" placeholder="Confirm password">
+                    <input type="password" name="passwordConfirm" class="form-control" id="exampleInputPassword2" placeholder="Confirm password" th:field="*{passwordConfirm}">
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('passwordConfirm')}" th:errors="*{passwordConfirm}"></div>
                 </div>
 
                 <!-- Role selection based on user's role -->
                 <div class="form-group">
                     <label for="roleSelect">Select Role</label>
-                    <select name="role" id="roleSelect" class="form-control">
+                    <select name="role" id="roleSelect" class="form-control" th:field="*{role}">
                         <option th:each="role : ${roles}"
                                 th:value="${role.roleName}"
-                                th:text="${role.roleName}"
-                                th:if="${session.currentUser.role.roleName.toString() != 'EMPLOYEE' || role.roleName.toString() == 'CLIENT'}">
+                                th:text="${role.roleName}">
                         </option>
                     </select>
-
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('role')}" th:errors="*{role}"></div>
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100">Submit</button>

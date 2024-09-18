@@ -90,7 +90,7 @@ public class AuthenticationMVC {
                 logger.info("User is an employee, set 'isEmployee' in session");
             }
 
-            return "redirect:/employee/clients";
+            return "redirect:/";
         } catch (AuthorizationException e) {
             logger.error("Authentication error: {}", e.getMessage());
             bindingResult.rejectValue("password", "auth_error", e.getMessage());
@@ -109,7 +109,7 @@ public class AuthenticationMVC {
     public String showRegisterPage(HttpSession session, Model model) {
         User currentUser = (User) session.getAttribute("currentUser");
 
-        if (currentUser != null || (!currentUser.getRole().getRoleName().equals(Role.RoleType.ADMIN) && !currentUser.getRole().getRoleName().equals(Role.RoleType.EMPLOYEE))) {
+        if (currentUser == null || (!currentUser.getRole().getRoleName().equals(Role.RoleType.ADMIN) && !currentUser.getRole().getRoleName().equals(Role.RoleType.EMPLOYEE))) {
             return "login";
         }
 

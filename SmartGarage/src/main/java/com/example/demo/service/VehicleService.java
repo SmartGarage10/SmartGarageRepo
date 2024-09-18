@@ -20,5 +20,6 @@ public interface VehicleService {
 
     List<Vehicle> getAllVehicles(User user, String ownerName, String vehicleMake, String vehicleModel, Year year, String sortField, String sortDirection);
 
+    List<Vehicle> getVehiclesByUser(User user);
     void deleteVehicle(User user, int vehicleId);
 }

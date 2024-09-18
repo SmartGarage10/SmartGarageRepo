@@ -131,6 +131,12 @@ public class VehicleServiceImpl implements VehicleService{
         // Fetch and return the filtered and sorted list of vehicles
         return vehicleRepository.findAll(spec, sort);
     }
+
+    @Override
+    public List<Vehicle> getVehiclesByUser(User user) {
+        return vehicleRepository.findVehiclesByClient(user);
+    }
+
     @Override
     public void deleteVehicle(User user, int vehicleId){
         restrictHelper.isUserAdminOrEmployee(user);

@@ -43,11 +43,11 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/api/**").permitAll() // Public API endpoints
+                        .requestMatchers("/","/api/**").permitAll() // Public API endpoints
                         .requestMatchers("/api/vehicle/**", "/api/service/**", "/api/visits/**").hasAnyRole("EMPLOYEE", "ADMIN")
                         .requestMatchers("/auth/login", "/login","/css/**", "/js/**", "/favicon.ico").permitAll()
                         .requestMatchers("/auth/register","/employee/clients", "/employee/client/{clientId}/edit", "/employee/client/{clientId}/delete").permitAll() // .hasAnyRole(Role.RoleType.ADMIN.toString(), Role.RoleType.EMPLOYEE.toString())
-                        .requestMatchers("/service/**", "/visit/**", "/vehicle/**").permitAll()
+                        .requestMatchers("/service/**", "/visit/**", "/vehicle/**", "/profile", "/edit-profile", "/forgot-password", "/reset-password").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(formLogin ->

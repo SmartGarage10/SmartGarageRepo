@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+        .profile-card {
+            max-width: 350px; /* Increase profile card width */
+            margin-right: 20px; /* Space between profile card and vehicles table */
+        }
+        .profile-info {
+            text-align: center;
+        }
+        .profile-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .vehicles-table {
+            flex: 1; /* Allow table to take remaining space */
+            max-width: 100%; /* Ensure the table width is responsive */
+        }
+        .table {
+            width: 100%; /* Ensure table uses full width of its container */
+        }
+        .table th, .table td {
+            text-align: center; /* Center align text in table cells */
+        }
+    </style>
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}" class="header"></div>
+<div class="container mt-5">
+    <h1 class="text-center">User Profile</h1>
+
+    <div class="profile-row mt-4">
+        <!-- Profile Card -->
+        <div class="profile-card bg-light p-3 rounded-4">
+            <div class="profile-img text-center mb-3">
+                <img id="user-avatar" src="https://via.placeholder.com/150" alt="User Avatar" class="img-fluid rounded-circle border" style="max-width: 150px;">
+            </div>
+
+            <div class="profile-info">
+                <h2 id="user-name" th:text="${user.username}"></h2>
+                <p><strong>Email:</strong> <span id="user-email" th:text="${user.email}"></span></p>
+                <p><strong>Role:</strong> <span th:text="${user.role.roleName}"></span></p>
+                <p><strong>Phone:</strong> <span id="user-phone" th:text="${user.phone}"></span></p>
+                <button id="edit-button" class="btn btn-primary me-2"
+                th:if="${session.currentUser.role.roleName.toString() == 'ADMIN' or session.currentUser.role.roleName.toString() == 'EMPLOYEE'}">Edit Profile</button>
+                <form id="changePasswordForm" action="/forgot-password" method="post" style="display:inline;">
+                    <input type="hidden" name="email" th:value="${user.email}">
+                    <button type="submit" class="btn btn-primary">Change Password</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Vehicles Table -->
+        <div class="vehicles-table bg-light p-3 rounded-4">
+            <h2 class="text-center mb-3">Vehicles</h2>
+            <div class="posts-table">
+                <div class="table-head text-center d-none d-md-flex">
+                    <div class="col-2">Brand</div>
+                    <div class="col-2">Model</div>
+                    <div class="col-2">Year</div>
+                    <div class="col-2">Vehicle Plate</div>
+                </div>
+                <div class="table-row d-md-flex align-items-center" th:each="vehicle : ${vehicles}">
+                    <div class="subjects col-2 text-center">
+                        <span th:text="${vehicle.brand}"></span>
+                    </div>
+                    <div class="col-2 text-center">
+                        <span th:text="${vehicle.model}"></span>
+                    </div>
+                    <div class="col-2 text-center">
+                        <span th:text="${vehicle.year}"></span>
+                    </div>
+                    <div class="col-2 text-center">
+                        <span th:text="${vehicle.vehiclePlate}"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Edit User Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Form with action pointing to /edit-profile and using POST -->
+                    <form id="editProfileForm" method="post" action="/edit-profile">
+                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/> <!-- CSRF token -->
+
+                        <!-- Username field -->
+                        <div class="mb-3">
+                            <label for="modal-username" class="form-label">Username:</label>
+                            <input type="text" id="modal-username" name="username" class="form-control" th:value="${user.username}">
+                        </div>
+
+                        <!-- Email field -->
+                        <div class="mb-3">
+                            <label for="modal-email" class="form-label">Email:</label>
+                            <input type="email" id="modal-email" name="email" class="form-control" th:value="${user.email}">
+                        </div>
+
+                        <!-- Phone field -->
+                        <div class="mb-3">
+                            <label for="modal-phone" class="form-label">Phone:</label>
+                            <input type="tel" id="modal-phone" name="phone" class="form-control" th:value="${user.phone}">
+                        </div>
+
+                        <div class="d-flex align-items-center justify-content-center">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/footer :: footer}" class="footer"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/profile.js"></script>
+<script src="/js/password.js"></script>
+</body>
+</html>
