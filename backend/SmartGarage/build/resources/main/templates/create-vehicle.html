@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/form_style.css">
+    <title>Create Vehicle</title>
+</head>
+<body>
+<div class="content">
+    <div class="form-container">
+        <div class="container">
+            <h1 class="my-1 text-center">Create vehicle</h1>
+            <form action="/vehicle/create" method="post" class="mx-2">
+                <!-- CSRF token if using Spring Security -->
+                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
+
+                <!-- Vehicle Plate -->
+                <div class="mb-3">
+                    <label for="licensePlate" class="form-label">Vehicle Plate:</label>
+                    <input type="text" id="licensePlate" name="licensePlate" class="form-control" required>
+                </div>
+
+                <!-- VIN -->
+                <div class="mb-3">
+                    <label for="vin" class="form-label">VIN:</label>
+                    <input type="text" id="vin" name="vin" class="form-control" required>
+                </div>
+
+                <!-- Client -->
+                <div class="mb-3">
+                    <label for="username" class="form-label">Client:</label>
+                    <input type="text" id="username" name="username" class="form-control" required>
+
+                <!-- Brand -->
+                <div class="mb-3">
+                    <label for="brand" class="form-label">Brand:</label>
+                    <input type="text" id="brand" name="brand" class="form-control" required>
+                </div>
+
+                <!-- Model -->
+                <div class="mb-3">
+                    <label for="model" class="form-label">Model:</label>
+                    <input type="text" id="model" name="model" class="form-control" required>
+                </div>
+
+                <!-- Year -->
+                <div class="mb-3">
+                    <label for="yearOfCreation" class="form-label">Year:</label>
+                    <input type="number" id="yearOfCreation" name="yearOfCreation" class="form-control" min="1900" max="${Year.now()}" required>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="d-flex align-items-center justify-content-center">
+                    <button type="submit" class="btn btn-primary">Create Vehicle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
