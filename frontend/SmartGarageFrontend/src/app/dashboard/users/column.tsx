@@ -1,4 +1,5 @@
 "use client";
+
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -19,7 +20,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import {
     Briefcase,
@@ -42,7 +43,7 @@ export type UserRoleType = {
 };
 
 export type User = {
-    id: string; // Keeping as string since most modern databases use string IDs
+    id: string;
     name: string;
     username: string;
     email: string;
@@ -53,12 +54,11 @@ export type User = {
 
 interface ColumnsConfig {
     onEdit: (user: User) => void;
-    onDelete: (userId: string) => Promise<void>; // Changed to string to match User.id
+    onDelete: (userId: string) => Promise<void>;
 }
 
-const normalizeRole = (role: UserRoleType | UserRole): UserRole => {
-    return typeof role === "string" ? role : role.roleName;
-};
+const normalizeRole = (role: UserRoleType | UserRole): UserRole =>
+    typeof role === "string" ? role : role.roleName;
 
 const getRoleIcon = (role: UserRole) => {
     switch (role) {
@@ -67,7 +67,6 @@ const getRoleIcon = (role: UserRole) => {
         case UserRole.EMPLOYEE:
             return Briefcase;
         case UserRole.CLIENT:
-            return User;
         default:
             return User;
     }
@@ -104,6 +103,13 @@ export const getColumns = ({
             <DataTableColumnHeader column={column} title="Full Name" />
         ),
         cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
+        meta: {
+            label: "Full Name",
+            placeholder: "Search by name...",
+            variant: "text",
+            icon: Text,
+        },
+        enableColumnFilter: true,
     },
     {
         id: "username",
@@ -112,6 +118,13 @@ export const getColumns = ({
             <DataTableColumnHeader column={column} title="Username" />
         ),
         cell: ({ row }) => <div>{row.getValue("username")}</div>,
+        meta: {
+            label: "Username",
+            placeholder: "Search by username...",
+            variant: "text",
+            icon: Text,
+        },
+        enableColumnFilter: true,
     },
     {
         id: "email",
@@ -120,6 +133,13 @@ export const getColumns = ({
             <DataTableColumnHeader column={column} title="Email" />
         ),
         cell: ({ row }) => <div>{row.getValue("email")}</div>,
+        meta: {
+            label: "Email",
+            placeholder: "Search by email...",
+            variant: "text",
+            icon: Text,
+        },
+        enableColumnFilter: true,
     },
     {
         id: "role",
@@ -141,6 +161,13 @@ export const getColumns = ({
             const role = normalizeRole(row.getValue(id));
             return value.includes(role);
         },
+        meta: {
+            filterVariant: "multi-select",
+            filterOptions: Object.values(UserRole).map((role) => ({
+                label: role,
+                value: role,
+            })),
+        },
     },
     {
         id: "address",
@@ -151,6 +178,13 @@ export const getColumns = ({
         cell: ({ row }) => (
             <div className="truncate max-w-[200px]">{row.getValue("address")}</div>
         ),
+        meta: {
+            label: "Address",
+            placeholder: "Search by address...",
+            variant: "text",
+            icon: Text,
+        },
+        enableColumnFilter: true,
     },
     {
         id: "phone",
@@ -159,6 +193,13 @@ export const getColumns = ({
             <DataTableColumnHeader column={column} title="Phone" />
         ),
         cell: ({ row }) => <div>{row.getValue("phone")}</div>,
+        meta: {
+            label: "Phone",
+            placeholder: "Search by phone...",
+            variant: "text",
+            icon: Text,
+        },
+        enableColumnFilter: true,
     },
     {
         id: "actions",

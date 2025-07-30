@@ -7,7 +7,7 @@ import {
     getSortedRowModel,
     type ColumnFiltersState,
 } from "@tanstack/react-table";
-import { UserRole, getColumns, Users } from "./column";
+import { UserRole, getColumns, Users } from "@/src/app/dashboard/users/column";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableFacetedFilter } from "@/components/data-table/data-table-faceted-filter";
 import { DataTableAdvancedToolbar } from "@/components/data-table/data-table-advanced-toolbar";
