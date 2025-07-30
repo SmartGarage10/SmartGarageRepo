@@ -22,3 +22,5 @@ INSERT INTO service (price, name) VALUES (120.00, 'Tire');
 INSERT INTO service (price, name) VALUES (12.99, 'Coolant');
 INSERT INTO service (price, name) VALUES (7.99, 'Spark Plugs');
 INSERT INTO service (price, name) VALUES (8.99, 'Brake Fluid');
+
+DELETE FROM users;

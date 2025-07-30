@@ -41,21 +41,31 @@ public class RestrictHelper {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ADMIN_MODERATOR_ERROR_MESSAGE);
         }
     }
-//    public <T extends Creatable> void isUserACreator(T entity, User user) {
-//        if (user.getId() != entity.getCreator().getId()) {
-//            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authorized");
-//        }
-//    }
-//    public <T extends Creatable> void deletePermission(User user) {
-//        if ((!user.getRole().getRoleName().equals(Role.RoleType.ADMIN) && !user.getRole().getRoleName().equals(Role.RoleType.EMPLOYEE))){
-//            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authorized");
-//        }
-//    }
-//    public <T extends Creatable> void deletePermission(T entity, User user) {
-//        if (user.getId() != entity.getCreator().getId() && (!user.getRole().getRoleName().equals(Role.RoleType.ADMIN) && !user.getRole().getRoleName().equals(Role.RoleType.EMPLOYEE))){
-//            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authorized");
-//        }
-//    }
+
+    public void isUserAdminEmployeeOrOwner(User requestingUser, int targetUserId) {
+        if (!(requestingUser.getRole().getRoleName().equals(Role.RoleType.ADMIN) ||
+                requestingUser.getRole().getRoleName().equals(Role.RoleType.EMPLOYEE) ||
+                requestingUser.getId() == (targetUserId))) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "You must be an admin, employee, or the profile owner");
+        }
+    }
+
+    public <T extends Creatable> void isUserACreator(T entity, User user) {
+        if (user.getId() != entity.getCreator().getId()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authorized");
+        }
+    }
+    public <T extends Creatable> void deletePermission(User user) {
+        if ((!user.getRole().getRoleName().equals(Role.RoleType.ADMIN) && !user.getRole().getRoleName().equals(Role.RoleType.EMPLOYEE))){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authorized");
+        }
+    }
+    public <T extends Creatable> void deletePermission(T entity, User user) {
+        if (user.getId() != entity.getCreator().getId() && (!user.getRole().getRoleName().equals(Role.RoleType.ADMIN) && !user.getRole().getRoleName().equals(Role.RoleType.EMPLOYEE))){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authorized");
+        }
+    }
 
     public User verifyAuthentication(String username, String password) {
         try {

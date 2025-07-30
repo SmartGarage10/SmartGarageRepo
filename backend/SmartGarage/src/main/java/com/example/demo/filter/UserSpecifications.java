@@ -1,32 +1,64 @@
 package com.example.demo.filter;
 
 import com.example.demo.models.User;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.springframework.data.jpa.domain.Specification;
+import com.example.demo.DTO.Filter;
+import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+@Component
 public class UserSpecifications {
-    public static Specification<User> hasName(String name) {
-        return (root, query, criteriaBuilder) ->
-                criteriaBuilder.like(criteriaBuilder.lower(root.get("username")), "%" + name.toLowerCase() + "%");
-    }
 
-    public static Specification<User> hasEmail(String email) {
-        return (root, query, criteriaBuilder) ->
-                criteriaBuilder.like(root.get("email"), "%" + email.toLowerCase() + "%");
-    }
+    public Specification<User> createSpecification(List<Filter> filters) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
 
-    public static Specification<User> hasPhone(String phone) {
-        return (root, query, criteriaBuilder) ->
-                criteriaBuilder.like(root.get("phone"), "%" + phone + "%");
-    }
-    public static Specification<User> hasRole(String rolename) {
-        return (root, query, criteriaBuilder) -> {
-            query.distinct(true);
-            return criteriaBuilder.equal(
-                    criteriaBuilder.lower(root.join("role").get("roleName")),
-                    rolename.toUpperCase()
-            );
+            if (filters != null) {
+                for (Filter filter : filters) {
+                    predicates.add(buildPredicate(filter, root, cb));
+                }
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    private Predicate buildPredicate(Filter filter, Root<User> root, CriteriaBuilder cb) {
+        String field = filter.getId();
+        String value = filter.getValue();
+        String operator = filter.getOperator().toLowerCase();
+
+        Path<String> fieldPath = root.get(field);
+
+        switch (operator) {
+            case "ilike":
+                return cb.like(cb.lower(fieldPath), "%" + value.toLowerCase() + "%");
+            case "notilike":
+                return cb.notLike(cb.lower(fieldPath), "%" + value.toLowerCase() + "%");
+            case "eq":
+                return cb.equal(fieldPath, value);
+            case "ne":
+                return cb.notEqual(fieldPath, value);
+            case "isempty":
+                return cb.or(
+                        cb.isNull(fieldPath),
+                        cb.equal(fieldPath, ""),
+                        cb.equal(fieldPath, " ")
+                );
+            case "isnotempty":
+                return cb.and(
+                        cb.isNotNull(fieldPath),
+                        cb.notEqual(fieldPath, ""),
+                        cb.notEqual(fieldPath, " ")
+                );
+            default:
+                throw new IllegalArgumentException("Unsupported operator: " + operator);
+        }
     }
 }

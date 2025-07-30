@@ -21,63 +21,70 @@ export function DataTableAdvancedToolbar({
   children,
   className,
   menuLabel,
+  onCreateClick, // Handler for create button click
   ...props
 }) {
   return (
-    <div
-      role="toolbar"
-      aria-orientation="horizontal"
-      className={cn(
-        "flex w-full items-start justify-between gap-2 p-1",
-        className
-      )}
-      {...props}
-    >
-      <div className="flex flex-1 flex-wrap items-center gap-2">{children}</div>
+      <div
+          role="toolbar"
+          aria-orientation="horizontal"
+          className={cn(
+              "flex w-full items-start justify-between gap-2 p-1",
+              className
+          )}
+          {...props}
+      >
+        <div className="flex flex-1 flex-wrap items-center gap-2">{children}</div>
 
-      <div className="flex items-center gap-2">
-        <DataTableViewOptions table={table} />
+        <div className="flex items-center gap-2">
+          <DataTableViewOptions table={table} />
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <MoreHorizontal />
-              <span className="sr-only">Open menu</span>
-            </Button>
-          </DropdownMenuTrigger>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <MoreHorizontal />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-44">
-            {/* Create / Add */}
-            <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer">
-              <PlusCircleIcon size={"sm"} className="text-foreground"/>
-              <span>{menuLabel}</span>
-            </DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-44">
+              {/* Create / Add */}
+              <DropdownMenuItem
+                  className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    onCreateClick?.(); // Call the create handler if provided
+                  }}
+              >
+                <PlusCircleIcon size={"sm"} className="text-foreground"/>
+                <span>{menuLabel}</span>
+              </DropdownMenuItem>
 
-            {/* Export Submenu */}
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer">
-                <Download size={16} />
-                <span>Export</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent>
-                  <ExportMenu
-                    table={table}
-                    fileName="data-export"
-                    variant="menuitem"
-                  />
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
+              {/* Export Submenu */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer">
+                  <Download size={16} />
+                  <span>Export</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent>
+                    <ExportMenu
+                        table={table}
+                        fileName="data-export"
+                        variant="menuitem"
+                    />
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
 
-            {/* Delete */}
-            <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50/50 data-[highlighted]:bg-red-50/50 data-[highlighted]:text-red-600">
-              <Trash2 className="text-red-600" size={"sm"}/>
-              <span>Delete</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              {/* Delete */}
+              <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50/50 data-[highlighted]:bg-red-50/50 data-[highlighted]:text-red-600">
+                <Trash2 className="text-red-600" size={"sm"}/>
+                <span>Delete</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
-    </div>
   );
 }

@@ -24,4 +24,5 @@ public interface UserRepository extends JpaRepository<User, Integer>, JpaSpecifi
     boolean existsByEmail(String email);
     boolean existsByPhone(String phone);
 
+    Integer id(int id);
 }

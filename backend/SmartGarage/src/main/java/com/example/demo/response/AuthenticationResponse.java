@@ -1,12 +1,14 @@
 package com.example.demo.response;
 
 public class AuthenticationResponse {
-    private final String token;
-    public AuthenticationResponse(String token) {
-        this.token = token;
+    private final String message;
+
+    public AuthenticationResponse(String message) {
+        this.message = message;
     }
 
-    public String getToken() {
-        return token;
+    public String getMessage() {
+        return message;
     }
 }
+

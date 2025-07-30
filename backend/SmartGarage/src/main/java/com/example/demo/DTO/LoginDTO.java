@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class LoginDTO {
-    @NotEmpty(message = "Username can't be empty")
-    private String username;
+    @NotEmpty(message = "Email can't be empty")
+    private String email;
 
     @NotEmpty(message = "Password can't be empty")
     private String password;

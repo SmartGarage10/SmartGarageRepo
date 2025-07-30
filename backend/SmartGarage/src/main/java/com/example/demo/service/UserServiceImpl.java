@@ -1,19 +1,27 @@
 package com.example.demo.service;
 
+import com.example.demo.DTO.Filter;
 import com.example.demo.exceptions.EntityDuplicateException;
 import com.example.demo.exceptions.EntityNotFoundException;
 import com.example.demo.filter.UserSpecifications;
+import com.example.demo.helpers.PasswordGeneratorHelper;
 import com.example.demo.helpers.RestrictHelper;
 import com.example.demo.models.User;
 import com.example.demo.repositories.UserRepository;
 import com.example.demo.response.AuthenticationResponse;
+import com.example.demo.response.RegistrationResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,35 +30,37 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JWTService jwtService;
     private final AuthenticationManager authenticationManager;
     private final RestrictHelper restrictHelper;
     private final EmailService emailService;
+    private final PasswordGeneratorHelper passwordGeneratorHelper;
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
-                           JWTService jwtService,
                            @Lazy AuthenticationManager authenticationManager,
                            @Lazy RestrictHelper restrictHelper,
-                           EmailService emailService) {
+                           EmailService emailService,
+                           PasswordGeneratorHelper passwordGeneratorHelper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.restrictHelper = restrictHelper;
         this.emailService = emailService;
+        this.passwordGeneratorHelper = passwordGeneratorHelper;
     }
 
 
     @Override
-    public AuthenticationResponse register(User user, User request) {
+    public RegistrationResponse register(User user, User request) {
         restrictHelper.isUserAdminOrEmployee(user);
 
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -61,65 +71,96 @@ public class UserServiceImpl implements UserService {
             throw new EntityDuplicateException("User", "email", request.getEmail());
         }
 
+        String tempPass = passwordGeneratorHelper.generatePassayPassword();
+
         String fromEmail = user.getEmail();
         String toEmail = request.getEmail();
         String subject = "Welcome to BMW Garage";
         String body = "We are thrilled to have you on board. Your registration has been successfully completed, and we are excited for you to begin your journey with us.\n" +
                 "Username: " + request.getUsername() + "\n" +
-                "Password: " + request.getPassword() + "\n\n" +
+                "Password: " + tempPass + "\n\n" +
                 "Please make sure to keep this information secure. You can log in and change your password after your first login.\n\n" +
                 "If you have any questions or need assistance, feel free to reach out.\n\n" +
                 "We look forward to working with you!\n\n" +
                 "Best regards,\n" +
                 "BMW Garage";
 
+        request.setPassword(passwordEncoder.encode(tempPass));
         emailService.sendRegistrationEmail(fromEmail, toEmail, subject, body);
-        request.setPassword(passwordEncoder.encode(request.getPassword()));
         userRepository.save(request);
-        String token = jwtService.generateToken(request);
-        return new AuthenticationResponse(token);
+
+        return new RegistrationResponse(
+                "Registration successful. User can now login with their credentials",
+                request.getUsername(), LocalDateTime.now());
     }
 
     @Override
-    public AuthenticationResponse authenticate(User user) {
-        authenticationManager.authenticate(
+    public Optional<User> authenticate(User user, HttpServletRequest request) {
+        Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        user.getUsername(),
+                        user.getEmail(),
                         user.getPassword())
         );
-        Optional<User> findUser = userRepository.findUserByUsername(user.getUsername());
-        String token = jwtService.generateToken(user);
+        // Create new security context and set authentication
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
 
-        return new AuthenticationResponse(token);
+        // Store security context in session
+        HttpSession session = request.getSession(true);
+        session.setAttribute("SPRING_SECURITY_CONTEXT", context);
+
+        return userRepository.findUserByEmail(user.getEmail());
     }
+
 
     @Override
     public User updateUser(User user, int userId, User userDetails) {
-        restrictHelper.isUserAdminOrEmployee(user);
-        if (!userRepository.existsById(userId)) {
-            throw new EntityNotFoundException("User", "id", String.valueOf(userId));
-        }
+        // 1. Check User permissions
+        restrictHelper.isUserAdminEmployeeOrOwner(user, userId);
 
+        // 2. Find existing user
         User existingUser = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("Id", userId));
+                .orElseThrow(() -> new EntityNotFoundException("User", "id", String.valueOf(userId)));
 
-        String newUsername = userDetails.getUsername();
-        if (newUsername != null && !userRepository.existsByUsername(newUsername)) {
-            existingUser.setUsername(newUsername);
-        }
+        // 3. Get all users (for duplicate checking)
+        List<User> allUsers = userRepository.findAll();
 
-        String newEmail = userDetails.getEmail();
-        if (newEmail != null && !userRepository.existsByEmail(newEmail)) {
-            existingUser.setEmail(newEmail);
-        }
+        // 4. Process all updatable fields
+        Stream.of(
+                        Map.entry("username", userDetails.getUsername()),
+                        Map.entry("email", userDetails.getEmail()),
+                        Map.entry("phone", userDetails.getPhone())
+                )
+                .forEach(entry -> {
+                    String currentValue = getCurrentFieldValue(existingUser, entry.getKey());
+                    Optional.ofNullable(entry.getValue())
+                            .filter(newValue -> !newValue.equals(currentValue)) // Skip if unchanged
+                            .filter(newValue -> !isDuplicateField(allUsers, entry.getKey(), newValue, userId))
+                            .ifPresent(newValue -> setUserField(existingUser, entry.getKey(), newValue));
+                });
 
-        String newPhone = userDetails.getPhone();
-        if (newPhone != null && !userRepository.existsByPhone(newPhone)) {
-            existingUser.setPhone(newPhone);
+        // 5. Process fields without duplicate checking
+        Stream.of(
+                        Map.entry("name", userDetails.getName()),
+                        Map.entry("address", userDetails.getAddress())
+                )
+                .forEach(entry -> {
+                    String currentValue = getCurrentFieldValue(existingUser, entry.getKey());
+                    Optional.ofNullable(entry.getValue())
+                            .filter(newValue -> !newValue.equals(currentValue))
+                            .ifPresent(newValue -> setUserField(existingUser, entry.getKey(), newValue));
+                });
+
+        // 6. Handle role update separately (admin only)
+
+        if (userDetails.getRole() != null && !userDetails.getRole().equals(existingUser.getRole())) {
+            existingUser.setRole(userDetails.getRole());
         }
 
         return userRepository.save(existingUser);
     }
+
     @Override
     public void changePassword(User user, String oldPassword, String newPassword) {
 
@@ -130,10 +171,12 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
+
     @Override
     public Optional<User> getUserById(int userId) {
         return userRepository.findById(userId);
     }
+
     @Override
     public Optional<User> getUserByUsername(String username) {
         if (username.isEmpty() || username.isBlank()) {
@@ -141,6 +184,7 @@ public class UserServiceImpl implements UserService {
         }
         return userRepository.findUserByUsername(username);
     }
+
     @Override
     public Optional<User> getUserByEmail(String email) {
         if (email.isEmpty() || email.isBlank()) {
@@ -148,63 +192,55 @@ public class UserServiceImpl implements UserService {
         }
         return userRepository.findUserByEmail(email);
     }
+
     @Override
     public Optional<User> getUserByPhone(String phone) {
         return userRepository.findByPhone(phone);
     }
+
     @Override
-    public List<User> getAllUsers(String username, String email, String phone, String roleName, String sortField, String sortDirection) {
-        Specification<User> spec = Specification.where(null);
+    public List<User> getAllUsers(List<Filter> filters) {
+        Specification<User> spec = new UserSpecifications().createSpecification(filters);
+        return userRepository.findAll(spec);
+    }
 
-        if (username != null && !username.isEmpty()) {
-            spec = spec.and(UserSpecifications.hasName(username));
-        }
-
-        if (email != null && !email.isEmpty()) {
-            spec = spec.and(UserSpecifications.hasEmail(email));
-        }
-
-        if (phone != null && !phone.isEmpty()) {
-            spec = spec.and(UserSpecifications.hasPhone(phone));
-        }
-
-        if (roleName != null && !roleName.isEmpty()) {
-            spec = spec.and(UserSpecifications.hasRole(roleName));
-        }
-
-
-        if (sortField == null || sortField.isEmpty()) {
-            sortField = "username";
-        }
-
-        if (sortDirection == null || sortDirection.isEmpty()) {
-            sortDirection = "asc";
-        }
-
-        Sort.Order order = "desc".equalsIgnoreCase(sortDirection) ? Sort.Order.desc(sortField) : Sort.Order.asc(sortField);
-        Sort sort = Sort.by(order);
-        return userRepository.findAll(spec, sort);
+    @Override
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
     }
 
     @Override
     public void deleteUser(User user, int userId) {
-        restrictHelper.isUserAdminOrEmployee(user);
-        if (userId < 0) {
-            throw new IllegalArgumentException("User ID must be greater than zero.");
-        }
-        if (!userRepository.existsById(userId)) {
-            throw new EntityNotFoundException("Id", userId);
-        }
-        userRepository.deleteById(userId);
+        // 1. Validate permissions (admin, employee, or owner)
+        restrictHelper.isUserAdminEmployeeOrOwner(user, userId);
+
+        // 2. Check if the target user exists
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
+
+        // 3. Perform deletion
+        userRepository.delete(targetUser);
     }
 
+    /**
+     * Loads the user details based on the provided email.
+     * <p>
+     * This method is used by Spring Security during authentication to retrieve
+     * user credentials and authorities from the database. It assumes that the
+     * user's email is used as the username identifier.
+     * </p>
+     *
+     * @param email the user's email address, used as the login identifier
+     * @return a Spring Security {@link UserDetails} object containing the user's credentials and authorities
+     * @throws UsernameNotFoundException if no user is found with the given email
+     */
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = userRepository.findUserByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
         return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getUsername())
+                .username(user.getEmail())  // or user.getUsername() if needed
                 .password(user.getPassword())
                 .authorities(user.getRole() != null ?
                         Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().getRoleName())) :
@@ -214,5 +250,39 @@ public class UserServiceImpl implements UserService {
                 .credentialsExpired(false)
                 .disabled(false)
                 .build();
+    }
+
+    private boolean isEmpty(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    // Helper to check for duplicates in memory
+    private boolean isDuplicateField(List<User> allUsers, String field, String value, int currentUserId) {
+        return allUsers.stream()
+                .filter(user -> user.getId() != currentUserId) // Exclude current user (int comparison)
+                .anyMatch(user -> value.equals(getCurrentFieldValue(user, field)));
+    }
+
+    // Helper to get field value
+    private String getCurrentFieldValue(User user, String field) {
+        return switch (field) {
+            case "name" -> user.getName();
+            case "username" -> user.getUsername();
+            case "email" -> user.getEmail();
+            case "phone" -> user.getPhone();
+            case "role" -> user.getRole().toString();
+            default -> null;
+        };
+    }
+
+    // Helper to set field value
+    private void setUserField(User user, String field, String value) {
+        switch (field) {
+            case "name" -> user.setName(value);
+            case "username" -> user.setUsername(value);
+            case "email" -> user.setEmail(value);
+            case "phone" -> user.setPhone(value);
+            case "address" -> user.setAddress(value);
+        }
     }
 }

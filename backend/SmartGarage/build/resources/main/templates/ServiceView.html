@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="//www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Service List</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-
+<div th:replace="~{fragments/header :: header}" class="header"></div>
 <div class="container mt-5">
     <h1>Service List</h1>
 
@@ -27,14 +28,16 @@
         </tr>
         </thead>
         <tbody>
-        <tr>
-            <td>1</td>
-            <td>Service 1</td>
-            <td>$100</td>
+        <!-- Loop through services and display them -->
+        <tr th:each="service : ${services}">
+            <td th:text="${service.id}"></td>
+            <td th:text="${service.serviceName}"></td>
+            <td th:text="${service.price}"></td>
             <td>
                 <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#editServiceModal"
-                        onclick="openEditModal(1, 'Service 1', 100)">Edit</button>
-                <a href="/service/delete/1" class="btn btn-danger btn-sm">Delete</a>
+                        th:onclick="'openEditModal(' + ${service.id} + ', \'' + ${service.serviceName} + '\', ' + ${service.price} + ')'">Edit
+                </button>
+                <a th:href="@{/service/delete/{id}(id=${service.id})}" class="btn btn-danger btn-sm">Delete</a>
             </td>
         </tr>
         </tbody>
@@ -45,7 +48,7 @@
 <div class="modal fade" id="newServiceModal" tabindex="-1" aria-labelledby="newServiceModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form action="/service/new" method="post">
+            <form th:action="@{/service/new-service}" method="post">
                 <div class="modal-header">
                     <h5 class="modal-title" id="newServiceModalLabel">Add New Service</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -71,10 +74,11 @@
     </div>
 </div>
 
+<!-- Edit Service Modal -->
 <div class="modal fade" id="editServiceModal" tabindex="-1" aria-labelledby="editServiceModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form action="/service/edit" method="post" id="editServiceForm">
+            <form th:action="@{/service/edit/{id}(id=${editServiceId})}" method="post" id="editServiceForm">
                 <div class="modal-header">
                     <h5 class="modal-title" id="editServiceModalLabel">Edit Service</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">

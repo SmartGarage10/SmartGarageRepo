@@ -10,13 +10,19 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(exclude = {"roles"})
-@ToString(exclude = "roles")
+@EqualsAndHashCode(exclude = {"role"})
+@ToString(exclude = "role")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private int id;
+
+    @Column(name = "name", nullable = false)
+    private String name;
+
+    @Column(name = "address", nullable = false)
+    private String address;
 
     @Column(name = "username", nullable = false, unique = true)
     private String username;
