@@ -5,17 +5,10 @@ import com.example.demo.exceptions.AuthorizationException;
 import com.example.demo.helpers.*;
 import com.example.demo.models.User;
 import com.example.demo.service.UserService;
-import com.example.demo.service.UserServiceImpl;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.parameters.P;
 import org.springframework.util.MultiValueMap;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -30,14 +23,12 @@ import java.util.stream.Collectors;
 public class UserControllerRest {
     private final UserService userService;
     private final SecurityHelper securityHelper;
-    private final ObjectMapper objectMapper;
     private final UserMapper userMapper;
 
     @Autowired
-    public UserControllerRest(UserService userService, SecurityHelper securityHelper, ObjectMapper objectMapper, UserMapper userMapper) {
+    public UserControllerRest(UserService userService, SecurityHelper securityHelper, UserMapper userMapper) {
         this.userService = userService;
         this.securityHelper = securityHelper;
-        this.objectMapper = objectMapper;
         this.userMapper = userMapper;
     }
 
@@ -45,9 +36,7 @@ public class UserControllerRest {
     public ResponseEntity<List<User>> getAllUsers(@RequestParam MultiValueMap<String, String> allParams) {
         try {
             securityHelper.isAuthenticated();
-
-            List<Filter> filterList = convertToFilters(allParams);
-            return ResponseEntity.ok(userService.getAllUsers(filterList));
+            return ResponseEntity.ok(userService.getAllUsers(allParams));
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }
@@ -105,7 +94,6 @@ public class UserControllerRest {
     public ResponseEntity<?> deleteUser(@PathVariable int id) {
         try {
             User currentUser = securityHelper.getCurrentUser();
-
             userService.deleteUser(currentUser, id);
             return ResponseEntity.ok(Map.of("status", "success", "message", "User deleted successfully"));
         } catch (AuthorizationException e) {
@@ -113,41 +101,15 @@ public class UserControllerRest {
         }
     }
 
-
-
-    private List<Filter> convertToFilters(MultiValueMap<String, String> params) {
-        if (params == null || params.isEmpty()) {
-            return Collections.emptyList();
+    @DeleteMapping("/users/delete")
+    public ResponseEntity<?> deleteUser(@RequestBody List<Integer> ids) {
+        try {
+            User currentUser = securityHelper.getCurrentUser();
+            userService.deleteUsers(currentUser, ids);
+            return ResponseEntity.ok(Map.of("status", "success", "message", "User deleted successfully"));
+        } catch (AuthorizationException e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
-
-        // Special handling for JSON-encoded filters parameter
-        if (params.containsKey("filters")) {
-            try {
-                String filtersJson = params.getFirst("filters");
-                return objectMapper.readValue(filtersJson, new TypeReference<List<Filter>>() {
-                });
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("Failed to parse filters parameter", e);
-            }
-        }
-
-        // Default conversion for regular parameters
-        return params.entrySet().stream()
-                .filter(entry -> !entry.getKey().equals("page") &&
-                        !entry.getKey().equals("size") &&
-                        !entry.getKey().equals("sort"))
-                .flatMap(entry -> entry.getValue().stream()
-                        .map(value -> {
-                            Filter filter = new Filter();
-                            filter.setId(entry.getKey());
-                            filter.setValue(value);
-                            filter.setVariant("text");  // Default variant
-                            filter.setOperator("iLike"); // Default operator
-                            filter.setFilterId(UUID.randomUUID().toString()); // Generate unique ID
-                            return filter;
-                        })
-                )
-                .collect(Collectors.toList());
     }
 
     private ResponseEntity<Map<String, String>> validateRequest(BindingResult bindingResult) {

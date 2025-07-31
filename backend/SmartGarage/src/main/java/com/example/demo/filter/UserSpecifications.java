@@ -1,12 +1,12 @@
 package com.example.demo.filter;
 
+import com.example.demo.models.Role;
 import com.example.demo.models.User;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.Path;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
-import org.springframework.data.jpa.domain.Specification;
 import com.example.demo.DTO.Filter;
+import com.example.demo.repositories.RoleRepository;
+import jakarta.persistence.criteria.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -15,11 +15,36 @@ import java.util.List;
 @Component
 public class UserSpecifications {
 
+    public Specification<User> createRoleSpecification(List<Role> roles) {
+        return (root, query, cb) -> {
+            if (roles == null || roles.isEmpty()) {
+                return cb.conjunction(); // No filtering if no roles
+            }
+
+            List<Predicate> predicates = new ArrayList<>();
+
+            for (Role role : roles) {
+                if (role != null) {
+                    // Use equals or like depending on your requirement
+                    // If exact match:
+                    predicates.add(cb.equal(root.get("role"), role));
+                }
+            }
+
+            return predicates.isEmpty() ? cb.conjunction() : cb.or(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    public Specification<User> createSearchSpecification(String searchFilter) {
+        return (root, query, cb) ->
+                cb.like(cb.lower(root.get("name")), searchFilter.toLowerCase() + "%");
+    }
+
     public Specification<User> createSpecification(List<Filter> filters) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (filters != null) {
+            if (!filters.isEmpty()) {
                 for (Filter filter : filters) {
                     predicates.add(buildPredicate(filter, root, cb));
                 }

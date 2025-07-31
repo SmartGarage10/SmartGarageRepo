@@ -12,4 +12,5 @@ public class Filter {
 
     @JsonProperty("filterId")
     private String filterId;    // Frontend-generated filter ID
+
 }

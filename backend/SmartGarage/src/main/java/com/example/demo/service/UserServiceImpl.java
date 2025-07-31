@@ -6,10 +6,15 @@ import com.example.demo.exceptions.EntityNotFoundException;
 import com.example.demo.filter.UserSpecifications;
 import com.example.demo.helpers.PasswordGeneratorHelper;
 import com.example.demo.helpers.RestrictHelper;
+import com.example.demo.models.Role;
 import com.example.demo.models.User;
+import com.example.demo.repositories.RoleRepository;
 import com.example.demo.repositories.UserRepository;
 import com.example.demo.response.AuthenticationResponse;
 import com.example.demo.response.RegistrationResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,22 +31,23 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.MultiValueMap;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
     private final AuthenticationManager authenticationManager;
     private final RestrictHelper restrictHelper;
     private final EmailService emailService;
+    private final PasswordEncoder passwordEncoder;
     private final PasswordGeneratorHelper passwordGeneratorHelper;
+    private final ObjectMapper objectMapper;
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
@@ -49,16 +55,38 @@ public class UserServiceImpl implements UserService {
                            @Lazy AuthenticationManager authenticationManager,
                            @Lazy RestrictHelper restrictHelper,
                            EmailService emailService,
-                           PasswordGeneratorHelper passwordGeneratorHelper) {
+                           PasswordGeneratorHelper passwordGeneratorHelper,
+                           ObjectMapper objectMapper,
+                           RoleRepository roleRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.restrictHelper = restrictHelper;
         this.emailService = emailService;
         this.passwordGeneratorHelper = passwordGeneratorHelper;
+        this.objectMapper = objectMapper;
+        this.roleRepository = roleRepository;
     }
 
 
+    @Override
+    public Optional<User> authenticate(User user, HttpServletRequest request) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        user.getEmail(),
+                        user.getPassword())
+        );
+        // Create new security context and set authentication
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+
+        // Store security context in session
+        HttpSession session = request.getSession(true);
+        session.setAttribute("SPRING_SECURITY_CONTEXT", context);
+
+        return userRepository.findUserByEmail(user.getEmail());
+    }
     @Override
     public RegistrationResponse register(User user, User request) {
         restrictHelper.isUserAdminOrEmployee(user);
@@ -95,24 +123,57 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Optional<User> authenticate(User user, HttpServletRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        user.getEmail(),
-                        user.getPassword())
-        );
-        // Create new security context and set authentication
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(authentication);
-        SecurityContextHolder.setContext(context);
+    public List<User> getAllUsers(MultiValueMap<String, String> allParams) {
+        Specification<User> spec = Specification.where(null);
+        UserSpecifications userSpecs = new UserSpecifications();
 
-        // Store security context in session
-        HttpSession session = request.getSession(true);
-        session.setAttribute("SPRING_SECURITY_CONTEXT", context);
+        // 1. Apply role filters if present
+        if (allParams.containsKey("role")) {
+            List<String> roles = allParams.get("role");
+            List<Role> roleList = roleRepository.findByRoleNameIn(roles);
+            if (!roles.isEmpty()) {
+                Specification<User> roleSpec = userSpecs.createRoleSpecification(roleList);
+                spec = spec.and(roleSpec);
+            }
+        }
 
-        return userRepository.findUserByEmail(user.getEmail());
+        // 2. Apply search filter if present
+        if (allParams.containsKey("search")) {
+            String search = allParams.getFirst("search");
+            if (search != null && !search.trim().isEmpty()) {
+                Specification<User> searchSpec = userSpecs.createSearchSpecification(search);
+                spec = spec.and(searchSpec);
+            }
+        }
+
+        // 3. Apply other filters
+        if (allParams.containsKey("filters")) {
+            List<Filter> filters = convertToFilters(allParams);
+            if (filters != null && !filters.isEmpty()) {
+                Specification<User> searchSpec = userSpecs.createSpecification(filters);
+                spec = spec.and(searchSpec);
+            }
+        }
+
+        return userRepository.findAll(spec);
+    }
+    @Override
+    public Optional<User> getUserById(int userId) {
+        return userRepository.findById(userId);
+    }
+    @Override
+    public Optional<User> getUserByUsername(String username) {
+        if (username.isEmpty()) {
+            throw new EntityNotFoundException("User", "username", username);
+        }
+        return userRepository.findUserByUsername(username);
     }
 
+//    @Override
+//    public List<User> searchByName(String name) {
+//        Specification<User> spec = new UserSpecifications().createSearchSpecification(name);
+//        return userRepository.findAll(spec);
+//    }
 
     @Override
     public User updateUser(User user, int userId, User userDetails) {
@@ -173,43 +234,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Optional<User> getUserById(int userId) {
-        return userRepository.findById(userId);
-    }
-
-    @Override
-    public Optional<User> getUserByUsername(String username) {
-        if (username.isEmpty() || username.isBlank()) {
-            throw new EntityNotFoundException("User", "username", username);
-        }
-        return userRepository.findUserByUsername(username);
-    }
-
-    @Override
-    public Optional<User> getUserByEmail(String email) {
-        if (email.isEmpty() || email.isBlank()) {
-            throw new EntityNotFoundException("User", "email", email);
-        }
-        return userRepository.findUserByEmail(email);
-    }
-
-    @Override
-    public Optional<User> getUserByPhone(String phone) {
-        return userRepository.findByPhone(phone);
-    }
-
-    @Override
-    public List<User> getAllUsers(List<Filter> filters) {
-        Specification<User> spec = new UserSpecifications().createSpecification(filters);
-        return userRepository.findAll(spec);
-    }
-
-    @Override
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
-    }
-
-    @Override
     public void deleteUser(User user, int userId) {
         // 1. Validate permissions (admin, employee, or owner)
         restrictHelper.isUserAdminEmployeeOrOwner(user, userId);
@@ -220,6 +244,14 @@ public class UserServiceImpl implements UserService {
 
         // 3. Perform deletion
         userRepository.delete(targetUser);
+    }
+    @Override
+    public void deleteUsers(User user, List<Integer> ids) {
+        // 1. Validate permissions (admin or employee)
+        restrictHelper.isUserAdminOrEmployee(user);
+
+        // 2. Perform deletion
+        userRepository.deleteAllById(ids);
     }
 
     /**
@@ -252,17 +284,12 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
-    private boolean isEmpty(String value) {
-        return value == null || value.trim().isEmpty();
-    }
-
     // Helper to check for duplicates in memory
     private boolean isDuplicateField(List<User> allUsers, String field, String value, int currentUserId) {
         return allUsers.stream()
                 .filter(user -> user.getId() != currentUserId) // Exclude current user (int comparison)
                 .anyMatch(user -> value.equals(getCurrentFieldValue(user, field)));
     }
-
     // Helper to get field value
     private String getCurrentFieldValue(User user, String field) {
         return switch (field) {
@@ -274,7 +301,6 @@ public class UserServiceImpl implements UserService {
             default -> null;
         };
     }
-
     // Helper to set field value
     private void setUserField(User user, String field, String value) {
         switch (field) {
@@ -284,5 +310,40 @@ public class UserServiceImpl implements UserService {
             case "phone" -> user.setPhone(value);
             case "address" -> user.setAddress(value);
         }
+    }
+
+    private List<Filter> convertToFilters(MultiValueMap<String, String> params) {
+        if (params == null || params.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Special handling for JSON-encoded filters parameter
+        if (params.containsKey("filters")) {
+            try {
+                String filtersJson = params.getFirst("filters");
+                return objectMapper.readValue(filtersJson, new TypeReference<>() {
+                });
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Failed to parse filters parameter", e);
+            }
+        }
+
+        // Default conversion for regular parameters
+        return params.entrySet().stream()
+                .filter(entry ->
+                        !entry.getKey().equals("role") &&
+                                !entry.getKey().equals("search"))
+                .flatMap(entry -> entry.getValue().stream()
+                        .map(value -> {
+                            Filter filter = new Filter();
+                            filter.setId(entry.getKey());
+                            filter.setValue(value);
+                            filter.setVariant("text");  // Default variant
+                            filter.setOperator("iLike"); // Default operator
+                            filter.setFilterId(UUID.randomUUID().toString()); // Generate unique ID
+                            return filter;
+                        })
+                )
+                .collect(Collectors.toList());
     }
 }

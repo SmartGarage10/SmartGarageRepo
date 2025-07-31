@@ -8,27 +8,26 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.util.MultiValueMap;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 public interface UserService extends UserDetailsService {
-    RegistrationResponse register(User user, User request);
     Optional<User> authenticate(User user, HttpServletRequest request);
+    RegistrationResponse register(User user, User request);
 
-    User updateUser(User user, int userId, User userDetails);
-    void changePassword(User user, String oldPassword, String newPassword);
-    List<User> getAllUsers();
-
+    List<User> getAllUsers(MultiValueMap<String, String> allParams);
     Optional<User> getUserById(int userId);
-
     Optional<User> getUserByUsername(String username);
 
-    Optional<User> getUserByEmail(String email);
+//    List<User> searchByName(String name);
 
-    Optional<User> getUserByPhone(String phone);
+    User updateUser(User user, int userId, User userDetails);
 
-    List<User> getAllUsers(List<Filter> filters);
+    void changePassword(User user, String oldPassword, String newPassword);
+
     void deleteUser(User user, int userId);
+    void deleteUsers(User user, List<Integer> ids);
 }

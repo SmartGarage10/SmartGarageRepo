@@ -1,4 +1,5 @@
 "use client";
+
 import {
     useReactTable,
     getCoreRowModel,
@@ -7,7 +8,7 @@ import {
     getSortedRowModel,
     type ColumnFiltersState,
 } from "@tanstack/react-table";
-import { UserRole, getColumns, Users } from "@/src/app/dashboard/users/column";
+import { UserRole, getColumns, User } from "@/src/app/dashboard/users/column";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableFacetedFilter } from "@/components/data-table/data-table-faceted-filter";
 import { DataTableAdvancedToolbar } from "@/components/data-table/data-table-advanced-toolbar";
@@ -21,20 +22,41 @@ import { Toaster, toast } from 'sonner';
 import { CheckCircle, XCircle } from "lucide-react";
 
 export default function Page() {
-    const [users, setUsers] = useState<Users[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState("");
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [selectedUser, setSelectedUser] = useState<Users | null>(null);
-    const [selectedUsers, setSelectedUsers] = useState<Users[]>([]);
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
+    const [rowSelection, setRowSelection] = useState({});
+
     const router = useRouter();
     const searchParams = useSearchParams();
 
     const fetchData = useCallback(async () => {
         try {
-            const params = new URLSearchParams(window.location.search);
+            // Convert URL params to format expected by backend
+            const params = new URLSearchParams();
+
+            // Handle role filters (multiple values)
+            const roleFilters = searchParams.getAll('role');
+            if (roleFilters.length > 0) {
+                roleFilters.forEach(role => params.append('role', role));
+            }
+
+            // Handle other filters
+            searchParams.forEach((value, key) => {
+                if (key !== 'role' && key !== 'search' && value) {
+                    params.append(key, value);
+                }
+            });
+
+            // Handle search
+            const searchValue = searchParams.get('search');
+            if (searchValue) {
+                params.append('search', searchValue);
+            }
+
             const res = await fetch(`http://localhost:8080/api/users?${params.toString()}`, {
                 credentials: 'include',
                 cache: 'no-store',
@@ -58,32 +80,56 @@ export default function Page() {
             const data = await res.json();
             setUsers(data);
         } catch (error) {
-            console.error("Fetch error:", error);
-            toast.error(
-                "Failed to load users",
-                {
-                    className: 'bg-destructive text-white',
-                    description: error instanceof Error ? error.message : "An unknown error occurred",
-                    duration: 5000,
-                    icon: <XCircle className="text-white" />,
-                }
-            );
+            toast.error("Failed to load users", {
+                className: 'bg-destructive text-white',
+                description: error instanceof Error ? error.message : "An unknown error occurred",
+                duration: 5000,
+                icon: <XCircle className="text-white" />,
+            });
         }
-    }, [router]);
+    }, [router, searchParams]);
 
     const updateUrl = useCallback(
         debounce((filters: ColumnFiltersState, search: string) => {
             const params = new URLSearchParams();
+
+            // Clear existing role params
+            params.delete('role');
+
+            // Handle role filters (multiple values)
+            const roleFilter = filters.find(f => f.id === 'role');
+            if (roleFilter?.value && Array.isArray(roleFilter.value)) {
+                roleFilter.value.forEach(role => {
+                    params.append('role', role.toString());
+                });
+            }
+
+            // Handle other filters
             filters.forEach(filter => {
-                if (typeof filter.value === 'string' || typeof filter.value === 'number') {
-                    params.set(filter.id, filter.value.toString());
-                } else if (Array.isArray(filter.value)) {
-                    filter.value.forEach(val => params.append(filter.id, val.toString()));
+                if (filter.id !== 'role' && filter.value) {
+                    if (Array.isArray(filter.value)) {
+                        if (filter.value.length > 0) {
+                            params.set(filter.id, filter.value.join(','));
+                        }
+                    } else {
+                        params.set(filter.id, filter.value.toString());
+                    }
                 }
             });
 
-            if (search) params.set('search', search);
-            router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+            // Handle search
+            if (search && search.trim() !== '') {
+                params.set('search', search);
+            } else {
+                params.delete('search');
+            }
+
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            const currentUrl = `${window.location.pathname}?${window.location.search}`;
+
+            if (newUrl !== currentUrl) {
+                router.replace(newUrl, { scroll: false });
+            }
         }, 500),
         [router]
     );
@@ -95,16 +141,27 @@ export default function Page() {
 
     useEffect(() => {
         const initialFilters: ColumnFiltersState = [];
+        const initialSearch = searchParams.get('search') || '';
+
+        // Handle role filters (multiple values)
+        const roleFilters = searchParams.getAll('role');
+        if (roleFilters.length > 0) {
+            initialFilters.push({ id: 'role', value: roleFilters });
+        }
+
+        // Handle other filters
         searchParams.forEach((value, key) => {
-            if (key !== 'search') initialFilters.push({ id: key, value });
+            if (key !== 'role' && key !== 'search') {
+                initialFilters.push({ id: key, value });
+            }
         });
 
-        if (initialFilters.length > 0) setColumnFilters(initialFilters);
-        if (searchParams.get('search')) setGlobalFilter(searchParams.get('search') || '');
+        setColumnFilters(initialFilters);
+        setGlobalFilter(initialSearch);
         fetchData();
     }, [fetchData, searchParams]);
 
-    const handleEditUser = (user: Users) => {
+    const handleEditUser = (user: User) => {
         setSelectedUser(user);
         setIsFormOpen(true);
     };
@@ -124,17 +181,17 @@ export default function Page() {
     };
 
     const handleDeleteSelected = useCallback(async () => {
+        const selectedRows = table.getSelectedRowModel().rows;
+        const selectedUsers = selectedRows.map(row => row.original);
+
         if (selectedUsers.length === 0) return;
 
         try {
-            setIsDeleting(true);
-            const response = await fetch('http://localhost:8080/api/users/batch-delete', {
+            const response = await fetch('http://localhost:8080/api/users/delete', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({
-                    userIds: selectedUsers.map(user => user.id)
-                }),
+                body: JSON.stringify(selectedUsers.map(user => user.id)),
             });
 
             if (!response.ok) {
@@ -142,53 +199,31 @@ export default function Page() {
                 throw new Error(errorData.message || 'Failed to delete users');
             }
 
-            toast.success(
-                "Users Deleted",
-                {
-                    className: 'bg-success text-white',
-                    description: `${selectedUsers.length} users have been deleted successfully`,
-                    duration: 2500,
-                    icon: <CheckCircle />,
-                }
-            );
+            toast.success("Users Deleted", {
+                className: 'bg-success text-white',
+                description: `${selectedUsers.length} users have been deleted successfully`,
+                duration: 2500,
+                icon: <CheckCircle />,
+            });
 
-            // Refresh data
             setUsers(prev => prev.filter(
-                user => !selectedUsers.some(selected => selected.id === user.id)
-            ));
-            setSelectedUsers([]);
+                user => !selectedUsers.some(selected => selected.id === user.id)));
+            setRowSelection({});
         } catch (error) {
-            toast.error(
-                "Delete Failed",
-                {
-                    className: 'bg-destructive text-white',
-                    description: error instanceof Error ? error.message : 'An unknown error occurred',
-                    duration: 5000,
-                    icon: <XCircle />,
-                }
-            );
-        } finally {
-            setIsDeleting(false);
+            toast.error("Delete Failed", {
+                className: 'bg-destructive text-white',
+                description: error instanceof Error ? error.message : 'An unknown error occurred',
+                duration: 5000,
+                icon: <XCircle />,
+            });
         }
-    }, [selectedUsers]);
+    }, [users]);
 
-    const handleUserSubmit = async (data: Users) => {
+    const handleUserSubmit = async (data: User) => {
         setIsSubmitting(true);
 
         try {
             const isEdit = !!selectedUser;
-            const toastId = toast(
-                isEdit ? "Updating User" : "Creating User",
-                {
-                    className: 'bg-success text-white',
-                    description: isEdit
-                        ? 'User details are being updated...'
-                        : 'New user is being registered...',
-                    duration: 2500,
-                    icon: <CheckCircle className="text-white" />,
-                }
-            );
-
             const url = isEdit
                 ? `http://localhost:8080/api/user/${selectedUser.id}`
                 : 'http://localhost:8080/api/register';
@@ -199,10 +234,7 @@ export default function Page() {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({
-                    ...data,
-                    role: data.role
-                }),
+                body: JSON.stringify({ ...data, role: data.role }),
                 credentials: 'include'
             });
 
@@ -211,34 +243,26 @@ export default function Page() {
                 throw new Error(errorData.message || (isEdit ? 'Update failed' : 'Registration failed'));
             }
 
-            toast.success(
-                isEdit ? "User Updated" : "User Created",
-                {
-                    className: 'bg-success text-white',
-                    description: isEdit
-                        ? 'User details have been updated successfully'
-                        : 'New user has been registered successfully',
-                    duration: 2500,
-                    icon: <CheckCircle />,
-                    id: toastId
-                }
-            );
+            toast.success(isEdit ? "User Updated" : "User Created", {
+                className: 'bg-success text-white',
+                description: isEdit
+                    ? 'User updated successfully'
+                    : 'User registered successfully',
+                duration: 2500,
+                icon: <CheckCircle className="text-white" />
+            });
 
             fetchData();
             setIsFormOpen(false);
-
         } catch (error) {
-            toast.error(
-                "Operation Failed",
-                {
-                    className: 'bg-destructive text-white',
-                    description: error instanceof Error
-                        ? error.message
-                        : 'An unexpected error occurred',
-                    duration: 5000,
-                    icon: <XCircle />,
-                }
-            );
+            toast.error("Operation Failed", {
+                className: 'bg-destructive text-white',
+                description: error instanceof Error
+                    ? error.message
+                    : 'An unexpected error occurred',
+                duration: 5000,
+                icon: <XCircle />,
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -250,24 +274,31 @@ export default function Page() {
             onEdit: handleEditUser,
             onDelete: handleDelete
         }),
-        state: { columnFilters, globalFilter },
+        state: {
+            columnFilters,
+            globalFilter,
+            rowSelection,
+        },
         onColumnFiltersChange: setColumnFilters,
         onGlobalFilterChange: setGlobalFilter,
+        onRowSelectionChange: setRowSelection,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getSortedRowModel: getSortedRowModel(),
+        enableRowSelection: true,
     });
+
+    const handleClearAllFilters = () => {
+        setColumnFilters([]);
+        setGlobalFilter("");
+        table.resetColumnFilters();
+        table.resetGlobalFilter();
+    };
 
     return (
         <div className="space-y-4">
-            <Toaster
-                richColors={true}
-                position="top-center"
-                toastOptions={{
-                    className: 'font-sans',
-                }}
-            />
+            <Toaster richColors position="top-center" toastOptions={{ className: 'font-sans' }} />
 
             <DataTable table={table} className="px-10">
                 <DataTableAdvancedToolbar
@@ -278,24 +309,44 @@ export default function Page() {
                         setSelectedUser(null);
                         setIsFormOpen(true);
                     }}
-                    onDeleteClick={selectedUsers.length > 0 ? handleDeleteSelected : undefined}
-                    isDeleteLoading={isDeleting}
+                    onDeleteClick={table.getSelectedRowModel().rows.length > 0 ? handleDeleteSelected : undefined}
+                    onClearAll={handleClearAllFilters}
                 >
-                    <DataTableFilterList table={table} />
+                    <DataTableFilterList
+                        table={table}
+                        onClearAll={handleClearAllFilters}
+                    />
                     <SearchInput
                         value={globalFilter}
-                        onChange={setGlobalFilter}
+                        onChange={(value) => {
+                            setGlobalFilter(value);
+                            if (value === "") {
+                                table.resetGlobalFilter();
+                            }
+                        }}
                         placeholder="Search by Name..."
+                        onClear={() => {
+                            setGlobalFilter("");
+                            table.resetGlobalFilter();
+                        }}
                     />
-                    <DataTableFacetedFilter
-                        column={table.getColumn("role")}
-                        title="Role"
-                        options={Object.values(UserRole).map(role => ({
-                            label: role,
-                            value: role,
-                        }))}
-                        multiple
-                    />
+                    {table.getColumn("role") && (
+                        <DataTableFacetedFilter
+                            column={table.getColumn("role")}
+                            title="Role"
+                            options={Object.values(UserRole).map(role => ({
+                                label: role,
+                                value: role,
+                            }))}
+                            onChange={(value) => {
+                                table.getColumn("role")?.setFilterValue(value?.length ? value : undefined);
+                            }}
+                            onClear={() => {
+                                table.getColumn("role")?.setFilterValue(undefined);
+                            }}
+                            multiple
+                        />
+                    )}
                 </DataTableAdvancedToolbar>
             </DataTable>
 

@@ -29,6 +29,7 @@ import {
     ShieldCheck,
     Trash2,
     User,
+    Text, // Added missing import
 } from "lucide-react";
 
 export enum UserRole {
@@ -57,9 +58,25 @@ interface ColumnsConfig {
     onDelete: (userId: string) => Promise<void>;
 }
 
-const normalizeRole = (role: UserRoleType | UserRole): UserRole =>
-    typeof role === "string" ? role : role.roleName;
+/**
+ * Normalizes role to UserRole enum value
+ * Handles both string and UserRoleType inputs
+ */
+const normalizeRole = (role: UserRoleType | UserRole): UserRole => {
+    // If role is already a string (UserRole), return it directly
+    if (typeof role === "string") {
+        // Validate it's actually a valid UserRole
+        return Object.values(UserRole).includes(role)
+            ? role
+            : UserRole.CLIENT; // Default to CLIENT if invalid
+    }
+    // If role is UserRoleType, return the roleName
+    return role.roleName;
+};
 
+/**
+ * Returns the appropriate icon for each role
+ */
 const getRoleIcon = (role: UserRole) => {
     switch (role) {
         case UserRole.ADMIN:
@@ -157,9 +174,18 @@ export const getColumns = ({
                 </Badge>
             );
         },
+        // NEW: Added accessorFn to normalize role data before sorting/filtering
+        accessorFn: (row) => normalizeRole(row.role),
+        // NEW: Custom filter function to handle normalized roles
         filterFn: (row, id, value) => {
             const role = normalizeRole(row.getValue(id));
             return value.includes(role);
+        },
+        // NEW: Custom sorting function to properly compare roles
+        sortingFn: (rowA, rowB, columnId) => {
+            const roleA = normalizeRole(rowA.getValue(columnId));
+            const roleB = normalizeRole(rowB.getValue(columnId));
+            return roleA.localeCompare(roleB);
         },
         meta: {
             filterVariant: "multi-select",

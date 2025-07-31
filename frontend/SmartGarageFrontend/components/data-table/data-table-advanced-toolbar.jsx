@@ -22,6 +22,7 @@ export function DataTableAdvancedToolbar({
   className,
   menuLabel,
   onCreateClick, // Handler for create button click
+  onDeleteClick, // Handler for delete click
   ...props
 }) {
   return (
@@ -78,7 +79,11 @@ export function DataTableAdvancedToolbar({
               </DropdownMenuSub>
 
               {/* Delete */}
-              <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50/50 data-[highlighted]:bg-red-50/50 data-[highlighted]:text-red-600">
+              <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50/50 data-[highlighted]:bg-red-50/50 data-[highlighted]:text-red-600"
+                                onSelect={(e) => {
+                                  e.preventDefault();
+                                  onDeleteClick?.(); // Call the delete handler if provided
+                                }}>
                 <Trash2 className="text-red-600" size={"sm"}/>
                 <span>Delete</span>
               </DropdownMenuItem>
