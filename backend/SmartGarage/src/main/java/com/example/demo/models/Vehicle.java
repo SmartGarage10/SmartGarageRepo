@@ -45,7 +45,4 @@ public class Vehicle {
     @OneToMany(mappedBy = "vehicle")
     private Set<Visit> visits;
 
-    public int getVehicleId() {
-        return id;
-    }
 }

@@ -21,6 +21,7 @@ public interface UserService extends UserDetailsService {
     List<User> getAllUsers(MultiValueMap<String, String> allParams);
     Optional<User> getUserById(int userId);
     Optional<User> getUserByUsername(String username);
+    Optional<User> getUserByEmail(String email);
 
 //    List<User> searchByName(String name);
 

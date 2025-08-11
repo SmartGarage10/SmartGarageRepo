@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { DataTableViewOptions } from "@/components/data-table/data-table-view-options";
 import { ExportMenu } from "@/components/data-table/data-export";
 import { cn } from "@/lib/utils";
@@ -16,80 +17,114 @@ import {
   DropdownMenuSubContent,
 } from "../ui/dropdown-menu";
 
+// Import AlertDialog components (assumed you have these from your UI library)
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../ui/alert-dialog";
+
 export function DataTableAdvancedToolbar({
-  table,
-  children,
-  className,
-  menuLabel,
-  onCreateClick, // Handler for create button click
-  onDeleteClick, // Handler for delete click
-  ...props
-}) {
+                                           table,
+                                           children,
+                                           className,
+                                           menuLabel,
+                                           onCreateClick, // Handler for create button click
+                                           onDeleteClick, // Handler for delete click
+                                           ...props
+                                         }) {
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+
+  const handleDeleteConfirm = () => {
+    setIsAlertOpen(false);
+    onDeleteClick?.();
+  };
+
   return (
-      <div
-          role="toolbar"
-          aria-orientation="horizontal"
-          className={cn(
-              "flex w-full items-start justify-between gap-2 p-1",
-              className
-          )}
-          {...props}
-      >
-        <div className="flex flex-1 flex-wrap items-center gap-2">{children}</div>
+      <>
+        <div
+            role="toolbar"
+            aria-orientation="horizontal"
+            className={cn("flex w-full items-start justify-between gap-2 p-1", className)}
+            {...props}
+        >
+          <div className="flex flex-1 flex-wrap items-center gap-2">{children}</div>
 
-        <div className="flex items-center gap-2">
-          <DataTableViewOptions table={table} />
+          <div className="flex items-center gap-2">
+            <DataTableViewOptions table={table} />
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <MoreHorizontal />
-                <span className="sr-only">Open menu</span>
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <MoreHorizontal />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-44">
-              {/* Create / Add */}
-              <DropdownMenuItem
-                  className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer"
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    onCreateClick?.(); // Call the create handler if provided
-                  }}
-              >
-                <PlusCircleIcon size={"sm"} className="text-foreground"/>
-                <span>{menuLabel}</span>
-              </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-44">
+                {/* Create / Add */}
+                <DropdownMenuItem
+                    className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer"
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      onCreateClick?.();
+                    }}
+                >
+                  <PlusCircleIcon size={"sm"} className="text-foreground" />
+                  <span>{menuLabel}</span>
+                </DropdownMenuItem>
 
-              {/* Export Submenu */}
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer">
-                  <Download size={16} />
-                  <span>Export</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuPortal>
-                  <DropdownMenuSubContent>
-                    <ExportMenu
-                        table={table}
-                        fileName="data-export"
-                        variant="menuitem"
-                    />
-                  </DropdownMenuSubContent>
-                </DropdownMenuPortal>
-              </DropdownMenuSub>
+                {/* Export Submenu */}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer">
+                    <Download size={16} />
+                    <span>Export</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                      <ExportMenu table={table} fileName="data-export" variant="menuitem" />
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
 
-              {/* Delete */}
-              <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50/50 data-[highlighted]:bg-red-50/50 data-[highlighted]:text-red-600"
-                                onSelect={(e) => {
-                                  e.preventDefault();
-                                  onDeleteClick?.(); // Call the delete handler if provided
-                                }}>
-                <Trash2 className="text-red-600" size={"sm"}/>
-                <span>Delete</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {/* Delete */}
+                <DropdownMenuItem
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50/50 data-[highlighted]:bg-red-50/50 data-[highlighted]:text-red-600"
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setIsAlertOpen(true);
+                    }}
+                >
+                  <Trash2 className="text-red-600" size={"sm"} />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
+
+        {/* Alert Dialog for delete confirmation */}
+        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete
+                the user account and remove all associated data.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
   );
 }

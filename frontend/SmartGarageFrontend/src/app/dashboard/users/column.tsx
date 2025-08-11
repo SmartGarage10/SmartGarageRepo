@@ -97,9 +97,12 @@ export const getColumns = ({
         id: "select",
         header: ({ table }) => (
             <Checkbox
-                checked={table.getIsAllPageRowsSelected()}
-                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                aria-label="Select all"
+                checked={
+                    table.getIsAllRowsSelected() ||
+                    (table.getIsSomeRowsSelected() && "indeterminate")
+                }
+                onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
+                aria-label="Select all rows"
             />
         ),
         cell: ({ row }) => (
@@ -260,7 +263,7 @@ export const getColumns = ({
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
                                     <AlertDialogDescription>
                                         This action cannot be undone. This will permanently delete
                                         the user account and remove all associated data.
@@ -281,5 +284,6 @@ export const getColumns = ({
                 </DropdownMenu>
             );
         },
+        size: 32
     },
 ];

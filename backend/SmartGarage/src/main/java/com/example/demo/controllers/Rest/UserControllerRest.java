@@ -26,7 +26,9 @@ public class UserControllerRest {
     private final UserMapper userMapper;
 
     @Autowired
-    public UserControllerRest(UserService userService, SecurityHelper securityHelper, UserMapper userMapper) {
+    public UserControllerRest(UserService userService,
+                              SecurityHelper securityHelper,
+                              UserMapper userMapper) {
         this.userService = userService;
         this.securityHelper = securityHelper;
         this.userMapper = userMapper;
@@ -48,7 +50,7 @@ public class UserControllerRest {
             BindingResult bindingResult) {
         try {
             // Check for validation errors
-            validateRequest(bindingResult);
+            ValidationHelper.validate(bindingResult);
 
             User currentUser = securityHelper.getCurrentUser();
             User newUser = userMapper.fromDto(request);
@@ -67,7 +69,7 @@ public class UserControllerRest {
 
         try {
             // Check for validation errors
-            validateRequest(bindingResult);
+            ValidationHelper.validate(bindingResult);
 
             User currentUser = securityHelper.getCurrentUser();
             User updateUser = userMapper.fromDto(request);
@@ -90,7 +92,7 @@ public class UserControllerRest {
 //        }
 //    }
 //
-    @DeleteMapping("/user/{id}")
+    @DeleteMapping("/users/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable int id) {
         try {
             User currentUser = securityHelper.getCurrentUser();
@@ -110,17 +112,5 @@ public class UserControllerRest {
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
-    }
-
-    private ResponseEntity<Map<String, String>> validateRequest(BindingResult bindingResult) {
-        if (bindingResult.hasErrors()) {
-            Map<String, String> errors = bindingResult.getFieldErrors().stream()
-                    .collect(Collectors.toMap(
-                            FieldError::getField,
-                            FieldError::getDefaultMessage
-                    ));
-            return ResponseEntity.badRequest().body(errors);
-        }
-        return null;
     }
 }

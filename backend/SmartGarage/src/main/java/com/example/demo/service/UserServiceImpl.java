@@ -4,6 +4,7 @@ import com.example.demo.DTO.Filter;
 import com.example.demo.exceptions.EntityDuplicateException;
 import com.example.demo.exceptions.EntityNotFoundException;
 import com.example.demo.filter.UserSpecifications;
+import com.example.demo.helpers.FilterHelper;
 import com.example.demo.helpers.PasswordGeneratorHelper;
 import com.example.demo.helpers.RestrictHelper;
 import com.example.demo.models.Role;
@@ -47,7 +48,7 @@ public class UserServiceImpl implements UserService {
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final PasswordGeneratorHelper passwordGeneratorHelper;
-    private final ObjectMapper objectMapper;
+    private final FilterHelper filterHelper;
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
@@ -56,7 +57,7 @@ public class UserServiceImpl implements UserService {
                            @Lazy RestrictHelper restrictHelper,
                            EmailService emailService,
                            PasswordGeneratorHelper passwordGeneratorHelper,
-                           ObjectMapper objectMapper,
+                           FilterHelper filterHelper,
                            RoleRepository roleRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -64,7 +65,7 @@ public class UserServiceImpl implements UserService {
         this.restrictHelper = restrictHelper;
         this.emailService = emailService;
         this.passwordGeneratorHelper = passwordGeneratorHelper;
-        this.objectMapper = objectMapper;
+        this.filterHelper = filterHelper;
         this.roleRepository = roleRepository;
     }
 
@@ -141,14 +142,14 @@ public class UserServiceImpl implements UserService {
         if (allParams.containsKey("search")) {
             String search = allParams.getFirst("search");
             if (search != null && !search.trim().isEmpty()) {
-                Specification<User> searchSpec = userSpecs.createSearchSpecification(search);
+                Specification<User> searchSpec = userSpecs.createSearchSpecification(search, "name");
                 spec = spec.and(searchSpec);
             }
         }
 
         // 3. Apply other filters
         if (allParams.containsKey("filters")) {
-            List<Filter> filters = convertToFilters(allParams);
+            List<Filter> filters = filterHelper.convertToFilters(allParams);
             if (filters != null && !filters.isEmpty()) {
                 Specification<User> searchSpec = userSpecs.createSpecification(filters);
                 spec = spec.and(searchSpec);
@@ -168,12 +169,13 @@ public class UserServiceImpl implements UserService {
         }
         return userRepository.findUserByUsername(username);
     }
-
-//    @Override
-//    public List<User> searchByName(String name) {
-//        Specification<User> spec = new UserSpecifications().createSearchSpecification(name);
-//        return userRepository.findAll(spec);
-//    }
+    @Override
+    public Optional<User> getUserByEmail(String email) {
+        if (email.isEmpty()) {
+            throw new EntityNotFoundException("Email", "email", email);
+        }
+        return userRepository.findUserByEmail(email);
+    }
 
     @Override
     public User updateUser(User user, int userId, User userDetails) {
@@ -221,7 +223,6 @@ public class UserServiceImpl implements UserService {
 
         return userRepository.save(existingUser);
     }
-
     @Override
     public void changePassword(User user, String oldPassword, String newPassword) {
 
@@ -310,40 +311,5 @@ public class UserServiceImpl implements UserService {
             case "phone" -> user.setPhone(value);
             case "address" -> user.setAddress(value);
         }
-    }
-
-    private List<Filter> convertToFilters(MultiValueMap<String, String> params) {
-        if (params == null || params.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        // Special handling for JSON-encoded filters parameter
-        if (params.containsKey("filters")) {
-            try {
-                String filtersJson = params.getFirst("filters");
-                return objectMapper.readValue(filtersJson, new TypeReference<>() {
-                });
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("Failed to parse filters parameter", e);
-            }
-        }
-
-        // Default conversion for regular parameters
-        return params.entrySet().stream()
-                .filter(entry ->
-                        !entry.getKey().equals("role") &&
-                                !entry.getKey().equals("search"))
-                .flatMap(entry -> entry.getValue().stream()
-                        .map(value -> {
-                            Filter filter = new Filter();
-                            filter.setId(entry.getKey());
-                            filter.setValue(value);
-                            filter.setVariant("text");  // Default variant
-                            filter.setOperator("iLike"); // Default operator
-                            filter.setFilterId(UUID.randomUUID().toString()); // Generate unique ID
-                            return filter;
-                        })
-                )
-                .collect(Collectors.toList());
     }
 }

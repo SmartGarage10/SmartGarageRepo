@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.Year;
 import java.util.Optional;
 
 @Component
@@ -30,15 +31,12 @@ public class VehicleMapper {
 
     public Vehicle fromDto(VehicleDTO vehicleDTO){
         Vehicle vehicle = new Vehicle();
-        vehicle.setVehiclePlate(vehicleDTO.getLicensePlate());
+        vehicle.setVehiclePlate(vehicleDTO.getVehiclePlate());
         vehicle.setVin(vehicleDTO.getVin());
         vehicle.setBrand(vehicleDTO.getBrand());
         vehicle.setModel(vehicleDTO.getModel());
-        vehicle.setYear(vehicleDTO.getYearOfCreation());
-
-        User user = userService.getUserByUsername(vehicleDTO.getUsername())
-                .orElseThrow(() -> new EntityNotFoundException("User", "username", vehicleDTO.getUsername()));
-        vehicle.setClient(user);
+        vehicle.setYear(Year.of(vehicleDTO.getYearOfCreation()));
+        vehicle.setClient(vehicleDTO.getUser());
 
         return vehicle;
     }
