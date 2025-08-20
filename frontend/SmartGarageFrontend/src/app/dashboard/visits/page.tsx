@@ -1,230 +1,291 @@
-"use client";
+// frontend/SmartGarageFrontend/src/app/dashboard/vehicles/page.tsx
+'use client';
 
-import {
-  useReactTable,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-} from "@tanstack/react-table";
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-import { columns, Visits } from "./column";
-import { DataTable } from "@/components/data-table/data-table";
-import { DataTableAdvancedToolbar } from "@/components/data-table/data-table-advanced-toolbar";
-import { DataTableFilterList } from "@/components/data-table/data-table-filter-list";
-import { SearchInput } from "@/components/data-table/data-search";
-import { DataTableDateFilter } from "@/components/data-table/data-table-date-filter";
+import { getColumns, Visit} from '@/src/app/dashboard/visits/column';
+import { Vehicle } from '@/src/app/dashboard/vehicles/column';
+import { User } from '@/src/app/dashboard/users/column';
 
-import * as React from "react";
+import { DataTable } from '@/components/data-table/data-table';
+import { DataTableAdvancedToolbar } from '@/components/data-table/data-table-advanced-toolbar';
+import { DataTableFilterList } from '@/components/data-table/data-table-filter-list';
+import { SearchInput } from '@/components/data-table/data-search';
+import { Toaster } from 'sonner';
+import { VehicleForm } from '@/components/forms/edit-create-vehicle-form';
+import { useDataTable } from '@/hooks/useDataTable';
+import { CarService } from '@/services/CarService';
+import {VisitForm} from "@/components/forms/edit-create-visit-form";
 
-export const data: Visits[] = [
-{
-    id: "1",
-    username: "john_doe",
-    licensePlate: "ABC-1234",
-    brand: "Toyota",
-    model: "Camry",
-    employee: "Alice",
-    date: new Date("2025-07-22"),
-  },
-  {
-    id: "2",
-    username: "jane_smith",
-    licensePlate: "XYZ-5678",
-    brand: "Honda",
-    model: "Civic",
-    employee: "Bob",
-    date: new Date("2025-07-20"),
-  },
-  {
-    id: "3",
-    username: "mike_jones",
-    licensePlate: "JKL-4321",
-    brand: "Ford",
-    model: "Fusion",
-    employee: "Charlie",
-    date: new Date("2025-06-15"),
-  },
-  {
-    id: "4",
-    username: "emma_watson",
-    licensePlate: "MNO-8765",
-    brand: "Jeep",
-    model: "Grand Cherokee",
-    employee: "Alice",
-    date: new Date("2025-07-10"),
-  },
-  {
-    id: "5",
-    username: "chris_evans",
-    licensePlate: "PQR-3456",
-    brand: "Tesla",
-    model: "Model S",
-    employee: "Diana",
-    date: new Date("2025-07-05"),
-  },
-  {
-    id: "6",
-    username: "linda_parker",
-    licensePlate: "STU-7890",
-    brand: "Chevrolet",
-    model: "Malibu",
-    employee: "Bob",
-    date: new Date("2025-06-25"),
-  },
-  {
-    id: "7",
-    username: "daniel_lee",
-    licensePlate: "VWX-6543",
-    brand: "Toyota",
-    model: "Corolla",
-    employee: "Charlie",
-    date: new Date("2025-07-21"),
-  },
-  {
-    id: "8",
-    username: "sara_connor",
-    licensePlate: "DEF-2109",
-    brand: "Audi",
-    model: "A4",
-    employee: "Diana",
-    date: new Date("2025-06-30"),
-  },
-  {
-    id: "9",
-    username: "peter_parker",
-    licensePlate: "GHI-8762",
-    brand: "BMW",
-    model: "320i",
-    employee: "Alice",
-    date: new Date("2025-07-19"),
-  },
-  {
-    id: "10",
-    username: "nancy_drew",
-    licensePlate: "LMN-9087",
-    brand: "Ford",
-    model: "F-150",
-    employee: "Bob",
-    date: new Date("2025-07-01"),
-  },
-  {
-    id: "11",
-    username: "oliver_queen",
-    licensePlate: "ZXC-1122",
-    brand: "Honda",
-    model: "CR-V",
-    employee: "Charlie",
-    date: new Date("2025-06-28"),
-  },
-  {
-    id: "12",
-    username: "harry_potter",
-    licensePlate: "BNM-3344",
-    brand: "Nissan",
-    model: "Rogue",
-    employee: "Diana",
-    date: new Date("2025-07-03"),
-  },
-  {
-    id: "13",
-    username: "tony_stark",
-    licensePlate: "QWE-5566",
-    brand: "Toyota",
-    model: "Sienna",
-    employee: "Alice",
-    date: new Date("2025-07-12"),
-  },
-  {
-    id: "14",
-    username: "bruce_wayne",
-    licensePlate: "RTY-7788",
-    brand: "Nissan",
-    model: "Altima",
-    employee: "Bob",
-    date: new Date("2025-07-07"),
-  },
-  {
-    id: "15",
-    username: "clark_kent",
-    licensePlate: "UIO-9900",
-    brand: "Honda",
-    model: "Accord",
-    employee: "Charlie",
-    date: new Date("2025-06-20"),
-  },
-  {
-    id: "16",
-    username: "diana_prince",
-    licensePlate: "PAS-1188",
-    brand: "Chevrolet",
-    model: "Tahoe",
-    employee: "Diana",
-    date: new Date("2025-07-09"),
-  },
-  {
-    id: "17",
-    username: "steve_rogers",
-    licensePlate: "LOL-2233",
-    brand: "Honda",
-    model: "Pilot",
-    employee: "Alice",
-    date: new Date("2025-07-17"),
-  },
-  {
-    id: "18",
-    username: "natasha_romanoff",
-    licensePlate: "XOX-3344",
-    brand: "Ram",
-    model: "1500",
-    employee: "Bob",
-    date: new Date("2025-06-22"),
-  },
-  {
-    id: "19",
-    username: "bruce_banner",
-    licensePlate: "BRB-4455",
-    brand: "Ford",
-    model: "Explorer",
-    employee: "Charlie",
-    date: new Date("2025-07-11"),
-  },
-  {
-    id: "20",
-    username: "wanda_maximoff",
-    licensePlate: "OMG-5566",
-    brand: "BMW",
-    model: "X3",
-    employee: "Diana",
-    date: new Date("2025-07-14"),
-  },
-];
+interface FilterItem {
+  id: string;
+  value: string | string[];
+  variant: string;
+  operator: string;
+  filterId: string;
+}
 
-export default function Page() {
-  const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+export default function VehiclesPage() {
+  const searchParams = useSearchParams();
+
+  // Mounted state to avoid hydration issues with Next.js
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Clients list loaded from backend for VehicleForm client select
+  const [clients, setClients] = useState<User[]>([]);
+
+  // Options for Brand and Model selects, loaded async
+  const [brandOptions, setBrandOptions] = useState<{ label: string; value: string }[]>([]);
+  const [modelOptions, setModelOptions] = useState<{ label: string; value: string }[]>([]);
+
+  // Selected brand (sync with URL filter param)
+  const [selectedBrand, setSelectedBrand] = useState<string>('');
+
+  // Loading states for selects
+  const [isModelsLoading, setIsModelsLoading] = useState(false);
+  const [isBrandsLoading, setIsBrandsLoading] = useState(false);
+
+  // -------------------------
+  // Parse brand filter from URL filters param, update selectedBrand
+  useEffect(() => {
+    const filtersParam = searchParams.get('filters');
+    if (filtersParam) {
+      try {
+        const filters: FilterItem[] = JSON.parse(decodeURIComponent(filtersParam));
+        const brandFilter = filters.find((f) => f.id === 'brand');
+        const brand = brandFilter?.value
+            ? Array.isArray(brandFilter.value)
+                ? brandFilter.value[0] || ''
+                : brandFilter.value
+            : '';
+        setSelectedBrand(brand);
+      } catch (error) {
+        console.error('Error parsing filters:', error);
+      }
+    }
+  }, [searchParams]);
+
+  // -------------------------
+  // Load brand options on mount
+  useEffect(() => {
+    const loadBrands = async () => {
+      setIsBrandsLoading(true);
+      try {
+        const brands = await CarService.fetchBrands();
+        setBrandOptions(brands.map((brand: string) => ({ label: brand, value: brand })));
+      } catch (err) {
+        console.error('Error loading brands:', err);
+      } finally {
+        setIsBrandsLoading(false);
+      }
+    };
+    loadBrands();
+  }, []);
+
+  // -------------------------
+  // Load models when selectedBrand changes
+  useEffect(() => {
+    const loadModels = async () => {
+      if (!selectedBrand) {
+        setModelOptions([]);
+        return;
+      }
+      setIsModelsLoading(true);
+      try {
+        const models = await CarService.fetchModels(selectedBrand);
+        setModelOptions(models.map((model: string) => ({ label: model, value: model })));
+      } catch (err) {
+        console.error('Error loading models:', err);
+        setModelOptions([]);
+      } finally {
+        setIsModelsLoading(false);
+      }
+    };
+    loadModels();
+  }, [selectedBrand]);
+
+  // -------------------------
+  // Fetch clients on mount for VehicleForm
+  useEffect(() => {
+    setIsMounted(true);
+    const fetchClients = async () => {
+      try {
+        const res = await fetch('http://localhost:8080/api/users', {
+          credentials: 'include',
+        });
+        if (!res.ok) {
+          console.error('Failed to fetch clients:', res.status, res.statusText);
+          throw new Error('Failed to fetch clients');
+        }
+        const data = await res.json();
+        setClients(data);
+      } catch (error) {
+        console.error('Error fetching clients:', error);
+      }
+    };
+    fetchClients();
+    return () => setIsMounted(false);
+  }, []);
+
+  // -------------------------
+  // Local selected row state to control edit modal, synced with hook state
+  const [selectedRow, setSelectedRow] = useState<Visit | null>(null);
+
+  // Edit callback called from columns config
+  const handleEdit = useCallback((visit: Visit) => {
+    setSelectedRow(visit);
+    setSelectedBrand(visit.brand);
+  }, []);
+
+  // -------------------------
+  // Setup getColumns callback with handlers from hook, including delete from hook
+  // Note: handleSingleDelete comes from useDataTable hook below,
+  // so we need to define getCols after that
+
+  // Use destructuring assignment *after* to get hook's handlers including handleSingleDelete
+  const {
+    table,
+    globalFilter,
+    setGlobalFilter,
+    clearAllFilters,
+    fetchData,
+    handleDeleteSelected,
+    isFormOpen,
+    setIsFormOpen,
+    selectedRow: hookSelectedRow,
+    setSelectedRow: setHookSelectedRow,
+  } = useDataTable<Visit>({
+    fetchUrl: 'http://localhost:8080/api/visits',
+    getColumns: ({ onDelete }) => {
+      return getColumns({
+        onEdit: (row: Visit) => {
+          handleEdit(row);
+          setIsFormOpen(true);
+        },
+        onDelete: async (id: string) => {
+          await onDelete(id);
+        },
+      });
+    },
   });
 
-  return (
-    <DataTable table={table} className={"px-10"}>
-      <DataTableAdvancedToolbar table={table} className={"px-0"}>
-        <DataTableFilterList table={table} />
+  // Keep selectedRow state in sync between hook and page
+  useEffect(() => {
+    if (hookSelectedRow !== selectedRow) {
+      setSelectedRow(hookSelectedRow);
+    }
+  }, [hookSelectedRow, selectedRow]);
 
-        <SearchInput
-          value={(table.getColumn("licensePlate")?.getFilterValue() as string) ?? ""}
-          onChange={(value) =>
-            table.getColumn("licensePlate")?.setFilterValue(value)
+  useEffect(() => {
+    setHookSelectedRow(selectedRow);
+  }, [selectedRow, setHookSelectedRow]);
+
+  // -------------------------
+  // Form submit handler for create/update vehicle
+  const handleSubmit = useCallback(
+      async (vehicleData: Omit<Vehicle, 'id'> & { id?: string }) => {
+        if (!isMounted) return false;
+        try {
+          const isEdit = !!selectedRow;
+          const endpoint = isEdit
+              ? `http://localhost:8080/api/visits/${selectedRow!.id}`
+              : 'http://localhost:8080/api/visits';
+
+          const method = isEdit ? 'PUT' : 'POST';
+
+          const payload = {
+            vehiclePlate: vehicleData.vehiclePlate,
+            vin: vehicleData.vin,
+            client: { id: vehicleData.client.id },
+            brand: vehicleData.brand,
+            model: vehicleData.model,
+            year: vehicleData.year,
+          };
+
+          const res = await fetch(endpoint, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(
+                errorData.message || `Failed to ${isEdit ? 'update' : 'create'} vehicle (${res.status})`
+            );
           }
-          placeholder="Search by License Plate..."
-        />
 
-        <DataTableDateFilter column={table.getColumn("date")} title={"Visit Date"} multiple={true}/>
-      </DataTableAdvancedToolbar>
-    </DataTable>
+          await fetchData();
+          setIsFormOpen(false);
+          return true;
+        } catch (error) {
+          console.error('Error saving vehicle:', error);
+          throw error;
+        }
+      },
+      [selectedRow, fetchData, isMounted, setIsFormOpen]
+  );
+
+  // Brand select options disabled if models loading to avoid confusion
+  const brandSelectOptions = useMemo(
+      () => brandOptions.map((opt) => ({ ...opt, disabled: isModelsLoading })),
+      [brandOptions, isModelsLoading]
+  );
+
+  if (!isMounted) return null;
+
+  return (
+      <div className="space-y-4">
+        <Toaster richColors position="top-center" />
+
+        <DataTable
+            table={table}
+            className="px-10"
+            key={`brand-${brandOptions.length}-model-${modelOptions.length}`}
+        >
+          <DataTableAdvancedToolbar
+              table={table}
+              className="px-0"
+              menuLabel="Add Vehicle"
+              onCreateClick={() => {
+                setSelectedRow(null);
+                setSelectedBrand('');
+                setIsFormOpen(true);
+              }}
+              onDeleteClick={
+                table.getSelectedRowModel().rows.length > 0 ? handleDeleteSelected : undefined
+              }
+              onClearAll={clearAllFilters}
+          >
+            <DataTableFilterList table={table} onClearAll={clearAllFilters} />
+            <SearchInput
+                value={globalFilter}
+                onChange={setGlobalFilter}
+                placeholder="Search vehicles..."
+            />
+          </DataTableAdvancedToolbar>
+        </DataTable>
+
+        <VisitForm
+            open={isFormOpen}
+            onOpenChange={setIsFormOpen}
+            clients={clients}
+            onSubmit={handleSubmit}
+            onSuccess={() => {
+              fetchData();
+              setIsFormOpen(false);
+            }}
+            brandOptions={brandSelectOptions}
+            modelOptions={modelOptions}
+            isModelsLoading={isModelsLoading}
+            isBrandsLoading={isBrandsLoading}
+            selectedBrand={selectedBrand}
+            onBrandChange={(brand: string) => {
+              setModelOptions([]);
+              setSelectedBrand(brand);
+            }}
+        />
+      </div>
   );
 }
