@@ -162,6 +162,7 @@ export default function VehiclesPage() {
                 onDelete: async (id: string) => {
                     await onDelete(id);
                 },
+                brandOptions, modelOptions
             });
         },
     });

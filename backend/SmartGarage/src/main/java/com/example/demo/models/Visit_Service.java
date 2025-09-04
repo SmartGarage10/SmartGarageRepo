@@ -7,20 +7,16 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "ServiceOrderDetails")
+@Table(name = "visit_service")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ServiceOrderDetails {
+public class Visit_Service {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "service_order_detail_id")
-    private int serviceOrderDetailId;
-
-    @ManyToOne
-    @JoinColumn(name = "order_id", nullable = false)
-    private ServiceOrder order;
+    @Column(name = "visit_service_id")
+    private int visitServiceId;
 
     @ManyToOne
     @JoinColumn(name = "service_id", nullable = false)

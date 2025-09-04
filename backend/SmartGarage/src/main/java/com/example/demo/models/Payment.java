@@ -17,8 +17,8 @@ public class Payment {
     private int paymentId;
 
     @ManyToOne
-    @JoinColumn(name = "order_id", nullable = false)
-    private ServiceOrder order;
+    @JoinColumn(name = "visit_id", nullable = false)
+    private Visit visit;
 
     @Column(name = "method",nullable = false)
     private String paymentMethod;

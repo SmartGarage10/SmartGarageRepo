@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useDataTable } from '@/hooks/useDataTable';
-import { getColumns, User, UserRole } from '@/src/app/dashboard/users/column';
+import { getColumns } from '@/src/app/dashboard/users/column';
+import { User, UserRole } from '@/types/user';
 import { DataTable } from '@/components/data-table/data-table';
 import { DataTableAdvancedToolbar } from '@/components/data-table/data-table-advanced-toolbar';
 import { DataTableFacetedFilter } from '@/components/data-table/data-table-faceted-filter';

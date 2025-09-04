@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 
 import { X } from "lucide-react";
-import { UserRole, type Users } from "@/src/app/dashboard/users/column";
+import { User, UserRole } from "@/types/user";
 import { cn } from "@/lib/utils";
 
 import { useRouter } from "next/navigation";

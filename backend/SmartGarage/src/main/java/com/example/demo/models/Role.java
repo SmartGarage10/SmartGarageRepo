@@ -35,8 +35,4 @@ public class Role {
         EMPLOYEE,
         ADMIN
     }
-    // This method returns the role as a list of authorities
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + this.roleName.name()));
-    }
 }

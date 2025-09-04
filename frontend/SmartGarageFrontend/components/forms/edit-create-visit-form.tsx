@@ -14,6 +14,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { X, ChevronsUpDown, Check } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
@@ -30,34 +31,23 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { CarService } from "@/services/CarService";
+import { User } from "@/types/user";
+import { Vehicle } from "@/types/vehicle";
 
-interface User {
-    id: string;
-    name: string;
-    email: string;
-    avatar?: string;
-}
-
-interface VisitFromValues {
+interface VisitFormValues {
     id?: string;
     client: User;
-    vehiclePlate: string;
-    brand: string;
-    model: string;
+    vehicle: Vehicle;
     employee: User;
-    visitDate: Date; // may need to change later
+    status: string;
+    visitDate: Date;
+    amount: number;
+    currency: string;
+    pack: { pack: string };
 }
 
 interface VisitFormProps {
-    initialData?: {
-        id?: string;
-        client: User;
-        vehiclePlate: string;
-        brand: string;
-        model: string;
-        employee: User;
-        visitDate: Date;
-    } | null;
+    initialData?: VisitFormValues | null;
     children?: React.ReactNode;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -66,123 +56,109 @@ interface VisitFormProps {
 }
 
 export function VisitForm({
-                                initialData,
-                                children,
-                                open,
-                                onOpenChange,
-                                onSuccess,
-                                isSubmitting = false,
-                            }: VisitFormProps) {
+                              initialData,
+                              children,
+                              open,
+                              onOpenChange,
+                              onSuccess,
+                              isSubmitting = false,
+                          }: VisitFormProps) {
     const router = useRouter();
-    const currentYear = new Date().getFullYear();
 
-    const form = useForm<VisitFromValues>({
+    const form = useForm<VisitFormValues>({
         defaultValues: {
             client: { id: "", name: "", email: "" },
-            vehiclePlate: "",
-            brand: "",
-            model: "",
+            vehicle: { id: "", vehiclePlate: "", vin: "", client: { id: "", name: "", email: "" }, brand: "", model: "", year: 0 },
             employee: { id: "", name: "", email: "" },
-            visitDate: new Date()
+            visitDate: undefined,
+            amount: 0,
+            currency: "",
+            pack: { pack: ""}
         },
     });
 
     const [clients, setClients] = useState<User[]>([]);
     const [employees, setEmployees] = useState<User[]>([]);
+    const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-    const [brandDropdownOpen, setBrandDropdownOpen] = useState(false);
-    const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
-    const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
-    const [brands, setBrands] = useState<string[]>([]);
-    const [models, setModels] = useState<string[]>([]);
-    const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
+    const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
+    const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState(false);
+    const [packDropdownOpen, setPackDropdownOpen] = useState(false);
+    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
-    // Enable mouse wheel scrolling for dropdowns
+    const [packs] = useState<string[]>([
+        "CUSTOM", "BASIC", "STANDARD", "PREMIUM"
+    ]);
+
+    const [statuses] = useState<string[]>([
+        "SCHEDULED",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "CANCELLED",
+    ]);
+
+    const [services, setServices] = useState<string[]>([]);
+
     useEffect(() => {
         const handleWheel = (e: WheelEvent) => {
             const target = e.target as HTMLElement;
-            if (target.closest('[cmdk-list]')) {
-                e.stopPropagation();
-            }
+            if (target.closest("[cmdk-list]")) e.stopPropagation();
         };
-
-        window.addEventListener('wheel', handleWheel, { passive: false });
-        return () => window.removeEventListener('wheel', handleWheel);
+        window.addEventListener("wheel", handleWheel, { passive: false });
+        return () => window.removeEventListener("wheel", handleWheel);
     }, []);
-
-    // Load brands when component mounts
-    useEffect(() => {
-        async function loadBrands() {
-            try {
-                const fetchedBrands = await CarService.fetchBrands();
-                setBrands(fetchedBrands);
-                setIsLoadingInitialData(false);
-            } catch (error) {
-                console.error("Failed to load brands", error);
-                setIsLoadingInitialData(false);
-            }
-        }
-
-        loadBrands();
-    }, []);
-
-    // Load models when brand changes
-    useEffect(() => {
-        async function loadModels() {
-            const selectedBrand = form.watch("brand");
-            if (selectedBrand) {
-                try {
-                    const fetchedModels = await CarService.fetchModels(selectedBrand);
-                    setModels(fetchedModels);
-                } catch (error) {
-                    console.error("Failed to load models", error);
-                    setModels([]);
-                }
-            } else {
-                setModels([]);
-            }
-        }
-
-        loadModels();
-    }, [form.watch("brand")]);
 
     useEffect(() => {
         if (open) {
-            // Fetch users
+            // Fetch users and split into clients + employees
             fetch("http://localhost:8080/api/users", {
                 credentials: "include",
             })
                 .then((res) => res.json())
-                .then((data) => setClients(data))
+                .then((data) => {
+                    const list = Array.isArray(data) ? data : data.users || [];
+                    console.log("Fetched users:", list);
+
+                    setClients(list.filter((u: User) => u.role === "ADMIN" || u.role === "EMPLOYEE"));
+                    setEmployees(list.filter((u: User) => u.role === "ADMIN" || u.role === "EMPLOYEE"));
+                })
                 .catch((err) => console.error("Failed to fetch users", err));
 
-            // Set initial data if provided
+            // Fetch vehicles
+            fetch("http://localhost:8080/api/vehicles", {
+                credentials: "include",
+            })
+                .then((res) => res.json())
+                .then((data) => {
+                    const vehicleList = Array.isArray(data) ? data : data.vehicles || [];
+                    console.log("Fetched vehicles:", vehicleList);
+                    setVehicles(vehicleList);
+                })
+                .catch((err) => console.error("Failed to fetch vehicles", err));
+
+            // Handle initial data
             if (initialData) {
                 form.reset({
                     ...initialData,
-                    client: initialData.client || { id: "", name: "", email: "" }
+                    client: initialData.client || { id: "", name: "", email: "" },
+                    employee: initialData.employee || { id: "", name: "", email: "" },
                 });
-                // If initial data has a brand, load its models
-                if (initialData.brand) {
-                    CarService.fetchModels(initialData.brand)
-                        .then(models => setModels(models))
-                        .catch(err => console.error("Failed to load initial models", err));
-                }
             } else {
                 form.reset({
                     client: { id: "", name: "", email: "" },
-                    vehiclePlate: "",
-                    brand: "",
-                    model: "",
+                    vehicle: { id: "", vehiclePlate: "", vin: "", client: { id: "", name: "", email: "" }, brand: "", model: "", year: 0 },
                     employee: { id: "", name: "", email: "" },
-                    visitDate: new Date()
+                    visitDate: undefined,
+                    amount: 0,
+                    currency: "",
+                    pack: { pack: ""}
                 });
             }
         }
-    }, [open, initialData, form, currentYear]);
+    }, [open, initialData, form]);
 
-    const handleSubmit = async (data: VisitFromValues) => {
+    const handleSubmit = async (data: VisitFormValues) => {
         try {
             const isUpdate = !!initialData?.id;
             const endpoint = isUpdate
@@ -191,32 +167,34 @@ export function VisitForm({
             const method = isUpdate ? "PUT" : "POST";
 
             const payload = {
-                vehiclePlate: data.vehiclePlate,
-                brand: data.brand,
-                model: data.model,
                 user: {
                     id: data.client.id,
                     name: data.client.name,
                     email: data.client.email,
-                    avatar: data.client.avatar
+                },
+                vehicle: {
+                    id: data.vehicle.id,
+                    vehiclePlate: data.vehicle.vehiclePlate,
+                    vin: data.vehicle.vin,
+                    brand: data.vehicle.brand,
+                    model: data.vehicle.model,
+                    year: data.vehicle.year,
                 },
                 employee: {
-                    id: data.client.id,
-                    name: data.client.name,
-                    email: data.client.email,
-                    avatar: data.client.avatar
+                    id: data.employee.id,
+                    name: data.employee.name,
+                    email: data.employee.email,
                 },
                 visitDate: data.visitDate.toISOString(),
-                // Add other fields as necessary
-                // e.g., vehicle details, visit notes, etc.
-                // For example, if you have a field for visit notes:
+                amount: data.amount,
+                currency: data.currency,
+                pack: data.pack,
+                status: data.status || "SCHEDULED",
             };
 
             const response = await fetch(endpoint, {
                 method,
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
                 credentials: "include",
             });
@@ -229,22 +207,29 @@ export function VisitForm({
             if (!initialData) {
                 form.reset({
                     client: { id: "", name: "", email: "" },
-                    vehiclePlate: "",
-                    brand: "",
-                    model: "",
+                    vehicle: { id: "", vehiclePlate: "", vin: "", client: { id: "", name: "", email: "" }, brand: "", model: "", year: 0 },
                     employee: { id: "", name: "", email: "" },
-                    visitDate: new Date()
+                    visitDate: undefined,
+                    amount: 0,
+                    currency: "",
+                    pack: { pack: ""}
                 });
             }
+
             onOpenChange?.(false);
             onSuccess?.();
             router.refresh();
         } catch (error) {
             console.error("Operation error:", error);
             form.setError("root", {
-                message: error instanceof Error ? error.message : "An error occurred",
+                message:
+                    error instanceof Error ? error.message : "An error occurred",
             });
         }
+    };
+
+    const formatVehicleLabel = (vehicle: Vehicle) => {
+        return `${vehicle.vehiclePlate} - ${vehicle.brand} ${vehicle.model} (${vehicle.year})`;
     };
 
     return (
@@ -263,12 +248,12 @@ export function VisitForm({
                         <div className="flex justify-between items-center mb-6">
                             <div>
                                 <Dialog.Title className="text-xl font-bold">
-                                    {initialData ? "Edit Vehicle" : "Add Vehicle"}
+                                    {initialData ? "Edit Vehicle Visit" : "Add Vehicle Visit"}
                                 </Dialog.Title>
                                 <Dialog.Description className="text-sm text-muted-foreground">
                                     {initialData
-                                        ? "Update vehicle details."
-                                        : "Fill in the details to add a vehicle."}
+                                        ? "Update visit details."
+                                        : "Fill in the details to add a new visit."}
                                 </Dialog.Description>
                             </div>
                             <Dialog.Close className="opacity-70 hover:opacity-100">
@@ -277,7 +262,10 @@ export function VisitForm({
                         </div>
 
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                            <form
+                                onSubmit={form.handleSubmit(handleSubmit)}
+                                className="space-y-4"
+                            >
                                 {form.formState.errors.root && (
                                     <div className="text-destructive text-sm p-2 rounded bg-destructive/10">
                                         {form.formState.errors.root.message}
@@ -326,15 +314,6 @@ export function VisitForm({
                                                                     }}
                                                                 >
                                                                     <div className="flex items-center gap-3">
-                                                                        <Avatar className="h-6 w-6 rounded-lg">
-                                                                            {client.avatar ? (
-                                                                                <AvatarImage src={client.avatar} alt={client.name} />
-                                                                            ) : (
-                                                                                <AvatarFallback className="rounded-lg text-xs">
-                                                                                    {client.name.charAt(0)}
-                                                                                </AvatarFallback>
-                                                                            )}
-                                                                        </Avatar>
                                                                         <div>
                                                                             <div>{client.name}</div>
                                                                             <div className="text-xs text-muted-foreground">
@@ -361,98 +340,21 @@ export function VisitForm({
                                     )}
                                 />
 
-                                {/* Vehicle Plate */}
+                                {/* Vehicle Select */}
                                 <FormField
                                     control={form.control}
-                                    name="vehiclePlate"
-                                    rules={{ required: "License plate is required" }}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>License Plate</FormLabel>
-                                            <FormControl>
-                                                <Input {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {/* Brand Select */}
-                                <FormField
-                                    control={form.control}
-                                    name="brand"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                            <FormLabel>Brand</FormLabel>
-                                            <Popover open={brandDropdownOpen} onOpenChange={setBrandDropdownOpen}>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button
-                                                            variant="outline"
-                                                            role="combobox"
-                                                            className={cn(
-                                                                "w-full h-10 justify-between",
-                                                                !field.value && "text-muted-foreground"
-                                                            )}
-                                                            disabled={isLoadingInitialData}
-                                                        >
-                                                            {isLoadingInitialData ? "Loading data..." : field.value || "Select brand"}
-                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent
-                                                    className="w-full p-0"
-                                                    style={{ width: "var(--radix-popover-trigger-width)" }}
-                                                    align="start"
-                                                >
-                                                    <Command>
-                                                        <CommandInput placeholder="Search brands..." />
-                                                        <CommandEmpty>No brands found.</CommandEmpty>
-                                                        <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                                            {brands.map((brand) => (
-                                                                <CommandItem
-                                                                    key={brand}
-                                                                    value={brand}
-                                                                    onSelect={() => {
-                                                                        form.setValue("brand", brand);
-                                                                        form.setValue("model", "");
-                                                                        setBrandDropdownOpen(false);
-                                                                    }}
-                                                                >
-                                                                    {brand}
-                                                                    <Check
-                                                                        className={cn(
-                                                                            "ml-auto h-4 w-4",
-                                                                            field.value === brand
-                                                                                ? "opacity-100"
-                                                                                : "opacity-0"
-                                                                        )}
-                                                                    />
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {/* Model Select */}
-                                <FormField
-                                    control={form.control}
-                                    name="model"
+                                    name="vehicle"
                                     render={({ field }) => {
-                                        const brandSelected = !!form.watch("brand");
+                                        const clientSelected = !!form.watch("client.id");
                                         return (
                                             <FormItem className="flex flex-col">
-                                                <FormLabel>Model</FormLabel>
+                                                <FormLabel>Vehicle</FormLabel>
                                                 <Popover
-                                                    open={modelDropdownOpen}
-                                                    onOpenChange={setModelDropdownOpen}
-                                                    disabled={!brandSelected || isLoadingInitialData}
+                                                    open={vehicleDropdownOpen}
+                                                    onOpenChange={(open) => {
+                                                        if (!clientSelected && open) return; // Prevent opening if no client
+                                                        setVehicleDropdownOpen(open);
+                                                    }}
                                                 >
                                                     <PopoverTrigger asChild>
                                                         <FormControl>
@@ -461,12 +363,17 @@ export function VisitForm({
                                                                 role="combobox"
                                                                 className={cn(
                                                                     "w-full h-10 justify-between",
-                                                                    !field.value && "text-muted-foreground",
-                                                                    (!brandSelected || isLoadingInitialData) && "opacity-50 cursor-not-allowed"
+                                                                    !field.value?.id && "text-muted-foreground",
+                                                                    !clientSelected && "opacity-50 cursor-not-allowed"
                                                                 )}
-                                                                disabled={!brandSelected || isLoadingInitialData}
+                                                                disabled={!clientSelected}
                                                             >
-                                                                {isLoadingInitialData ? "Loading data..." : field.value || "Select model"}
+                                                                {!clientSelected
+                                                                    ? "Select a client first"
+                                                                    : field.value?.id
+                                                                        ? formatVehicleLabel(field.value)
+                                                                        : "Select vehicle"
+                                                                }
                                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                             </Button>
                                                         </FormControl>
@@ -477,23 +384,51 @@ export function VisitForm({
                                                         align="start"
                                                     >
                                                         <Command>
-                                                            <CommandInput placeholder="Search models..." />
-                                                            <CommandEmpty>No models found.</CommandEmpty>
+                                                            <CommandInput placeholder="Search vehicles..." />
+                                                            <CommandEmpty>No vehicles found.</CommandEmpty>
                                                             <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                                                {models.map((model) => (
+                                                                {/* "Use client" option */}
+                                                                <CommandItem
+                                                                    value="use-client"
+                                                                    onSelect={() => {
+                                                                        const client = form.getValues("client");
+                                                                        if (client?.id) {
+                                                                            // Create a new empty vehicle object with client info
+                                                                            const newVehicle: Vehicle = {
+                                                                                id: "",
+                                                                                vehiclePlate: "",
+                                                                                vin: "",
+                                                                                client: client,
+                                                                                brand: "",
+                                                                                model: "",
+                                                                                year: 0
+                                                                            };
+                                                                            form.setValue("vehicle", newVehicle);
+                                                                        }
+                                                                        setVehicleDropdownOpen(false);
+                                                                    }}
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-muted-foreground">+</span>
+                                                                        Use client's vehicle (enter details manually)
+                                                                    </div>
+                                                                </CommandItem>
+
+                                                                {/* Existing vehicles */}
+                                                                {vehicles.map((vehicle) => (
                                                                     <CommandItem
-                                                                        key={model}
-                                                                        value={model}
+                                                                        key={vehicle.id}
+                                                                        value={vehicle.vehiclePlate}
                                                                         onSelect={() => {
-                                                                            form.setValue("model", model);
-                                                                            setModelDropdownOpen(false);
+                                                                            form.setValue("vehicle", vehicle);
+                                                                            setVehicleDropdownOpen(false);
                                                                         }}
                                                                     >
-                                                                        {model}
+                                                                        {formatVehicleLabel(vehicle)}
                                                                         <Check
                                                                             className={cn(
                                                                                 "ml-auto h-4 w-4",
-                                                                                field.value === model
+                                                                                field.value?.id === vehicle.id
                                                                                     ? "opacity-100"
                                                                                     : "opacity-0"
                                                                             )}
@@ -510,8 +445,284 @@ export function VisitForm({
                                     }}
                                 />
 
+                                {/* Employee select */}
+                                <FormField
+                                    control={form.control}
+                                    name="employee"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>Employee</FormLabel>
+                                            <Popover open={employeeDropdownOpen} onOpenChange={setEmployeeDropdownOpen}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant="outline"
+                                                            role="combobox"
+                                                            className={cn(
+                                                                "w-full h-10 justify-between",
+                                                                !field.value?.id && "text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            {field.value?.name || "Select employee"}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent
+                                                    className="w-full p-0"
+                                                    style={{ width: "var(--radix-popover-trigger-width)" }}
+                                                    align="start"
+                                                >
+                                                    <Command>
+                                                        <CommandInput placeholder="Search employees..." />
+                                                        <CommandEmpty>No employees found.</CommandEmpty>
+                                                        <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                                            {employees.map((employee) => (
+                                                                <CommandItem
+                                                                    key={employee.id}
+                                                                    value={employee.name}
+                                                                    onSelect={() => {
+                                                                        form.setValue("employee", employee);
+                                                                        setEmployeeDropdownOpen(false);
+                                                                    }}
+                                                                >
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div>
+                                                                            <div>{employee.name}</div>
+                                                                            <div className="text-xs text-muted-foreground">
+                                                                                {employee.email}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <Check
+                                                                        className={cn(
+                                                                            "ml-auto h-4 w-4",
+                                                                            field.value?.id === employee.id
+                                                                                ? "opacity-100"
+                                                                                : "opacity-0"
+                                                                        )}
+                                                                    />
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
+                                {/* Status */}
+                                <FormField
+                                    control={form.control}
+                                    name="status"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>Status</FormLabel>
+                                            <Popover open={statusDropdownOpen} onOpenChange={setStatusDropdownOpen}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant="outline"
+                                                            role="combobox"
+                                                            className={cn(
+                                                                "w-full h-10 justify-between",
+                                                                !field.value && "text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            {field.value || "Select Status"}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-full p-0" style={{ width: "var(--radix-popover-trigger-width)" }} align="start">
+                                                    <Command>
+                                                        <CommandEmpty>No status found.</CommandEmpty>
+                                                        <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                                            {statuses.map((s) => (
+                                                                <CommandItem
+                                                                    key={s}
+                                                                    value={s}
+                                                                    onSelect={() => {
+                                                                        form.setValue("status", s);
+                                                                        setStatusDropdownOpen(false);
+                                                                    }}
+                                                                >
+                                                                    {s}
+                                                                    <Check className={cn(
+                                                                        "ml-auto h-4 w-4",
+                                                                        field.value === s ? "opacity-100" : "opacity-0"
+                                                                    )}/>
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
+                                {/* Update the pack field to include services handling */}
+                                <FormField
+                                    control={form.control}
+                                    name="pack.pack"
+                                    render={({ field }) => {
+                                        const isCustomPack = field.value === "CUSTOM";
+                                        return (
+                                            <FormItem className="flex flex-col">
+                                                <FormLabel>Pack</FormLabel>
+                                                <Popover open={packDropdownOpen} onOpenChange={setPackDropdownOpen}>
+                                                    <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                            <Button
+                                                                variant="outline"
+                                                                role="combobox"
+                                                                className={cn(
+                                                                    "w-full h-10 justify-between",
+                                                                    !field.value && "text-muted-foreground"
+                                                                )}
+                                                            >
+                                                                {field.value || "Select Pack"}
+                                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                            </Button>
+                                                        </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent
+                                                        className="w-full p-0"
+                                                        style={{ width: "var(--radix-popover-trigger-width)" }}
+                                                        align="start"
+                                                    >
+                                                        <Command>
+                                                            <CommandEmpty>No packs found.</CommandEmpty>
+                                                            <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                                                {packs.map((p) => (
+                                                                    <CommandItem
+                                                                        key={p}
+                                                                        value={p}
+                                                                        onSelect={() => {
+                                                                            form.setValue("pack.pack", p);
+                                                                            // Clear services if not custom
+                                                                            if (p !== "CUSTOM") {
+                                                                                setServices([]);
+                                                                            }
+                                                                            setPackDropdownOpen(false);
+                                                                        }}
+                                                                    >
+                                                                        {p}
+                                                                        <Check
+                                                                            className={cn(
+                                                                                "ml-auto h-4 w-4",
+                                                                                field.value === p ? "opacity-100" : "opacity-0"
+                                                                            )}
+                                                                        />
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </Command>
+                                                    </PopoverContent>
+                                                </Popover>
+                                                <FormMessage />
+
+                                                {/* Services field for custom pack */}
+                                                {isCustomPack && (
+                                                    <div className="mt-4 space-y-2">
+                                                        <FormLabel>Services (for custom pack)</FormLabel>
+                                                        <div className="space-y-2">
+                                                            {services.map((service, index) => (
+                                                                <div key={index} className="flex items-center gap-2">
+                                                                    <Input
+                                                                        value={service}
+                                                                        onChange={(e) => {
+                                                                            const newServices = [...services];
+                                                                            newServices[index] = e.target.value;
+                                                                            setServices(newServices);
+                                                                        }}
+                                                                        placeholder="Enter service name"
+                                                                    />
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="icon"
+                                                                        onClick={() => {
+                                                                            const newServices = services.filter((_, i) => i !== index);
+                                                                            setServices(newServices);
+                                                                        }}
+                                                                    >
+                                                                        <X className="h-4 w-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            ))}
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => setServices([...services, ""])}
+                                                                className="w-full"
+                                                            >
+                                                                + Add Service
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </FormItem>
+                                        );
+                                    }}
+                                />
+
+                                {/* Visit Date */}
+                                <FormField
+                                    control={form.control}
+                                    name="visitDate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Visit Date</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="datetime-local"
+                                                    value={
+                                                        field.value
+                                                            ? new Date(field.value).toISOString().slice(0, 16)
+                                                            : ""
+                                                    }
+                                                    onChange={(e) =>
+                                                        field.onChange(e.target.value ? new Date(e.target.value) : undefined)
+                                                    }
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* Amount */}
+                                <FormField
+                                    control={form.control}
+                                    name="amount"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Amount (€)</FormLabel>
+                                            <FormControl>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+                                                    <Input
+                                                        type="number"
+                                                        step="5.00"
+                                                        {...field}
+                                                        className="pl-8"
+                                                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                                        placeholder="Enter amount"
+                                                    />
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* Buttons */}
                                 <div className="flex flex-col gap-2 pt-4">
                                     <Dialog.Close asChild>
                                         <Button variant="outline" className="w-full">
@@ -521,13 +732,16 @@ export function VisitForm({
                                     <Button
                                         type="submit"
                                         className="w-full"
-                                        disabled={form.formState.isSubmitting || isSubmitting || isLoadingInitialData}
+                                        disabled={
+                                            form.formState.isSubmitting ||
+                                            isSubmitting
+                                        }
                                     >
                                         {form.formState.isSubmitting || isSubmitting
                                             ? "Saving..."
                                             : initialData
-                                                ? "Update Vehicle"
-                                                : "Create Vehicle"}
+                                                ? "Update Visit"
+                                                : "Create Visit"}
                                     </Button>
                                 </div>
                             </form>

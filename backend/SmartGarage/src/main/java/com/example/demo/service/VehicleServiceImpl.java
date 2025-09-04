@@ -31,17 +31,14 @@ import java.util.stream.Stream;
 @Service
 public class VehicleServiceImpl implements VehicleService{
     private final VehicleRepository vehicleRepository;
-    private final UserRepository userRepository;
     private final RestrictHelper restrictHelper;
     private final FilterHelper filterHelper;
 
     @Autowired
     public VehicleServiceImpl(VehicleRepository vehicleRepository,
-                              UserRepository userRepository,
                               RestrictHelper restrictHelper,
                               FilterHelper filterHelper) {
         this.vehicleRepository = vehicleRepository;
-        this.userRepository = userRepository;
         this.restrictHelper = restrictHelper;
         this.filterHelper = filterHelper;
     }
@@ -77,14 +74,14 @@ public class VehicleServiceImpl implements VehicleService{
     }
     @Override
     public Optional<Vehicle> getVehicleByLicencePlate(String licencePLate){
-        if (licencePLate.isEmpty() || licencePLate.isBlank()){
+        if (licencePLate.isBlank()){
             throw new EntityNotFoundException("Vehicle", "licence plate", licencePLate);
         }
         return vehicleRepository.findByVehiclePlate(licencePLate);
     }
     @Override
     public Optional<Vehicle> getVehicleByVin(String vin){
-        if (vin.isEmpty() || vin.isBlank()){
+        if (vin.isBlank()){
             throw new EntityNotFoundException("Vehicle", "vin", vin);
         }
         return vehicleRepository.findByVehiclePlate(vin);

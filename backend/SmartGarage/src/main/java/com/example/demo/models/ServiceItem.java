@@ -21,14 +21,16 @@ public class ServiceItem {
     @Column(name = "name", nullable = false, length = 100)
     private String serviceName;
 
+    @Column(name = "description")
+    private String serviceDescription;
+
     @Column(name = "price", nullable = false)
     private double price;
 
     @OneToMany(mappedBy = "service", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ServiceOrderDetails> serviceOrderDetails;
+    private List<Visit_Service> visitServices;
 
-    public String getServiceDescription() {
-        return serviceOrderDetails.toString();
-    }
+    @ManyToMany(mappedBy = "services")
+    private List<Pack> packs;
     
 }

@@ -40,9 +40,6 @@ public class Vehicle {
     private Year year;
 
     @OneToMany(mappedBy = "vehicle")
-    private Set<ServiceOrder> serviceOrders;
-
-    @OneToMany(mappedBy = "vehicle")
     private Set<Visit> visits;
 
 }

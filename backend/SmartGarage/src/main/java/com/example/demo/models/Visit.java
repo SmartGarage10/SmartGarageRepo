@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 
 @Entity
@@ -21,27 +20,40 @@ public class    Visit {
     private int visitId;
 
     @ManyToOne
-    @JoinColumn(name = "employee_id", nullable = false)
-    private User employee;
-
-    @ManyToOne
     @JoinColumn(name = "vehicle_id", nullable = false)
     private Vehicle vehicle;
 
-    @Column(name = "date", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "employee_id", nullable = false)
+    private User employee;
+
+    @Column(name = "visit_date", nullable = false)
     private LocalDateTime visitDate;
 
+    @Column(name = "status", nullable = false)
+    private String status;
+
+    @Column(name = "amount", nullable = false)
+    private double amount;
+
+    @Column(name = "currency", nullable = false)
+    private String currency;
+
+    // ✅ NEW: flag for identifying if this order is a custom pack
+    @ManyToOne
+    @JoinColumn(name = "pack_id", nullable = false)
+    private Pack pack; // e.g. BASIC, PREMIUM, DELUXE, CUSTOM
+
     @OneToMany(mappedBy = "visit", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ServiceOrderDetails> serviceOrderDetails;
+    private List<Visit_Service> visitServices;
 
-    public void addServiceOrderDetails(ServiceOrderDetails detail) {
-        serviceOrderDetails.add(detail);
-        detail.setVisit(this);
+    // Helper method to calculate total from individual services
+    public double calculateTotalFromServices() {
+        if (visitServices != null && !visitServices.isEmpty()) {
+            return visitServices.stream()
+                    .mapToDouble(vs -> vs.getService().getPrice())
+                    .sum();
+        }
+        return 0.0;
     }
-
-    public void removeServiceOrderDetails(ServiceOrderDetails detail) {
-        serviceOrderDetails.remove(detail);
-        detail.setVisit(null);
-    }
-
 }

@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -36,8 +38,10 @@ public class AuthenticationControllerRest {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginDTO loginDTO, HttpServletRequest request) {
         try {
+            PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            System.out.println(passwordEncoder.encode("pass123"));
             User user = loginMapper.fromDto(loginDTO);
-            return ResponseEntity.ok(userService.authenticate(user,request));
+            return ResponseEntity.ok(userService.authenticate(user, request));
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }

@@ -28,30 +28,10 @@ import {
     Pencil,
     ShieldCheck,
     Trash2,
-    User,
+    User2,
     Text, // Added missing import
 } from "lucide-react";
-
-export enum UserRole {
-    ADMIN = "ADMIN",
-    EMPLOYEE = "EMPLOYEE",
-    CLIENT = "CLIENT",
-}
-
-export type UserRoleType = {
-    roleId: string;
-    roleName: UserRole;
-};
-
-export type User = {
-    id: string;
-    name: string;
-    username: string;
-    email: string;
-    role: UserRoleType | UserRole;
-    address: string;
-    phone: string;
-};
+import { User, UserRole, UserRoleType } from "@/types/user";
 
 interface ColumnsConfig {
     onEdit: (user: User) => void;
@@ -84,8 +64,7 @@ const getRoleIcon = (role: UserRole) => {
         case UserRole.EMPLOYEE:
             return Briefcase;
         case UserRole.CLIENT:
-        default:
-            return User;
+            return User2;
     }
 };
 
@@ -189,14 +168,7 @@ export const getColumns = ({
             const roleA = normalizeRole(rowA.getValue(columnId));
             const roleB = normalizeRole(rowB.getValue(columnId));
             return roleA.localeCompare(roleB);
-        },
-        meta: {
-            filterVariant: "multi-select",
-            filterOptions: Object.values(UserRole).map((role) => ({
-                label: role,
-                value: role,
-            })),
-        },
+        }
     },
     {
         id: "address",

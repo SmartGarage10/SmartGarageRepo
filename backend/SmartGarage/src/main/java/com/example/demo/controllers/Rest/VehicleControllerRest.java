@@ -53,7 +53,7 @@ public class VehicleControllerRest {
     }
 
     @PostMapping("/create-vehicle")
-    public ResponseEntity<Vehicle> createVehicle(@Valid @RequestBody VehicleDTO vehicleDTO,
+    public ResponseEntity<?> createVehicle(@Valid @RequestBody VehicleDTO vehicleDTO,
                                                  BindingResult bindingResult){
         try {
             // Check for validation errors
@@ -69,7 +69,7 @@ public class VehicleControllerRest {
     }
 
     @PutMapping("update-vehicle/{id}")
-    public ResponseEntity<Vehicle> updateVehicle(@Valid @RequestBody VehicleDTO vehicleDTO,
+    public ResponseEntity<?> updateVehicle(@Valid @RequestBody VehicleDTO vehicleDTO,
                                                  @PathVariable int id,
                                                  BindingResult bindingResult){
         try {
@@ -106,13 +106,4 @@ public class VehicleControllerRest {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
     }
-//
-//    @DeleteMapping("/{id}")
-//    public ResponseEntity<Void> deleteVehicle(@PathVariable int id){
-//        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-//        User user = authenticationHelper.extractUserFromToken(auth);
-//
-//        vehicleService.deleteVehicle(user, id);
-//        return ResponseEntity.ok().build();
-//    }
 }
