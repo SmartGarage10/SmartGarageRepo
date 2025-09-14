@@ -18,8 +18,10 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Integer>, JpaS
     Optional<Vehicle> findByVin(String vin);
     Optional<Vehicle> findByClient(User user);
     Optional<Vehicle> findByVehiclePlate(String vehiclePLate);
+
     @Query("SELECT v FROM Vehicle v WHERE v.client.email = :email")
     List<Vehicle> findVehiclesByClientUsername(@Param("email") String email);
+
     List<Vehicle> findVehiclesByClient(User user);
     boolean existsByVehiclePlate(String vehiclePlate);
     boolean existsByVin(String vin);

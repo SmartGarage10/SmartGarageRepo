@@ -1,31 +1,22 @@
 package com.example.demo.service;
 
 import com.example.demo.DTO.Filter;
-import com.example.demo.exceptions.EntityDuplicateException;
 import com.example.demo.exceptions.EntityNotFoundException;
-import com.example.demo.filter.UserSpecifications;
 import com.example.demo.filter.VehicleSpecifications;
 import com.example.demo.helpers.FilterHelper;
 import com.example.demo.helpers.GenericFieldAccessor;
 import com.example.demo.helpers.RestrictHelper;
-import com.example.demo.models.Role;
 import com.example.demo.models.User;
 import com.example.demo.models.Vehicle;
-import com.example.demo.repositories.UserRepository;
 import com.example.demo.repositories.VehicleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.RequestParam;
 
-import java.time.Year;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -72,24 +63,6 @@ public class VehicleServiceImpl implements VehicleService{
     public Optional<Vehicle> getVehicleById(int vehicleId){
         return vehicleRepository.findById(vehicleId);
     }
-    @Override
-    public Optional<Vehicle> getVehicleByLicencePlate(String licencePLate){
-        if (licencePLate.isBlank()){
-            throw new EntityNotFoundException("Vehicle", "licence plate", licencePLate);
-        }
-        return vehicleRepository.findByVehiclePlate(licencePLate);
-    }
-    @Override
-    public Optional<Vehicle> getVehicleByVin(String vin){
-        if (vin.isBlank()){
-            throw new EntityNotFoundException("Vehicle", "vin", vin);
-        }
-        return vehicleRepository.findByVehiclePlate(vin);
-    }
-    @Override
-    public List<Vehicle> getVehiclesByUser(User user) {
-        return vehicleRepository.findVehiclesByClient(user);
-    }
 
     @Override
     public Vehicle createNewVehicle(User user, Vehicle vehicle){
@@ -109,11 +82,11 @@ public class VehicleServiceImpl implements VehicleService{
         // 1. Check User permissions
         restrictHelper.isUserAdminOrEmployee(user);
 
-        // 2. Find existing user
+        // 2. Find existing vehicle
         Vehicle existingVehicle = vehicleRepository.findById(vehicleId)
                 .orElseThrow(() -> new EntityNotFoundException("Vehicle", "id", String.valueOf(vehicleId)));
 
-        // 3. Get all users (for duplicate checking)
+        // 3. Get all vehicles (for duplicate checking)
         List<Vehicle> allVehicles = vehicleRepository.findAll();
 
         // 4. Process all updatable fields

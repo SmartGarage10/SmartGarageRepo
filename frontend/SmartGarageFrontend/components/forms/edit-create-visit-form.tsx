@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import MultipleSelector, { Option } from '@/components/ui/multiple-selector';
 import {
     Form,
     FormControl,
@@ -14,7 +14,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
 import { X, ChevronsUpDown, Check } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
-import { CarService } from "@/services/CarService";
+
 import { User } from "@/types/user";
 import { Vehicle } from "@/types/vehicle";
 
@@ -54,6 +54,20 @@ interface VisitFormProps {
     onSuccess?: () => void;
     isSubmitting?: boolean;
 }
+
+const OPTIONS: Option[] = [
+    { label: 'nextjs', value: 'nextjs' },
+    { label: 'React', value: 'react' },
+    { label: 'Remix', value: 'remix' },
+    { label: 'Vite', value: 'vite' },
+    { label: 'Nuxt', value: 'nuxt' },
+    { label: 'Vue', value: 'vue' },
+    { label: 'Svelte', value: 'svelte' },
+    { label: 'Angular', value: 'angular' },
+    { label: 'Ember', value: 'ember', disable: true },
+    { label: 'Gatsby', value: 'gatsby', disable: true },
+    { label: 'Astro', value: 'astro' },
+];
 
 export function VisitForm({
                               initialData,
@@ -571,9 +585,11 @@ export function VisitForm({
                                     name="pack.pack"
                                     render={({ field }) => {
                                         const isCustomPack = field.value === "CUSTOM";
+
                                         return (
-                                            <FormItem className="flex flex-col">
+                                            <FormItem className="flex flex-col w-full">
                                                 <FormLabel>Pack</FormLabel>
+
                                                 <Popover open={packDropdownOpen} onOpenChange={setPackDropdownOpen}>
                                                     <PopoverTrigger asChild>
                                                         <FormControl>
@@ -624,53 +640,32 @@ export function VisitForm({
                                                         </Command>
                                                     </PopoverContent>
                                                 </Popover>
+
                                                 <FormMessage />
 
                                                 {/* Services field for custom pack */}
                                                 {isCustomPack && (
-                                                    <div className="mt-4 space-y-2">
-                                                        <FormLabel>Services (for custom pack)</FormLabel>
-                                                        <div className="space-y-2">
-                                                            {services.map((service, index) => (
-                                                                <div key={index} className="flex items-center gap-2">
-                                                                    <Input
-                                                                        value={service}
-                                                                        onChange={(e) => {
-                                                                            const newServices = [...services];
-                                                                            newServices[index] = e.target.value;
-                                                                            setServices(newServices);
-                                                                        }}
-                                                                        placeholder="Enter service name"
-                                                                    />
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        size="icon"
-                                                                        onClick={() => {
-                                                                            const newServices = services.filter((_, i) => i !== index);
-                                                                            setServices(newServices);
-                                                                        }}
-                                                                    >
-                                                                        <X className="h-4 w-4" />
-                                                                    </Button>
-                                                                </div>
-                                                            ))}
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => setServices([...services, ""])}
-                                                                className="w-full"
-                                                            >
-                                                                + Add Service
-                                                            </Button>
-                                                        </div>
+                                                    <div className="mt-4 w-full">
+                                                        <FormLabel>Services</FormLabel>
+                                                        <MultipleSelector
+                                                            defaultOptions={OPTIONS}
+                                                            value={services}
+                                                            onChange={setServices}
+                                                            placeholder="Select services..."
+                                                            emptyIndicator={
+                                                                <p className="text-center text-lg leading-10 text-gray-600 dark:text-gray-400">
+                                                                    no results found.
+                                                                </p>
+                                                            }
+                                                            className="w-full mt-2"
+                                                        />
                                                     </div>
                                                 )}
                                             </FormItem>
                                         );
                                     }}
                                 />
+
 
                                 {/* Visit Date */}
                                 <FormField
@@ -709,11 +704,11 @@ export function VisitForm({
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
                                                     <Input
                                                         type="number"
-                                                        step="5.00"
                                                         {...field}
                                                         className="pl-8"
-                                                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
                                                         placeholder="Enter amount"
+                                                        disabled   // ✅ user can’t change manually
+                                                        readOnly
                                                     />
                                                 </div>
                                             </FormControl>
