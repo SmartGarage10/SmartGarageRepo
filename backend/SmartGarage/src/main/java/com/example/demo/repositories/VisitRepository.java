@@ -11,4 +11,6 @@ public interface VisitRepository extends JpaRepository<Visit, Integer>, JpaSpeci
     List<Visit> findByVehicleId(int vehicleId);
     List<Visit> findByEmployeeId(int employeeId);
     List<Visit> findByVisitDate(LocalDateTime dateTime);
+
+    boolean existsByVisitDate(LocalDateTime dateTime);
 }

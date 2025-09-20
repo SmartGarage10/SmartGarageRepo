@@ -22,7 +22,7 @@ public class Pack {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "pack", length = 50)
-    private PackType pack; // e.g., BASIC, STANDARD, PREMIUM, CUSTOM
+    private PackType packName; // e.g., BASIC, STANDARD, PREMIUM, CUSTOM
 
     @Column(name = "description", length = 255)
     private String description;

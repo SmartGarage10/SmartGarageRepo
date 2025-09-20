@@ -16,7 +16,8 @@ import {
   IconSearch,
   IconSettings,
   IconUsers,
-} from "@tabler/icons-react";
+  IconTool,
+} from "@tabler/icons-react"
 import { NavMain } from "@/components/dashboard-components/nav-main";
 import { NavSecondary } from "@/components/dashboard-components/nav-secondary";
 import { NavUser } from "@/components/dashboard-components/nav-user";
@@ -41,6 +42,7 @@ const data = {
     { title: "Users", url: "/dashboard/users", icon: IconUsers },
     { title: "Vehicles", url: "/dashboard/vehicles", icon: IconCar },
     { title: "Visits", url: "/dashboard/visits", icon: IconCalendar },
+    { title: "Services", url: "/dashboard/services", icon: IconTool},
     { title: "Reports", url: "/dashboard/reports", icon: IconReport },
   ],
   navClouds: [

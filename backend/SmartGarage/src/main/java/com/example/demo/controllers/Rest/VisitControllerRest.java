@@ -29,16 +29,14 @@ import java.util.Map;
 @RequestMapping("/api")
 public class VisitControllerRest {
     private final VisitService visitService;
-    private final VisitMapper mapper;
     private final SecurityHelper securityHelper;
     private final VisitMapper visitMapper;
 
     @Autowired
     public VisitControllerRest(VisitService visitService,
-                               VisitMapper mapper,
-                               SecurityHelper securityHelper, VisitMapper visitMapper) {
+                               SecurityHelper securityHelper,
+                               VisitMapper visitMapper) {
         this.visitService = visitService;
-        this.mapper = mapper;
         this.securityHelper = securityHelper;
         this.visitMapper = visitMapper;
     }
@@ -54,58 +52,58 @@ public class VisitControllerRest {
         }
     }
 
-//    @PostMapping("/create-visit")
-//    public ResponseEntity<?> createVehicle(@Valid @RequestBody VisitDTO visitDTO,
-//                                                 BindingResult bindingResult){
-//        try {
-//            // Check for validation errors
-//            ValidationHelper.validate(bindingResult);
-//
-//            User currentUser = securityHelper.getCurrentUser();
-//            Visit visit = visitMapper.fromDto(visitDTO);
-//
-//            return ResponseEntity.ok(visitService.createVisit(currentUser, visit));
-//        } catch (AuthorizationException e) {
-//            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
-//        }
-//    }
-//
-//    @PutMapping("update-visit/{id}")
-//    public ResponseEntity<?> updateVehicle(@Valid @RequestBody VisitDTO visitDTO,
-//                                                 @PathVariable int id,
-//                                                 BindingResult bindingResult){
-//        try {
-//            ValidationHelper.validate(bindingResult);
-//
-//            User currentUser = securityHelper.getCurrentUser();
-//            Visit visit = visitMapper.fromDto(visitDTO);
-//
-//            return ResponseEntity.ok(visitService.update(currentUser, id , visit));
-//        }
-//        catch (AuthorizationException e){
-//            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
-//        }
-//    }
-//
-//    @DeleteMapping("/visits/{id}")
-//    public ResponseEntity<?> deleteSingleVehicle(@PathVariable int id) {
-//        try {
-//            User currentUser = securityHelper.getCurrentUser();
-//            visitService.deleteVisit(currentUser, id);
-//            return ResponseEntity.ok(Map.of("status", "success", "message", "User deleted successfully"));
-//        } catch (AuthorizationException e) {
-//            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
-//        }
-//    }
-//
-//    @DeleteMapping("/visits/delete")
-//    public ResponseEntity<?> deleteManyVehicles(@RequestBody List<Integer> ids) {
-//        try {
-//            User currentUser = securityHelper.getCurrentUser();
-//            visitService.deleteVisits(currentUser, ids);
-//            return ResponseEntity.ok(Map.of("status", "success", "message", "User deleted successfully"));
-//        } catch (AuthorizationException e) {
-//            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
-//        }
-//    }
+    @PostMapping("/create-visit")
+    public ResponseEntity<?> createVehicle(@Valid @RequestBody VisitDTO visitDTO,
+                                                 BindingResult bindingResult){
+        try {
+            // Check for validation errors
+            ValidationHelper.validate(bindingResult);
+
+            User currentUser = securityHelper.getCurrentUser();
+            Visit visit = visitMapper.fromDto(visitDTO);
+
+            return ResponseEntity.ok(visitService.createVisit(currentUser, visit));
+        } catch (AuthorizationException e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
+        }
+    }
+
+    @PutMapping("update-visit/{id}")
+    public ResponseEntity<?> updateVehicle(@Valid @RequestBody VisitDTO visitDTO,
+                                                 @PathVariable int id,
+                                                 BindingResult bindingResult){
+        try {
+            ValidationHelper.validate(bindingResult);
+
+            User currentUser = securityHelper.getCurrentUser();
+            Visit visit = visitMapper.fromDto(visitDTO);
+
+            return ResponseEntity.ok(visitService.update(currentUser, id , visit));
+        }
+        catch (AuthorizationException e){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/visits/{id}")
+    public ResponseEntity<?> deleteSingleVehicle(@PathVariable int id) {
+        try {
+            User currentUser = securityHelper.getCurrentUser();
+            visitService.deleteVisit(currentUser, id);
+            return ResponseEntity.ok(Map.of("status", "success", "message", "User deleted successfully"));
+        } catch (AuthorizationException e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/visits/delete")
+    public ResponseEntity<?> deleteManyVehicles(@RequestBody List<Integer> ids) {
+        try {
+            User currentUser = securityHelper.getCurrentUser();
+            visitService.deleteVisits(currentUser, ids);
+            return ResponseEntity.ok(Map.of("status", "success", "message", "User deleted successfully"));
+        } catch (AuthorizationException e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
+        }
+    }
 }
