@@ -29,55 +29,15 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { useUser } from "@/hooks/useUser"
 
-type User = {
-  id: number
-  name: string;
-  email: string
-  avatar?: string
-  role?: string
-}
+import { toast } from "sonner"
 
 export function NavUser() {
   const { isMobile } = useSidebar()
   const router = useRouter()
+  const { user, loading, error, setUser } = useUser()
 
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch("http://localhost:8080/auth/user", {
-          method: "GET",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            router.push("/login")
-            return
-          }
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        const userData = await response.json()
-        setUser(userData)
-      } catch (err) {
-        console.error("Failed to fetch user:", err)
-        setError("Failed to load user data")
-        router.push("/login")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchUser()
-  }, [router])
 
   const handleLogout = async () => {
     try {
@@ -94,7 +54,7 @@ export function NavUser() {
       router.push("/login")
     } catch (err) {
       console.error("Logout error:", err)
-      setError("Failed to logout")
+      toast.error("Failed to logout. Please try again.")
     }
   }
 

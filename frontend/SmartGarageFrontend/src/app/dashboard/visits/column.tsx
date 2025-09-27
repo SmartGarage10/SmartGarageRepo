@@ -11,34 +11,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
-import { MoreHorizontal, Pencil, Text, Trash2 } from "lucide-react";
+import {Euro, MoreHorizontal, Pencil, Text, Trash2} from "lucide-react";
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import {User} from "@/src/app/dashboard/vehicles/column";
+import { Visit } from "@/types/visit";
 import { format } from "date-fns";
-
-export interface Vehicle {
-  id: string;
-  vehiclePlate: string;
-  vin: string;
-  client: User;
-  brand: string;
-  model: string;
-  year: string;
-}
-
-export type Visit = {
-  id: string;
-  vehicle: Vehicle;
-  employee: User;
-  visitDate: string;
-  status: string;
-  amount: number;
-  currency: string;
-  pack: { pack: string };
-};
+import React from "react"; // Added missing import
 
 interface ColumnsConfig {
   onEdit: (visit: Visit) => void;
@@ -99,19 +79,24 @@ export const getColumns = ({
   },
   {
     id: "vehicle",
-    accessorFn: (row) =>
-        `${row.vehicle})`,
+    accessorFn: (row) => `${row.vehicle.brand} ${row.vehicle.model}`, // Fixed the template literal
     header: ({ column }) => <DataTableColumnHeader column={column} title="Vehicle" />,
     cell: ({ row }) => {
-        const vehicle = row.original.vehicle;
-        return (
-            <div>
-                <div className="font-medium">{vehicle?.vehiclePlate ?? "—"}</div>
-                <div className="text-xs text-muted-foreground">
-                {vehicle?.brand ?? "—"} {vehicle?.model ?? "—"} ({vehicle?.year ?? "—"})
-                </div>
+      const vehicle = row.original.vehicle;
+      return (
+          <div>
+            <div className="font-medium">{vehicle?.vehiclePlate ?? "—"}</div>
+            <div className="text-xs text-muted-foreground">
+              {vehicle?.brand ?? "—"} {vehicle?.model ?? "—"} ({vehicle?.year ?? "—"})
             </div>
-        );
+          </div>
+      );
+    },
+    meta: {
+      label: "Vehicle",
+      placeholder: "Search by vehicle...",
+      variant: "text",
+      icon: Text,
     },
     enableColumnFilter: true,
   },
@@ -120,6 +105,12 @@ export const getColumns = ({
     accessorFn: (row) => row.employee?.name ?? "—",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Employee" />,
     cell: ({ row }) => <div>{row.original.employee?.name ?? "—"}</div>,
+    meta: {
+      label: "Employee",
+      placeholder: "Search by employee...",
+      variant: "text",
+      icon: Text,
+    },
     enableColumnFilter: true,
   },
   {
@@ -127,10 +118,17 @@ export const getColumns = ({
     accessorFn: (row) => row.status ?? "—",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
     cell: ({ row }) => <div>{row.original.status ?? "—"}</div>,
+    meta: {
+      label: "Status",
+      placeholder: "Search by status...",
+      variant: "text",
+      icon: Text,
+    },
     enableColumnFilter: true,
   },
   {
     id: "visitDate",
+    accessorFn: (row) => row.visitDate ?? "—",
     header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Visit Date" />
     ),
@@ -138,8 +136,14 @@ export const getColumns = ({
       const dateValue = row.original.visitDate;
       if (!dateValue) return <div>—</div>;
 
-      return <div>{format(new Date(dateValue), "MMM dd, yyyy HH:mm")}</div>;
-    }
+      return <div>{format(new Date(dateValue), "MMM dd, yyyy - HH:mm")}</div>;
+    },
+    meta: {
+      label: "Date",
+      placeholder: "Search by date...",
+      variant: "text",
+      icon: Text,
+    },
   },
   {
     id: "amount",
@@ -148,12 +152,48 @@ export const getColumns = ({
     cell: ({ row }) => (
         <div>{row.original.amount != null ? `${row.original.amount.toFixed(2)} ${row.original.currency}` : "—"}</div>
     ),
+    meta: {
+      label: "Amount",
+      placeholder: "Search by amount...",
+      variant: "text",
+      icon: Text,
+    },
     enableColumnFilter: false,
   },
   {
     id: "pack",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Pack" className={undefined}/>,
-    cell: ({ row }) => <div>{row.original.pack.pack ?? "—"}</div>,
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Pack" />,
+    cell: ({ row }) => {
+      const pack = row.original.pack;
+
+      console.log('Pack data for row:', {
+        hasPack: !!pack,
+        packType: typeof pack,
+        packValue: pack,
+        packKeys: pack ? Object.keys(pack) : 'no pack'
+      });
+
+      if (!pack || typeof pack !== 'object') {
+        return <div className="text-muted-foreground">—</div>;
+      }
+
+      return (
+          <div className="flex flex-col">
+            <div className="flex items-center text-sm font-medium capitalize">
+              <span>{pack.packName?.toLowerCase() ?? 'Unnamed Pack'}</span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {(pack.services?.length ?? 0)} services
+            </div>
+          </div>
+      );
+    },
+    meta: {
+      label: "Pack",
+      placeholder: "Search by pack...",
+      variant: "text",
+      icon: Text,
+    },
     enableColumnFilter: true,
   },
   {

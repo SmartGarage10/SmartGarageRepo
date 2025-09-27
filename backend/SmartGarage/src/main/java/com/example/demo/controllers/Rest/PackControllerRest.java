@@ -24,10 +24,11 @@ public class PackControllerRest {
     }
 
     @GetMapping("/packs")
-    public ResponseEntity<List<Pack>> getAllVehicles(){
+    public ResponseEntity<List<Pack>> getAllVehicles() {
         try {
             securityHelper.isAuthenticated();
-            return ResponseEntity.ok(packService.getAllPacks());
+            List<Pack> packs = packService.getAllPacks();
+            return ResponseEntity.ok(packs != null ? packs : List.of()); // never return null
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }

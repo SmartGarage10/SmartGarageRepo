@@ -14,7 +14,8 @@ export type User = {
     name: string;
     username: string;
     email: string;
-    role: UserRoleType | UserRole;
+    role?: UserRoleType;
     address: string;
     phone: string;
+    avatar?: string
 };

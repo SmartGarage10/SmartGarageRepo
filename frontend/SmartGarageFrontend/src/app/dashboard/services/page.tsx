@@ -1,229 +1,147 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useDataTable } from '@/hooks/useDataTable';
-import { getColumns } from '@/src/app/dashboard/users/column';
-import { User, UserRole } from '@/types/user';
-import { DataTable } from '@/components/data-table/data-table';
-import { DataTableAdvancedToolbar } from '@/components/data-table/data-table-advanced-toolbar';
-import { DataTableFacetedFilter } from '@/components/data-table/data-table-faceted-filter';
-import { DataTableFilterList } from '@/components/data-table/data-table-filter-list';
-import { SearchInput } from '@/components/data-table/data-search';
-import { UserForm } from '@/components/forms/edit-create-user-form';
 import { Toaster } from 'sonner';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { PackCards } from "@/components/dashboard-components/pack-cards";
+import PackCards from '@/components/dashboard-components/pack-cards';
+import React, { useEffect, useState } from 'react';
+import { Service } from '@/types/service';
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Euro } from "lucide-react";
+import { Dropdown } from '@/components/custom-components/item-drop-down';
 
-// Define the Pack type
-export interface Pack {
-    id: number;
-    name: string;
-    description: string;
-    price: number;
-    features: string[];
-    isPopular?: boolean;
-}
-
-// Sample data to use as fallback
-const samplePacks: Pack[] = [
-    {
-        id: 1,
-        name: "Basic Pack",
-        description: "Essential features for getting started",
-        price: 9.99,
-        features: ["Feature 1", "Feature 2", "Feature 3"],
-    },
-    {
-        id: 2,
-        name: "Pro Pack",
-        description: "Advanced features for power users",
-        price: 19.99,
-        features: ["Feature 1", "Feature 2", "Feature 3", "Feature 4"],
-        isPopular: true,
-    },
-    {
-        id: 3,
-        name: "Enterprise Pack",
-        description: "Complete solution for businesses",
-        price: 49.99,
-        features: ["All Features", "Priority Support", "Customization"],
-    },
-];
+import { useUser } from "@/hooks/useUser";
 
 export default function Page() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
+    const [services, setServices] = useState<Service[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Extract role filter from URL (or empty)
-    const [roleFilter, setRoleFilter] = useState<string[]>([]);
-    const [packs, setPacks] = useState<Pack[]>([]);
-    const [isLoadingPacks, setIsLoadingPacks] = useState(true);
-    const [packError, setPackError] = useState<string | null>(null);
+    const { user } = useUser();
+    const isAdmin = user?.role?.roleName === "ADMIN";
 
-    // Fetch packs data
     useEffect(() => {
-        const fetchPacks = async () => {
+        const fetchServices = async () => {
             try {
-                setIsLoadingPacks(true);
-                setPackError(null);
-
-                const response = await fetch('http://localhost:8080/api/packs', {
+                const res = await fetch('http://localhost:8080/api/services', {
                     credentials: 'include',
                 });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const text = await response.text();
-
-                // Try to parse the JSON, but handle malformed JSON gracefully
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch (parseError) {
-                    console.warn('Malformed JSON from API, using sample data', parseError);
-                    setPackError('Received malformed data from server. Showing sample packs.');
-                    setPacks(samplePacks);
-                    return;
-                }
-
-                setPacks(data);
+                if (!res.ok) throw new Error('Failed to fetch services');
+                const data = await res.json();
+                setServices(data);
             } catch (error) {
-                console.error('Error fetching packs:', error);
-                setPackError('Failed to load packs. Showing sample data.');
-                setPacks(samplePacks);
+                console.error('Error fetching services:', error);
             } finally {
-                setIsLoadingPacks(false);
+                setLoading(false);
             }
         };
-
-        fetchPacks();
+        fetchServices();
     }, []);
 
-    useEffect(() => {
-        const roles = searchParams.getAll('role');
-        setRoleFilter(roles.length ? roles : []);
-    }, [searchParams]);
-
-    // Hook for generic table (excluding role)
-    const {
-        table,
-        globalFilter,
-        setGlobalFilter,
-        clearAllFilters,
-        isFormOpen,
-        setIsFormOpen,
-        selectedRow,
-        setSelectedRow,
-        fetchData,
-        handleDeleteSelected,
-    } = useDataTable<User>({
-        fetchUrl: 'http://localhost:8080/api/users',
-        getColumns,
-    });
-
-    // Sync role filter changes to URL and table filters
-    const onRoleChange = (values: string[]) => {
-        setRoleFilter(values);
-
-        // Update URL params manually
-        const params = new URLSearchParams(window.location.search);
-        params.delete('role');
-        values.forEach((val) => params.append('role', val));
-
-        router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
-    };
-
-    // When roleFilter changes, update the filter in table
-    useEffect(() => {
-        if (!table) return;
-        const roleCol = table.getColumn('role');
-        if (!roleCol) return;
-
-        roleCol.setFilterValue(roleFilter.length > 0 ? roleFilter : undefined);
-    }, [roleFilter, table]);
-
     return (
-        <div className="space-y-4">
+        <div className="px-4 sm:px-6">
             <Toaster richColors position="top-center" toastOptions={{ className: 'font-sans' }} />
 
-            {/* PackCards with data passed as prop */}
-            <PackCards packs={packs} isLoading={isLoadingPacks} error={packError} />
+            {/* Packs Section with Admin Controls */}
+            <div className="relative">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="scroll-m-20 py-2 text-2xl sm:text-3xl font-semibold tracking-tight first:mt-0">
+                        Available Service Packs
+                    </h2>
+                    {isAdmin && (
+                        <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+                            <Button size="sm" className="rounded-full text-xs sm:text-sm">
+                                + Add New Pack
+                            </Button>
+                        </div>
+                    )}
+                </div>
+                <PackCards isAdmin={isAdmin} />
+            </div>
 
-            <DataTable table={table} className="px-10">
-                <DataTableAdvancedToolbar
-                    table={table}
-                    className="px-0"
-                    menuLabel="Add User"
-                    onCreateClick={() => {
-                        setSelectedRow(null);
-                        setIsFormOpen(true);
-                    }}
-                    onDeleteClick={
-                        table.getSelectedRowModel().rows.length > 0 ? handleDeleteSelected : undefined
-                    }
-                    onClearAll={() => {
-                        clearAllFilters();
-                        onRoleChange([]);
-                    }}
-                >
-                    <DataTableFilterList table={table} onClearAll={clearAllFilters} />
+            {/* Services Section */}
+            <div className="relative mt-8">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="scroll-m-20 py-2 text-2xl sm:text-3xl font-semibold tracking-tight first:mt-0">
+                        Services
+                    </h2>
+                    {isAdmin && (
+                        <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+                            <Button size="sm" className="rounded-full text-xs sm:text-sm">
+                                + Add New Service
+                            </Button>
+                        </div>
+                    )}
+                </div>
 
-                    <SearchInput
-                        value={globalFilter}
-                        onChange={setGlobalFilter}
-                        placeholder="Search by name..."
-                        onClear={() => {
-                            setGlobalFilter('');
-                            table.resetGlobalFilter();
-                        }}
-                    />
+                <div className="grid gap-4 sm:gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                    {loading ? (
+                        Array.from({ length: 3 }).map((_, i) => (
+                            <Card key={i} className="rounded-2xl p-4 sm:p-6">
+                                <Skeleton className="h-6 w-28 mb-4" />
+                                <Skeleton className="h-4 w-full mb-2" />
+                                <Skeleton className="h-4 w-3/4" />
+                                <div className="mt-4 flex justify-between">
+                                    <Skeleton className="h-6 w-16" />
+                                    <Skeleton className="h-8 w-20 rounded-md" />
+                                </div>
+                            </Card>
+                        ))
+                    ) : (
+                        services.map((s) => (
+                            <Card
+                                key={s.id}
+                                className="relative group rounded-2xl p-4 sm:p-6 transition-all border hover:shadow-xl md:hover:scale-[1.02] flex flex-col justify-between"
+                            >
+                                <CardHeader className="p-0 mb-1">
+                                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                                        <div className="min-w-0 flex-1">
+                                            <CardTitle className="text-xl sm:text-2xl font-semibold break-words leading-tight">
+                                                {s.serviceName}
+                                            </CardTitle>
+                                        </div>
 
-                    <DataTableFacetedFilter
-                        column={table.getColumn('role')}
-                        title="Role"
-                        options={Object.values(UserRole).map((r) => ({
-                            label: r,
-                            value: r,
-                        }))}
-                        multiple
-                        value={roleFilter}
-                        onChange={onRoleChange}
-                        onClear={() => onRoleChange([])}
-                    />
-                </DataTableAdvancedToolbar>
-            </DataTable>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <Badge variant="secondary" className="rounded-full px-2 sm:px-3 py-1 text-xs sm:text-sm whitespace-nowrap">
+                                                New
+                                            </Badge>
 
-            <UserForm
-                open={isFormOpen}
-                onOpenChange={(open) => {
-                    setIsFormOpen(open);
-                    if (!open) setSelectedRow(null);
-                }}
-                initialData={selectedRow}
-                onSubmit={async (user: User) => {
-                    const isEdit = !!selectedRow;
+                                            {/* Admin dropdown - CSS-only responsive visibility */}
+                                            {isAdmin && (
+                                                <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+                                                    <Dropdown
+                                                        itemType="Service"
+                                                        onEdit={() => console.log("Edit", s.id)}
+                                                        onDelete={() => console.log("Delete", s.id)}
+                                                        showDuplicate={false}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </CardHeader>
 
-                    const res = await fetch(
-                        isEdit
-                            ? `http://localhost:8080/api/user/${selectedRow?.id}`
-                            : 'http://localhost:8080/api/register',
-                        {
-                            method: isEdit ? 'PUT' : 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify(user),
-                        }
-                    );
-
-                    if (res.ok) {
-                        fetchData();
-                        setIsFormOpen(false);
-                    }
-                }}
-                isSubmitting={false}
-            />
+                                <CardContent className="p-0 flex flex-col flex-1 justify-between">
+                                    <p className="text-sm text-muted-foreground line-clamp-3 mt-2">
+                                        {s.serviceDescription}
+                                    </p>
+                                    <div className="mt-4 flex items-center justify-end">
+                                        <span className="flex items-center font-bold text-primary text-sm sm:text-base">
+                                            <Euro className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                                            {s.price.toFixed(2)}
+                                        </span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

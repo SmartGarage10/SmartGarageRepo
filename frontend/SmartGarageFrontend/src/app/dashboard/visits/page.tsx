@@ -5,8 +5,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { getColumns, Visit} from '@/src/app/dashboard/visits/column';
-import { Vehicle } from '@/src/app/dashboard/vehicles/column';
-import { User } from '@/src/app/dashboard/users/column';
+import { Vehicle } from '@/types/vehicle';
+import { User } from '@/types/user';
 
 import { DataTable } from '@/components/data-table/data-table';
 import { DataTableAdvancedToolbar } from '@/components/data-table/data-table-advanced-toolbar';

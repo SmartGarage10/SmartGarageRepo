@@ -1,5 +1,6 @@
 package com.example.demo.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -46,9 +47,14 @@ public class Pack {
     }
 
     // You MUST keep these manual methods
+    @Transient
+    @JsonProperty("totalPrice")
     public double getTotalPrice() {
         if (services == null || services.isEmpty()) return 0.0;
-        return services.stream().mapToDouble(ServiceItem::getPrice).sum();
+        return services.stream()
+                .map(ServiceItem::getPrice) // ServiceItem.getPrice() must return double
+                .mapToDouble(Double::doubleValue)
+                .sum();
     }
 
     public void addService(ServiceItem service) {

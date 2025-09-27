@@ -1,242 +1,122 @@
-// components/dashboard-components/pack-cards.tsx
-'use client';
-
-import { useCallback, useEffect, useState } from "react";
-import { IconTrendingUp, IconTrendingDown, IconInfoCircle } from "@tabler/icons-react";
-import { toast } from "sonner";
-import { XCircle } from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
+import React, { useEffect, useState } from "react";
 import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Euro, Wrench } from "lucide-react";
+import {useUser} from "@/hooks/useUser";
+import {Dropdown} from "@/components/custom-components/item-drop-down";
+import { Pack } from "@/types/pack";
 
-// Define the Pack type
-type Pack = {
-    id: string;
-    pack: string;
-    description: string;
-    trend?: "up" | "down";
-    services: string[];
-    price?: number;
-}
+export default function PackCards() {
+    const [packs, setPacks] = useState<Pack[]>([]);
+    const [loading, setLoading] = useState(true);
 
-// Sample data to use as fallback
-const samplePacks: Pack[] = [
-    {
-        id: "1",
-        pack: "Basic Pack",
-        description: "Essential features for getting started",
-        price: 9.99,
-        services: ["Feature 1", "Feature 2", "Feature 3"],
-        trend: "up"
-    },
-    {
-        id: "2",
-        pack: "Pro Pack",
-        description: "Advanced features for power users",
-        price: 19.99,
-        services: ["Feature 1", "Feature 2", "Feature 3", "Feature 4"],
-        trend: "up"
-    },
-    {
-        id: "3",
-        pack: "Enterprise Pack",
-        description: "Complete solution for businesses",
-        price: 49.99,
-        services: ["All Features", "Priority Support", "Customization"],
-        trend: "down"
-    },
-];
-
-interface PackCardsProps {
-    // Optional props if you want to control behavior from parent
-    autoFetch?: boolean;
-    showErrorToasts?: boolean;
-}
-
-export function PackCards({ autoFetch = true, showErrorToasts = true }: PackCardsProps) {
-    const [data, setData] = useState<Pack[]>([]);
-    const [isLoading, setIsLoading] = useState(autoFetch);
-    const [error, setError] = useState<string | null>(null);
-
-    const fetchData = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            setError(null);
-
-            const res = await fetch("http://localhost:8080/api/packs", {
-                credentials: "include",
-            });
-
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-
-            // Handle potential malformed JSON
-            const text = await res.text();
-            let json;
-
-            try {
-                json = JSON.parse(text);
-            } catch (parseError) {
-                console.error("Failed to parse JSON:", parseError);
-                throw new Error("Received malformed data from server");
-            }
-
-            setData(json);
-        } catch (error) {
-            console.error("Fetch error:", error);
-            setError(error instanceof Error ? error.message : "Unknown error");
-
-            // Use sample data as fallback
-            setData(samplePacks);
-
-            if (showErrorToasts) {
-                toast.error("Failed to load packs", {
-                    className: "bg-destructive text-white",
-                    description: error instanceof Error ? error.message : "Unknown error",
-                    icon: <XCircle className="text-red-500" />,
-                });
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    }, [showErrorToasts]);
-
-    // Refetch function that can be called from parent if needed
-    const refetch = useCallback(() => {
-        fetchData();
-    }, [fetchData]);
+    const { user } = useUser();
+    const isAdmin = user?.role?.roleName === "ADMIN";
 
     useEffect(() => {
-        if (autoFetch) {
-            fetchData();
-        }
-    }, [autoFetch, fetchData]);
+        fetch("http://localhost:8080/api/packs", {
+            credentials: "include",
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                setPacks(data);
+                setLoading(false);
+            })
+            .catch((err) => {
+                console.error("Error fetching packs:", err);
+                setLoading(false);
+            });
+    }, []);
 
-    if (isLoading) {
+    // Loading skeleton
+    if (loading) {
         return (
-            <div className="p-6">
-                <h2 className="text-2xl font-bold mb-4">Available Packs</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3].map((i) => (
-                        <Card key={i} className="animate-pulse">
-                            <CardHeader>
-                                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                                <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="h-10 bg-gray-200 rounded w-full"></div>
-                            </CardContent>
-                            <CardFooter>
-                                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                            </CardFooter>
-                        </Card>
-                    ))}
-                </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3].map((i) => (
+                    <Card
+                        key={i}
+                        className="relative overflow-hidden group p-5 rounded-2xl bg-gradient-to-br from-pink-50 to-purple-50
+                       dark:from-gray-800 dark:to-gray-700 border border-gray-100 dark:border-gray-700
+                       transition-shadow hover:shadow-xl flex flex-col h-full"
+                    >
+                        <Skeleton className="w-32 h-6 mb-3" />
+                        <Skeleton className="w-20 h-5 mb-2" />
+                        <Skeleton className="w-full h-4" />
+                    </Card>
+                ))}
             </div>
         );
     }
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">Available Packs</h2>
-                <button
-                    onClick={refetch}
-                    className="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1 rounded-md"
-                >
-                    Refresh
-                </button>
-            </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {packs.map((pack) => (
+                <HoverCard key={pack.id} openDelay={0} closeDelay={0}>
+                    <HoverCardTrigger asChild>
+                        <Card className="relative overflow-hidden group p-5 rounded-2xl bg-gradient-to-br from-pink-50 to-purple-50
+                             dark:from-gray-800 dark:to-gray-700 border border-gray-100 dark:border-gray-700
+                             transition-shadow hover:shadow-xl flex flex-col h-full">
+                            {/* Background icon */}
+                            <Wrench
+                                className="absolute -right-1 -top-1 w-40 h-40 text-red-900 dark:text-red-800 opacity-20 pointer-events-none"
+                            />
 
-            {error && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-                    <div className="flex">
-                        <div className="ml-3">
-                            <p className="text-sm text-yellow-700">
-                                {error}. Showing sample data.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {data.length === 0 ? (
-                <Card>
-                    <CardContent className="pt-6 text-center">
-                        <p className="text-muted-foreground">No packs available</p>
-                    </CardContent>
-                </Card>
-            ) : (
-                <TooltipProvider>
-                    <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-3">
-                        {data.map((pack) => (
-                            <Card key={pack.id} className="hover:shadow-lg transition-shadow">
-                                <CardHeader>
-                                    <CardDescription>{pack.description}</CardDescription>
-                                    <CardTitle className="text-2xl font-semibold flex items-center gap-2">
-                                        {pack.pack}
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <IconInfoCircle className="size-5 text-muted-foreground cursor-pointer" />
-                                            </TooltipTrigger>
-                                            <TooltipContent className="max-w-xs">
-                                                <div className="flex flex-col gap-1">
-                                                    <p className="font-semibold">Included Services:</p>
-                                                    <ul className="list-disc list-inside text-sm">
-                                                        {pack.services.map((service, i) => (
-                                                            <li key={i}>{service}</li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </CardTitle>
-                                </CardHeader>
-
-                                <CardContent>
-                                    <Badge variant="outline" className="text-lg p-2">
-                                        {pack.trend === "down" ? (
-                                            <IconTrendingDown className="mr-1" />
-                                        ) : (
-                                            <IconTrendingUp className="mr-1" />
-                                        )}
-                                        {pack.price ? `$${pack.price}` : "Price not available"}
-                                    </Badge>
-                                </CardContent>
-
-                                <CardFooter className="flex-col items-start gap-1.5 text-sm">
-                                    <div className="flex gap-2 font-medium items-center">
-                                        {pack.trend === "down" ? (
-                                            <>
-                                                Trending down <IconTrendingDown className="size-4" />
-                                            </>
-                                        ) : (
-                                            <>
-                                                Trending up <IconTrendingUp className="size-4" />
-                                            </>
+                            <CardContent className="p-0 flex flex-col justify-between flex-1 relative z-10">
+                                <CardHeader className="p-0 mb-2 relative z-10">
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <CardTitle className="text-2xl font-bold text-foreground">{pack.packName}</CardTitle>
+                                        {/* Admin dropdown */}
+                                        {isAdmin && (
+                                            <Dropdown
+                                                itemType="Service"
+                                                onEdit={() => console.log("Edit", s.id)}
+                                                onDelete={() => console.log("Delete", s.id)}
+                                                showDuplicate={false}
+                                            />
                                         )}
                                     </div>
-                                    <div className="text-muted-foreground">Pack ID: {pack.id}</div>
-                                </CardFooter>
-                            </Card>
-                        ))}
-                    </div>
-                </TooltipProvider>
-            )}
+                                </CardHeader>
+                                <div className="flex items-center text-3xl font-semibold text-foreground">
+                                    <Euro className="mr-1" />
+                                    {pack.totalPrice.toFixed(2)}
+                                </div>
+                                <CardDescription className="text-lg text-muted-foreground mt-1 line-clamp-3">
+                                    {pack.description}
+                                </CardDescription>
+                            </CardContent>
+                        </Card>
+                    </HoverCardTrigger>
+
+                    <HoverCardContent className="w-80 p-4 space-y-2 rounded-xl shadow-lg">
+                        <h4 className="text-lg font-semibold text-foreground">Services included</h4>
+                        <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
+                            {pack.services.map((service) => (
+                                <div
+                                    key={service.id}
+                                    className="flex items-start justify-between rounded-md p-2 hover:bg-muted/50 transition"
+                                >
+                                    <div className="flex-1">
+                                        <p className="font-medium text-sm text-foreground">{service.serviceName}</p>
+                                        <p className="text-xs text-muted-foreground line-clamp-2">{service.serviceDescription}</p>
+                                    </div>
+                                    <span className="ml-2 text-sm font-semibold text-green-600">${service.price.toFixed(2)}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t text-sm">
+                            <span className="text-muted-foreground">Total</span>
+                            <span className="font-bold text-foreground text-green-600">${pack.totalPrice.toFixed(2)}</span>
+                        </div>
+                    </HoverCardContent>
+                </HoverCard>
+            ))}
         </div>
     );
 }
