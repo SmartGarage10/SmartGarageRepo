@@ -80,7 +80,7 @@ public class ServiceControllerRest {
         try {
             User currentUser = securityHelper.getCurrentUser();
             service.deleteService(currentUser, id);
-            return ResponseEntity.ok(Map.of("status", "success", "message", "User deleted successfully"));
+            return ResponseEntity.ok(Map.of("status", "success", "message", "Service deleted successfully"));
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }

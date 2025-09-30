@@ -29,12 +29,12 @@ import { useForm } from "react-hook-form";
 import { useEffect } from "react";
 
 interface UserFormProps {
-    initialData?: Users | null;
+    initialData?: User | null;
     children?: React.ReactNode;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
     onSuccess?: () => void;
-    onSubmit?: (data: Users) => Promise<void>;
+    onSubmit?: (data: User) => Promise<void>;
     isSubmitting?: boolean;
 }
 
@@ -48,7 +48,7 @@ export function UserForm({
                              isSubmitting = false,
                          }: UserFormProps) {
     const router = useRouter();
-    const form = useForm<Users>({
+    const form = useForm<User>({
         defaultValues: {
             id: "",
             name: "",
@@ -82,7 +82,7 @@ export function UserForm({
         }
     }, [initialData, open, form]);
 
-    const handleSubmit = async (data: Users) => {
+    const handleSubmit = async (data: User) => {
         try {
             // Validate before submission
             if (!data.name || data.name.trim().length === 0) {

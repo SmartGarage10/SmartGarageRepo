@@ -30,13 +30,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { CarService } from "@/services/CarService";
-
-interface User {
-    id: string;
-    name: string;
-    email: string;
-    avatar?: string;
-}
+import { User } from "@/types/user";
 
 interface VehicleFormValues {
     id?: string;

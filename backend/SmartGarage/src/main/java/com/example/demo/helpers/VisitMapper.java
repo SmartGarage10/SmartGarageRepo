@@ -47,9 +47,8 @@ public class VisitMapper {
         List<Visit_Service> serviceOrderDetails = visitDto.getServices().stream()
                 .map(serviceDto -> {
                     ServiceItem service = new ServiceItem();
-                    service.setServiceId(serviceDto.getServiceId());
                     service.setServiceName(serviceDto.getServiceName());
-                    service.setPrice(serviceDto.getServicePrice());
+                    service.setPrice(serviceDto.getPrice());
 
                     Visit_Service detail = new Visit_Service();
                     detail.setService(service);
@@ -74,7 +73,6 @@ public class VisitMapper {
                 .map(detail -> {
                     ServiceItem service = detail.getService();
                     return new ServiceDTO(
-                            service.getServiceId(),
                             service.getServiceName(),
                             service.getServiceDescription(),
                             service.getPrice()

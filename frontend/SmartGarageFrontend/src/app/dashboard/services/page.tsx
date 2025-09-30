@@ -18,37 +18,100 @@ import { Dropdown } from '@/components/custom-components/item-drop-down';
 
 import { useUser } from "@/hooks/useUser";
 
+import { getServices, deleteService } from "@/api/serviceApi";
+import { ServiceForm } from '@/components/forms/edit-create-service-form';
+
 export default function Page() {
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
+    const [editingService, setEditingService] = useState<Service | null>(null);
+    const [isFormOpen, setIsFormOpen] = useState(false);
 
     const { user } = useUser();
     const isAdmin = user?.role?.roleName === "ADMIN";
 
+    // Load services initially
     useEffect(() => {
-        const fetchServices = async () => {
+        const loadServices = async () => {
+            setLoading(true);
             try {
-                const res = await fetch('http://localhost:8080/api/services', {
-                    credentials: 'include',
-                });
-                if (!res.ok) throw new Error('Failed to fetch services');
-                const data = await res.json();
+                const data = await getServices();
+                console.log('Loaded services:', data); // Debug log
                 setServices(data);
-            } catch (error) {
-                console.error('Error fetching services:', error);
+            } catch (err) {
+                console.error('Failed to load services:', err);
             } finally {
                 setLoading(false);
             }
         };
-        fetchServices();
+
+        loadServices();
     }, []);
+
+    const handleEdit = (service: Service) => {
+        console.log('Editing service:', service); // Debug log
+        setEditingService(service);
+        setIsFormOpen(true);
+    };
+
+    const handleAddNew = () => {
+        setEditingService(null);
+        setIsFormOpen(true);
+    };
+
+    const handleFormSuccess = async () => {
+        try {
+            // Reload services after form success
+            const data = await getServices();
+            setServices(data);
+        } catch (err) {
+            console.error('Failed to reload services:', err);
+        } finally {
+            setIsFormOpen(false);
+            setEditingService(null);
+        }
+    };
+
+    const handleFormOpenChange = (open: boolean) => {
+        setIsFormOpen(open);
+        if (!open) {
+            setEditingService(null);
+        }
+    };
+
+    const handleDelete = async (serviceId: string) => {
+        console.log('Deleting service ID:', serviceId, 'Type:', typeof serviceId); // Debug log
+
+        if (!serviceId || serviceId <= 0) {
+            console.error('Invalid service ID:', serviceId);
+            alert('Invalid service ID');
+            return;
+        }
+
+        try {
+            await deleteService(serviceId);
+            // Reload services after delete
+            const data = await getServices();
+            setServices(data);
+        } catch (error) {
+            console.error('Failed to delete service:', error);
+        }
+    };
 
     return (
         <div className="px-4 sm:px-6">
             <Toaster richColors position="top-center" toastOptions={{ className: 'font-sans' }} />
 
-            {/* Packs Section with Admin Controls */}
-            <div className="relative">
+            {/* Service Form Modal */}
+            <ServiceForm
+                initialData={editingService}
+                open={isFormOpen}
+                onOpenChange={handleFormOpenChange}
+                onSuccess={handleFormSuccess}
+            />
+
+            {/* Packs Section */}
+            <div className="relative group">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="scroll-m-20 py-2 text-2xl sm:text-3xl font-semibold tracking-tight first:mt-0">
                         Available Service Packs
@@ -61,18 +124,22 @@ export default function Page() {
                         </div>
                     )}
                 </div>
-                <PackCards isAdmin={isAdmin} />
+                <PackCards />
             </div>
 
             {/* Services Section */}
-            <div className="relative mt-8">
+            <div className="relative mt-8 group">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="scroll-m-20 py-2 text-2xl sm:text-3xl font-semibold tracking-tight first:mt-0">
                         Services
                     </h2>
                     {isAdmin && (
                         <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
-                            <Button size="sm" className="rounded-full text-xs sm:text-sm">
+                            <Button
+                                size="sm"
+                                className="rounded-full text-xs sm:text-sm"
+                                onClick={handleAddNew}
+                            >
                                 + Add New Service
                             </Button>
                         </div>
@@ -95,7 +162,7 @@ export default function Page() {
                     ) : (
                         services.map((s) => (
                             <Card
-                                key={s.id}
+                                key={s.serviceId}
                                 className="relative group rounded-2xl p-4 sm:p-6 transition-all border hover:shadow-xl md:hover:scale-[1.02] flex flex-col justify-between"
                             >
                                 <CardHeader className="p-0 mb-1">
@@ -111,13 +178,24 @@ export default function Page() {
                                                 New
                                             </Badge>
 
-                                            {/* Admin dropdown - CSS-only responsive visibility */}
                                             {isAdmin && (
                                                 <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
                                                     <Dropdown
                                                         itemType="Service"
-                                                        onEdit={() => console.log("Edit", s.id)}
-                                                        onDelete={() => console.log("Delete", s.id)}
+                                                        onEdit={() => {
+                                                            console.log('Edit clicked for service:', s); // Debug log
+                                                            handleEdit(s);
+                                                        }}
+                                                        onDelete={() => {
+                                                            console.log('Delete clicked for service:', s); // Debug log
+                                                            console.log('Service ID:', s.serviceId, 'Type:', typeof s.serviceId); // Debug log
+                                                            if (!s.serviceId) {
+                                                                console.error('Service object has no ID:', s);
+                                                                alert('Service ID is missing');
+                                                                return;
+                                                            }
+                                                            handleDelete(s.serviceId);
+                                                        }}
                                                         showDuplicate={false}
                                                     />
                                                 </div>
