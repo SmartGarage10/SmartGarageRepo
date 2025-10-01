@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 
+import CurrencyInput from 'react-currency-input-field';
+
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -18,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Service } from "@/types/service";
+import {Textarea} from "@/components/ui/textarea";
 
 interface ServiceFormProps {
     initialData?: {
@@ -152,7 +155,7 @@ export function ServiceForm({
                                         <FormItem>
                                             <FormLabel>Service Name</FormLabel>
                                             <FormControl>
-                                                <Input {...field} placeholder="e.g. Oil Change" />
+                                                <Input {...field} placeholder="Service name" />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -167,10 +170,7 @@ export function ServiceForm({
                                         <FormItem>
                                             <FormLabel>Description</FormLabel>
                                             <FormControl>
-                                                <Input
-                                                    {...field}
-                                                    placeholder="Short description of the service"
-                                                />
+                                                <Textarea placeholder="Type your message here." id="message" />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -180,22 +180,39 @@ export function ServiceForm({
                                 {/* Price */}
                                 <FormField
                                     control={form.control}
-                                    name="price"
+                                    name="totalPrice"
                                     rules={{
-                                        required: "Price is required",
+                                        required: "Total price is required",
                                         min: { value: 0, message: "Price must be positive" },
+                                        validate: (value) => {
+                                            const cents = Math.round((value - Math.floor(value)) * 100);
+                                            return cents === 99 || "Price must end with .99";
+                                        }
                                     }}
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Price</FormLabel>
+                                            <FormLabel>Total Price</FormLabel>
                                             <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    {...field}
-                                                    onChange={(e) =>
-                                                        field.onChange(Number(e.target.value))
-                                                    }
-                                                    placeholder="0.00"
+                                                <CurrencyInput
+                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    placeholder="0,99 €"
+                                                    decimalsLimit={2}
+                                                    decimalScale={2}
+                                                    fixedDecimalLength={2}
+                                                    decimalSeparator=","
+                                                    groupSeparator="."
+                                                    onValueChange={(value, name, values) => {
+                                                        if (value) {
+                                                            let numericValue = parseFloat(value.replace(',', '.'));
+                                                            // Adjust to step of 5 and .99 ending
+                                                            numericValue = Math.round(numericValue) - 0.01;
+                                                            field.onChange(Math.max(0, numericValue));
+                                                        } else {
+                                                            field.onChange(0);
+                                                        }
+                                                    }}
+                                                    value={field.value}
+                                                    suffix=" €"
                                                 />
                                             </FormControl>
                                             <FormMessage />

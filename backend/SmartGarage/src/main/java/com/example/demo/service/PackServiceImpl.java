@@ -4,10 +4,13 @@ import com.example.demo.exceptions.EntityNotFoundException;
 import com.example.demo.helpers.GenericFieldAccessor;
 import com.example.demo.helpers.RestrictHelper;
 import com.example.demo.models.Pack;
+import com.example.demo.models.ServiceItem;
 import com.example.demo.models.User;
 import com.example.demo.repositories.PackRepository;
+import com.example.demo.repositories.ServiceRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,11 +20,14 @@ import java.util.stream.Stream;
 public class PackServiceImpl implements PackService {
     private final PackRepository packRepository;
     private final RestrictHelper restrictHelper;
+    private final ServiceRepository serviceRepository;
 
-
-    public PackServiceImpl(PackRepository packRepository, RestrictHelper restrictHelper) {
+    public PackServiceImpl(PackRepository packRepository,
+                           RestrictHelper restrictHelper,
+                           ServiceRepository serviceRepository) {
         this.packRepository = packRepository;
         this.restrictHelper = restrictHelper;
+        this.serviceRepository = serviceRepository;
     }
 
     @Override
@@ -38,8 +44,16 @@ public class PackServiceImpl implements PackService {
     public Pack createPack(User user, Pack pack) {
         restrictHelper.isUserAdmin(user);
 
-        if (packRepository.existsPacksByPackName(pack.getPackName().toString())) {
+        if (packRepository.existsPacksByPackName(pack.getPackName())) {
             throw new IllegalArgumentException("Pack already exists.");
+        }
+
+        if (pack.getServices() != null && !pack.getServices().isEmpty()) {
+            for (ServiceItem service : pack.getServices()) {
+                // Find service by name instead of ID
+                serviceRepository.findByServiceName(service.getServiceName()).orElseThrow(() -> new IllegalArgumentException(
+                        "Service '" + service.getServiceName() + "' not found in database. " + "Please create the service first."));
+            }
         }
 
         return packRepository.save(pack);
@@ -50,37 +64,47 @@ public class PackServiceImpl implements PackService {
         // 1. Check User permissions
         restrictHelper.isUserAdmin(user);
 
-        // 2. Find existing vehicle
-        Pack eexistingPack = packRepository.findById(packId)
+        // 2. Find existing pack
+        Pack existingPack = packRepository.findById(packId)
                 .orElseThrow(() -> new EntityNotFoundException("Pack", "id", String.valueOf(packId)));
 
-        // 3. Get all vehicles (for duplicate checking)
-        List<Pack> allPacks = packRepository.findAll();
+        // 3. Check for duplicate pack name (if changed)
+        if (changes.getPackName() != null && !changes.getPackName().equals(existingPack.getPackName())) {
+            if (packRepository.existsPacksByPackName(changes.getPackName())) {
+                throw new IllegalArgumentException("Pack name already exists.");
+            }
+            existingPack.setPackName(changes.getPackName());
+        }
 
-        // 4. Process all updatable fields
-        Stream.of(
-                        Map.entry("pack", changes.getPackName())
-                )
-                .forEach(entry -> {
-                    String currentValue = GenericFieldAccessor.getFieldValue(eexistingPack, entry.getKey());
-                    Optional.ofNullable(entry.getValue())
-                            .filter(newValue -> !newValue.equals(currentValue)) // Skip if unchanged
-                            .filter(newValue -> !GenericFieldAccessor.isDuplicateField(allPacks, entry.getKey(), newValue, packId))
-                            .ifPresent(newValue -> GenericFieldAccessor.setFieldValue(eexistingPack, entry.getKey(), newValue));
-                });
+        // 4. Update simple fields
+        if (changes.getDescription() != null) {
+            existingPack.setDescription(changes.getDescription());
+        }
 
-        // 5. Process fields without duplicate checking
-        Stream.of(
-                        Map.entry("description", changes.getDescription())
-                )
-                .forEach(entry -> {
-                    String currentValue = GenericFieldAccessor.getFieldValue(eexistingPack, entry.getKey());
-                    Optional.ofNullable(entry.getValue())
-                            .filter(newValue -> !newValue.equals(currentValue)) // Skip if unchanged
-                            .ifPresent(newValue -> GenericFieldAccessor.setFieldValue(eexistingPack, entry.getKey(), newValue));
-                });
+        if (changes.getAmount() != null) {
+            existingPack.setAmount(changes.getAmount());
+        }
 
-        return packRepository.save(eexistingPack);
+        // 5. FIX: Handle services properly - clear and add new services
+        if (changes.getServices() != null) {
+            existingPack.getServices().clear(); // Clear existing services
+
+            if (!changes.getServices().isEmpty()) {
+                List<ServiceItem> managedServices = new ArrayList<>();
+
+                for (ServiceItem service : changes.getServices()) {
+                    // Find the managed service entity from database
+                    ServiceItem managedService = serviceRepository.findByServiceName(service.getServiceName())
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Service '" + service.getServiceName() + "' not found in database."
+                            ));
+                    managedServices.add(managedService);
+                }
+                existingPack.getServices().addAll(managedServices);
+            }
+        }
+
+        return packRepository.save(existingPack);
     }
 
     @Override

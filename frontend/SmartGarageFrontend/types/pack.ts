@@ -1,12 +1,9 @@
+import {Service} from "@/types/service";
+
 export interface Pack {
     id: string;
     packName: string;
-    totalPrice: number;
+    amount: number;
     description: string;
-    services: {
-        id: number;
-        serviceName: string;
-        serviceDescription: string;
-        price: number;
-    }[];
+    services: Service[];
 }

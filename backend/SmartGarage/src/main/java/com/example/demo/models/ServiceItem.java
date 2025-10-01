@@ -17,7 +17,7 @@ public class ServiceItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "service_id")
-    private int serviceId;
+    private int id;
 
     @Column(name = "name", nullable = false, length = 100)
     private String serviceName;

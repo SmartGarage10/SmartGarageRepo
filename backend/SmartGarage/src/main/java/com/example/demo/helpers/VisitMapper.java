@@ -27,7 +27,7 @@ public class VisitMapper {
 
     public Visit fromDto(int id, VisitDTO visitDto) {
         Visit visit = fromDto(visitDto);
-        visit.setVisitId(id);
+        visit.setId(id);
         return visit;
     }
 
@@ -62,26 +62,26 @@ public class VisitMapper {
         return visit;
     }
 
-    public VisitDTO toDto(Visit visit) {
-        VisitDTO visitDto = new VisitDTO();
-        visitDto.setVisitId(visit.getVisitId());
-        visitDto.setVisitDate(visit.getVisitDate());
-        visitDto.setEmployeeId(visit.getEmployee().getId());
-        visitDto.setVehicleId(visit.getVehicle().getId());
-
-        List<ServiceDTO> serviceDtos = visit.getVisitServices().stream()
-                .map(detail -> {
-                    ServiceItem service = detail.getService();
-                    return new ServiceDTO(
-                            service.getServiceName(),
-                            service.getServiceDescription(),
-                            service.getPrice()
-                    );
-                })
-                .collect(Collectors.toList());
-
-        visitDto.setServices(serviceDtos);
-
-        return visitDto;
-    }
+//    public VisitDTO toDto(Visit visit) {
+//        VisitDTO visitDto = new VisitDTO();
+//        visitDto.setVisitId(visit.getId());
+//        visitDto.setVisitDate(visit.getVisitDate());
+//        visitDto.setEmployeeId(visit.getEmployee().getId());
+//        visitDto.setVehicleId(visit.getVehicle().getId());
+//
+//        List<ServiceDTO> serviceDtos = visit.getVisitServices().stream()
+//                .map(detail -> {
+//                    ServiceItem service = detail.getService();
+//                    return new ServiceDTO(
+//                            service.getServiceName(),
+//                            service.getServiceDescription(),
+//                            service.getPrice()
+//                    );
+//                })
+//                .collect(Collectors.toList());
+//
+//        visitDto.setServices(serviceDtos);
+//
+//        return visitDto;
+//    }
 }

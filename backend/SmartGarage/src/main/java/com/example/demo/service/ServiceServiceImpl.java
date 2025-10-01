@@ -88,7 +88,7 @@ public class ServiceServiceImpl implements ServiceService {
         ServiceItem existingServiceItem = serviceRepository.findById(serviceId)
                 .orElseThrow(() -> new EntityNotFoundException("Service", "id", String.valueOf(serviceId)));
 
-        // 3. Get all services (for duplicate checking)
+        // 3. Get all vehicles (for duplicate checking)
         List<ServiceItem> allServices = serviceRepository.findAll();
 
         // 4. Process all updatable fields
@@ -97,25 +97,11 @@ public class ServiceServiceImpl implements ServiceService {
                         Map.entry("serviceDescription", changes.getServiceDescription())
                 )
                 .forEach(entry -> {
-                    String fieldName = entry.getKey();
-                    Object newValue = entry.getValue();
-                    Object currentValue = GenericFieldAccessor.getFieldValue(existingServiceItem, fieldName);
-
-                    Optional.ofNullable(newValue)
-                            .filter(nv -> !nv.equals(currentValue)) // Skip if unchanged
-                            .ifPresent(nv -> {
-                                // For serviceName, check for duplicates
-                                if ("serviceName".equals(fieldName)) {
-                                    boolean isDuplicate = allServices.stream()
-                                            .filter(service -> service.getServiceId() != serviceId) // exclude current service
-                                            .anyMatch(service -> nv.equals(service.getServiceName()));
-
-                                    if (isDuplicate) {
-                                        throw new IllegalArgumentException("Service with name '" + nv + "' already exists.");
-                                    }
-                                }
-                                GenericFieldAccessor.setFieldValue(existingServiceItem, fieldName, nv);
-                            });
+                    String currentValue = GenericFieldAccessor.getFieldValue(existingServiceItem, entry.getKey());
+                    Optional.ofNullable(entry.getValue())
+                            .filter(newValue -> !newValue.equals(currentValue)) // Skip if unchanged
+                            .filter(newValue -> !GenericFieldAccessor.isDuplicateField(allServices, entry.getKey(), newValue, serviceId))
+                            .ifPresent(newValue -> GenericFieldAccessor.setFieldValue(existingServiceItem, entry.getKey(), newValue));
                 });
 
         // 5. Process fields without duplicate checking
@@ -123,13 +109,10 @@ public class ServiceServiceImpl implements ServiceService {
                         Map.entry("price", changes.getPrice())
                 )
                 .forEach(entry -> {
-                    String fieldName = entry.getKey();
-                    Object newValue = entry.getValue();
-                    Object currentValue = GenericFieldAccessor.getFieldValue(existingServiceItem, fieldName);
-
-                    Optional.ofNullable(newValue)
-                            .filter(nv -> !nv.equals(currentValue)) // Skip if unchanged
-                            .ifPresent(nv -> GenericFieldAccessor.setFieldValue(existingServiceItem, fieldName, nv));
+                    String currentValue = GenericFieldAccessor.getFieldValue(existingServiceItem, entry.getKey());
+                    Optional.ofNullable(entry.getValue())
+                            .filter(newValue -> !newValue.equals(currentValue)) // Skip if unchanged
+                            .ifPresent(newValue -> GenericFieldAccessor.setFieldValue(existingServiceItem, entry.getKey(), newValue));
                 });
 
         // 6. Save and return updated service

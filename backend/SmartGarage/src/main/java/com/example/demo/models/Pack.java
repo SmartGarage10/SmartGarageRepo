@@ -1,5 +1,6 @@
 package com.example.demo.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -19,16 +20,18 @@ public class Pack {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pack_id")
-    private int packId;
+    private int id;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "pack", length = 50)
-    private PackType packName; // e.g., BASIC, STANDARD, PREMIUM, CUSTOM
+    private String packName; // e.g., BASIC, STANDARD, PREMIUM, CUSTOM
 
-    @Column(name = "description", length = 255)
+    @Column(name = "description", length = 1024)
     private String description;
 
-    @ManyToMany
+    @Column(name = "amount")
+    private Double amount; // Base price, can be 0 for CUSTOM packs
+
+    @ManyToMany(cascade = {CascadeType.MERGE})
     @JoinTable(
             name = "pack_services",
             joinColumns = @JoinColumn(name = "pack_id"),
@@ -37,14 +40,8 @@ public class Pack {
     private List<ServiceItem> services = new ArrayList<>();
 
     @OneToMany(mappedBy = "pack", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Visit> visits; // Visits that use this pack
-
-    public enum PackType {
-        BASIC,
-        STANDARD,
-        PREMIUM,
-        CUSTOM
-    }
 
     // You MUST keep these manual methods
     @Transient

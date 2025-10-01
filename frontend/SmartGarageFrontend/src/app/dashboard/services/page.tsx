@@ -17,9 +17,8 @@ import { Euro } from "lucide-react";
 import { Dropdown } from '@/components/custom-components/item-drop-down';
 
 import { useUser } from "@/hooks/useUser";
-
-import { getServices, deleteService } from "@/api/serviceApi";
 import { ServiceForm } from '@/components/forms/edit-create-service-form';
+import {createApi} from "@/api/genericApi";
 
 export default function Page() {
     const [services, setServices] = useState<Service[]>([]);
@@ -30,12 +29,14 @@ export default function Page() {
     const { user } = useUser();
     const isAdmin = user?.role?.roleName === "ADMIN";
 
+
+    const serviceApi = createApi<Service>("services");
     // Load services initially
     useEffect(() => {
         const loadServices = async () => {
             setLoading(true);
             try {
-                const data = await getServices();
+                const data = await serviceApi.getAll();
                 console.log('Loaded services:', data); // Debug log
                 setServices(data);
             } catch (err) {
@@ -62,7 +63,7 @@ export default function Page() {
     const handleFormSuccess = async () => {
         try {
             // Reload services after form success
-            const data = await getServices();
+            const data = await serviceApi.getAll();
             setServices(data);
         } catch (err) {
             console.error('Failed to reload services:', err);
@@ -89,9 +90,9 @@ export default function Page() {
         }
 
         try {
-            await deleteService(serviceId);
+            await serviceApi.delete(serviceId);
             // Reload services after delete
-            const data = await getServices();
+            const data = await serviceApi.getAll();
             setServices(data);
         } catch (error) {
             console.error('Failed to delete service:', error);
@@ -111,21 +112,7 @@ export default function Page() {
             />
 
             {/* Packs Section */}
-            <div className="relative group">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="scroll-m-20 py-2 text-2xl sm:text-3xl font-semibold tracking-tight first:mt-0">
-                        Available Service Packs
-                    </h2>
-                    {isAdmin && (
-                        <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
-                            <Button size="sm" className="rounded-full text-xs sm:text-sm">
-                                + Add New Pack
-                            </Button>
-                        </div>
-                    )}
-                </div>
-                <PackCards />
-            </div>
+            <PackCards/>
 
             {/* Services Section */}
             <div className="relative mt-8 group">
@@ -162,7 +149,7 @@ export default function Page() {
                     ) : (
                         services.map((s) => (
                             <Card
-                                key={s.serviceId}
+                                key={s.id}
                                 className="relative group rounded-2xl p-4 sm:p-6 transition-all border hover:shadow-xl md:hover:scale-[1.02] flex flex-col justify-between"
                             >
                                 <CardHeader className="p-0 mb-1">
@@ -188,13 +175,13 @@ export default function Page() {
                                                         }}
                                                         onDelete={() => {
                                                             console.log('Delete clicked for service:', s); // Debug log
-                                                            console.log('Service ID:', s.serviceId, 'Type:', typeof s.serviceId); // Debug log
-                                                            if (!s.serviceId) {
+                                                            console.log('Service ID:', s.id, 'Type:', typeof s.id); // Debug log
+                                                            if (!s.id) {
                                                                 console.error('Service object has no ID:', s);
                                                                 alert('Service ID is missing');
                                                                 return;
                                                             }
-                                                            handleDelete(s.serviceId);
+                                                            handleDelete(s.id);
                                                         }}
                                                         showDuplicate={false}
                                                     />

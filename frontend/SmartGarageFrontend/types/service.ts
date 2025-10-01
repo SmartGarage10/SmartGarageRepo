@@ -1,6 +1,6 @@
 // Define service type
 export interface Service {
-    serviceId: string;
+    id: string;
     serviceName: string;
     serviceDescription: string;
     price: number;

@@ -19,7 +19,7 @@ public class    Visit {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "visit_id")
-    private int visitId;
+    private int id;
 
     @ManyToOne
     @JoinColumn(name = "vehicle_id", nullable = false)

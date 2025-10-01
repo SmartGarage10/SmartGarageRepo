@@ -101,6 +101,7 @@ export function VisitForm({
     const [packDropdownOpen, setPackDropdownOpen] = useState(false);
     const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
+    // Update packs !!!
     const [packs] = useState<string[]>([
         "CUSTOM", "BASIC", "STANDARD", "PREMIUM"
     ]);

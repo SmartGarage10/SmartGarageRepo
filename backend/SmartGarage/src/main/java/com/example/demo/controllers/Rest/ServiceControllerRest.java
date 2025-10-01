@@ -42,7 +42,7 @@ public class ServiceControllerRest {
         }
     }
 
-    @PostMapping("/create-service")
+    @PostMapping("/create-services")
     public ResponseEntity<?> createService(@Valid @RequestBody ServiceDTO serviceDTO,
                                            BindingResult bindingResult){
         try {
@@ -58,7 +58,7 @@ public class ServiceControllerRest {
         }
     }
 
-    @PutMapping("update-service/{id}")
+    @PutMapping("update-services/{id}")
     public ResponseEntity<?> updateService(@Valid @RequestBody ServiceDTO serviceDTO,
                                            @PathVariable int id,
                                            BindingResult bindingResult){
@@ -75,7 +75,7 @@ public class ServiceControllerRest {
         }
     }
 
-    @DeleteMapping("/service/{id}")
+    @DeleteMapping("/services/{id}")
     public ResponseEntity<?> deleteSingleService(@PathVariable int id) {
         try {
             User currentUser = securityHelper.getCurrentUser();

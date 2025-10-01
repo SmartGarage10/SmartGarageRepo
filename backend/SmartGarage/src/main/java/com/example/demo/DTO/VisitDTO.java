@@ -12,7 +12,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class VisitDTO {
-    private int visitId;
     private int vehicleId;
     private int employeeId;
     private LocalDateTime visitDate;
