@@ -1,5 +1,5 @@
 
-# 🚗 Smart Garage – Car Service Management System
+# Smart Garage – Car Service Management System
 
 ## 📖 Overview
 
