@@ -4,6 +4,7 @@ import { Pack } from './pack';
 
 export type Visit = {
     id: string;
+    client: User;
     vehicle: Vehicle;
     employee: User;
     visitDate: string;

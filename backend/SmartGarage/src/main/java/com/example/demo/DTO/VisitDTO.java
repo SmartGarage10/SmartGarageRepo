@@ -1,6 +1,9 @@
 package com.example.demo.DTO;
 
 import com.example.demo.models.Pack;
+import com.example.demo.models.ServiceItem;
+import com.example.demo.models.User;
+import com.example.demo.models.Vehicle;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,12 +15,13 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class VisitDTO {
-    private int vehicleId;
-    private int employeeId;
+    private User client;
+    private Vehicle vehicle;
+    private User employee;
     private LocalDateTime visitDate;
     private String status;
     private double amount;
     private String currency;
-    private Pack pack;  // enum from Visit
-    private List<ServiceDTO> services;
+    private Pack pack;
+    private List<ServiceItem> services;
 }

@@ -1,7 +1,6 @@
 package com.example.demo.service;
 
 import com.example.demo.exceptions.EntityNotFoundException;
-import com.example.demo.helpers.GenericFieldAccessor;
 import com.example.demo.helpers.RestrictHelper;
 import com.example.demo.models.Pack;
 import com.example.demo.models.ServiceItem;
@@ -12,9 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 @Service
 public class PackServiceImpl implements PackService {
