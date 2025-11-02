@@ -1,22 +1,17 @@
 package com.example.demo.controllers.Rest;
 
-import com.example.demo.DTO.VehicleDTO;
 import com.example.demo.DTO.VisitDTO;
 import com.example.demo.exceptions.AuthorizationException;
-import com.example.demo.helpers.AuthenticationHelper;
 import com.example.demo.helpers.SecurityHelper;
 import com.example.demo.helpers.ValidationHelper;
-import com.example.demo.helpers.VisitMapper;
+import com.example.demo.mappers.VisitMapper;
 import com.example.demo.models.User;
-import com.example.demo.models.Vehicle;
 import com.example.demo.models.Visit;
 import com.example.demo.service.VisitService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.MultiValueMap;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -60,7 +55,7 @@ public class VisitControllerRest {
             ValidationHelper.validate(bindingResult);
 
             User currentUser = securityHelper.getCurrentUser();
-            Visit visit = visitMapper.fromDto(visitDTO);
+            Visit visit = visitMapper.visitDtoToVisit(visitDTO);
 
             return ResponseEntity.ok(visitService.createVisit(currentUser, visit));
         } catch (AuthorizationException e) {
@@ -76,7 +71,7 @@ public class VisitControllerRest {
             ValidationHelper.validate(bindingResult);
 
             User currentUser = securityHelper.getCurrentUser();
-            Visit visit = visitMapper.fromDto(visitDTO);
+            Visit visit = visitMapper.visitDtoToVisit(visitDTO);
 
             return ResponseEntity.ok(visitService.update(currentUser, id , visit));
         }

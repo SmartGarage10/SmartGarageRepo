@@ -3,9 +3,10 @@ package com.example.demo.helpers;
 import com.example.demo.DTO.ServiceDTO;
 import com.example.demo.DTO.VisitDTO;
 import com.example.demo.models.*;
+import com.example.demo.service.ServiceService;
 import com.example.demo.service.UserService;
 import com.example.demo.service.VehicleService;
-import com.example.demo.service.ServiceItemService;
+//import com.example.demo.service.ServiceItemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -18,13 +19,15 @@ public class VisitMapper {
 
     private final UserService userService;
     private final VehicleService vehicleService;
-    private final ServiceItemService serviceItemService;
+    private final ServiceService serviceItemService;
+    private final ServiceMapper serviceMapper;
 
     @Autowired
-    public VisitMapper(UserService userService, VehicleService vehicleService, ServiceItemService serviceItemService) {
+    public VisitMapper(UserService userService, VehicleService vehicleService, ServiceService serviceItemService,  ServiceMapper serviceMapper) {
         this.userService = userService;
         this.vehicleService = vehicleService;
         this.serviceItemService = serviceItemService;
+        this.serviceMapper = serviceMapper;
     }
 
     public Visit fromDto(int id, VisitDTO visitDto) {
@@ -62,7 +65,7 @@ public class VisitMapper {
         List<Visit_Service> serviceOrderDetails = new ArrayList<>();
 
         if (visitDto.getPack() != null) {
-            if (visitDto.getPack().getId() != null && !"CUSTOM PACK".equals(visitDto.getPack().getPackName())) {
+            if (visitDto.getPack().getId() != 0 && !"CUSTOM PACK".equals(visitDto.getPack().getPackName())) {
                 // Scenario 1: Regular pack from DB - get services from the pack
                 Pack pack = visitDto.getPack();
                 if (pack.getServices() != null) {
@@ -79,15 +82,9 @@ public class VisitMapper {
                 // Scenario 2: CUSTOM PACK - services come from the DTO
                 if (visitDto.getServices() != null && !visitDto.getServices().isEmpty()) {
                     serviceOrderDetails = visitDto.getServices().stream()
-                            .map(serviceDto -> {
+                            .map(serviceItem -> {
                                 // Try to find existing service by ID first, otherwise create new one
-                                ServiceItem service;
-                                if (serviceDto.getId() != null) {
-                                    service = serviceItemService.getServiceById(serviceDto.getId())
-                                            .orElseGet(() -> createServiceFromDto(serviceDto));
-                                } else {
-                                    service = createServiceFromDto(serviceDto);
-                                }
+                                ServiceItem service = serviceItemService.getServiceById(serviceItem.getId()).orElseThrow(() -> new IllegalArgumentException("Invalid service ID: " + serviceItem.getId()));
 
                                 Visit_Service detail = new Visit_Service();
                                 detail.setService(service);
@@ -103,14 +100,6 @@ public class VisitMapper {
         visit.setVisitServices(serviceOrderDetails);
 
         return visit;
-    }
-
-    private ServiceItem createServiceFromDto(ServiceDTO serviceDto) {
-        ServiceItem service = new ServiceItem();
-        service.setServiceName(serviceDto.getServiceName());
-        service.setPrice(serviceDto.getPrice());
-        // Set other service properties if needed
-        return service;
     }
 
 //    public VisitDTO toDto(Visit visit) {

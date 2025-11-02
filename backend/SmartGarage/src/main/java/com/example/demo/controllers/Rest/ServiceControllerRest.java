@@ -42,7 +42,7 @@ public class ServiceControllerRest {
         }
     }
 
-    @PostMapping("/create-services")
+    @PostMapping("/create-service")
     public ResponseEntity<?> createService(@Valid @RequestBody ServiceDTO serviceDTO,
                                            BindingResult bindingResult){
         try {
@@ -58,7 +58,7 @@ public class ServiceControllerRest {
         }
     }
 
-    @PutMapping("update-services/{id}")
+    @PutMapping("update-service/{id}")
     public ResponseEntity<?> updateService(@Valid @RequestBody ServiceDTO serviceDTO,
                                            @PathVariable int id,
                                            BindingResult bindingResult){

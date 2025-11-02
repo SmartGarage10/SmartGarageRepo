@@ -4,8 +4,10 @@ import com.example.demo.DTO.ServiceDTO;
 import com.example.demo.DTO.VehicleDTO;
 import com.example.demo.models.ServiceItem;
 import com.example.demo.models.Vehicle;
+import lombok.Data;
 import org.springframework.stereotype.Component;
 
+@Data
 @Component
 public class ServiceMapper {
     public ServiceItem fromDto(int id, ServiceDTO serviceDTO){
@@ -22,12 +24,12 @@ public class ServiceMapper {
         serviceItem.setPrice(serviceDTO.getPrice());
         return serviceItem;
     }
-//    public ServiceDTO toDto(ServiceItem serviceItem){
-//        return new ServiceDTO(
-//                serviceItem.getServiceId(),
-//                serviceItem.getServiceName(),
-//                serviceItem.getServiceDescription(),
-//                serviceItem.getPrice()
-//        );
-//    }
+    public ServiceDTO toDto(ServiceItem serviceItem){
+        return new ServiceDTO(
+                serviceItem.getId(),
+                serviceItem.getServiceName(),
+                serviceItem.getServiceDescription(),
+                serviceItem.getPrice()
+        );
+    }
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import React, {useEffect, useMemo, useState} from "react";
+import {useForm, useWatch} from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import MultipleSelector from "@/components/ui/multiple-selector";
@@ -27,26 +27,16 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-import { User, UserRole } from "@/types/user";
-import { Vehicle } from "@/types/vehicle";
-import { Pack } from "@/types/pack";
-import { Service } from "@/types/service";
+import { Visit } from "@/types/visit"
 import { createApi } from "@/api/genericApi";
+import {User, UserRole} from "@/types/user";
+import {Vehicle} from "@/types/vehicle";
+import {Pack} from "@/types/pack";
+import {Service} from "@/types/service";
 
-interface VisitFormValues {
-    id?: string;
-    client: User;
-    vehicle: Vehicle;
-    employee: User;
-    status: string;
-    visitDate: Date;
-    amount: number;
-    currency: string;
-    pack: { pack: string };
-}
 
 interface VisitFormProps {
-    initialData?: VisitFormValues | null;
+    initialData?: Visit | null;
     children?: React.ReactNode;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -64,8 +54,9 @@ export function VisitForm({
                           }: VisitFormProps) {
     const router = useRouter();
 
-    const form = useForm<VisitFormValues>({
+    const form = useForm<Visit>({
         defaultValues: {
+            id: "",
             client: { id: "", name: "", email: "" },
             vehicle: {
                 id: "",
@@ -74,14 +65,14 @@ export function VisitForm({
                 client: { id: "", name: "", email: "" },
                 brand: "",
                 model: "",
-                year: 0,
+                year: "",
             },
             employee: { id: "", name: "", email: "" },
-            visitDate: undefined,
+            visitDate: "",
+            status: "SCHEDULED",
             amount: 0,
             currency: "EUR",
-            pack: { pack: "" },
-            status: "SCHEDULED",
+            pack: undefined,
         },
     });
 
@@ -144,17 +135,34 @@ export function VisitForm({
         loadData();
     }, []);
 
-    // Reset form when initialData changes or dialog opens
+    // Reset form when initialData changes or dialog opens - FIXED VERSION
     useEffect(() => {
-        if (initialData) {
-            form.reset(initialData);
-            if (initialData.pack.pack === "CUSTOM PACK") {
-                // You might want to load selected services from initialData here
+        if (open && initialData) {
+            console.log("Setting form with initial data:", initialData);
+
+            // Use the initialData directly - don't try to find matching objects
+            // The form will use whatever objects are in initialData
+            const formData = {
+                ...initialData,
+                visitDate: initialData.visitDate
+                    ? new Date(initialData.visitDate).toISOString().slice(0, 16)
+                    : ""
+            };
+
+            console.log("Form data to set:", formData);
+
+            // Reset the form with the initial data
+            form.reset(formData);
+
+            if (initialData.pack?.packName === "CUSTOM PACK" && initialData.services) {
+                setSelectedServices(initialData.services);
+            } else {
                 setSelectedServices([]);
             }
         } else if (!open) {
             // Reset form when dialog closes without initialData
             form.reset({
+                id: "",
                 client: { id: "", name: "", email: "" },
                 vehicle: {
                     id: "",
@@ -163,14 +171,14 @@ export function VisitForm({
                     client: { id: "", name: "", email: "" },
                     brand: "",
                     model: "",
-                    year: 0,
+                    year: "",
                 },
                 employee: { id: "", name: "", email: "" },
-                visitDate: undefined,
+                visitDate: "",
+                status: "SCHEDULED",
                 amount: 0,
                 currency: "EUR",
-                pack: { pack: "" },
-                status: "SCHEDULED",
+                pack: undefined,
             });
             setSelectedServices([]);
         }
@@ -178,34 +186,26 @@ export function VisitForm({
 
     // --- Amount logic ---
     const [amount, setAmount] = useState<number>(0);
-    const selectedPack = form.watch("pack.pack");
+    const selectedPack = useWatch({
+        control: form.control,
+        name: "pack.packName",
+    });
 
     useEffect(() => {
-        console.log("Selected pack:", selectedPack);
-        console.log("Available packs:", packs);
+        let newAmount = 0;
 
         if (selectedPack && selectedPack !== "CUSTOM PACK") {
             const packObj = packs.find((p) => p.packName === selectedPack);
-            console.log("Found pack object:", packObj);
-            const packAmount = packObj?.price ?? packObj?.amount ?? 0;
-            console.log("Setting amount to:", packAmount);
-            setAmount(packAmount);
-            form.setValue("amount", packAmount);
+            newAmount = packObj?.amount ?? 0;
         } else if (selectedPack === "CUSTOM PACK") {
-            const total = selectedServices.reduce(
-                (sum, s) => sum + (s.price ?? 0),
-                0
-            );
-            console.log("Custom pack total:", total);
-            setAmount(total);
-            form.setValue("amount", total);
-        } else {
-            setAmount(0);
-            form.setValue("amount", 0);
+            newAmount = selectedServices.reduce((sum, s) => sum + (s.price ?? 0), 0);
         }
+
+        setAmount(newAmount);
+        form.setValue("amount", newAmount, { shouldValidate: true, shouldDirty: true });
     }, [selectedPack, selectedServices, packs, form]);
 
-    const handleSubmit = async (data: VisitFormValues) => {
+    const handleSubmit = async (data: Visit) => {
         try {
             // Validate required fields
             if (!data.visitDate) {
@@ -247,10 +247,10 @@ export function VisitForm({
             const method = isUpdate ? "PUT" : "POST";
 
             // Safe date handling
-            const visitDate = data.visitDate instanceof Date ? data.visitDate : new Date(data.visitDate);
+            const visitDate = new Date(data.visitDate);
 
             // Find the selected pack object
-            const selectedPackObj = packs.find(p => p.packName === data.pack.pack);
+            const selectedPackObj = packs.find(p => p.packName === data.pack?.packName);
 
             // Fix the payload structure - send full objects as expected by the DTO
             const payload = {
@@ -261,7 +261,7 @@ export function VisitForm({
                 status: data.status || "SCHEDULED",
                 amount: data.amount,
                 currency: data.currency || "EUR",
-                pack: selectedPackObj || { packName: data.pack.pack }, // Send pack object or create minimal one
+                pack: selectedPackObj || { packName: data.pack?.packName }, // Send pack object or create minimal one
                 services: selectedPack === "CUSTOM PACK" ? selectedServices : null
             };
 
@@ -335,7 +335,7 @@ export function VisitForm({
 
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                                {/* Client Field */}
+                                {/* Client Field - SIMPLIFIED */}
                                 <FormField
                                     control={form.control}
                                     name="client"
@@ -404,7 +404,7 @@ export function VisitForm({
                                     )}
                                 />
 
-                                {/* Vehicle Field */}
+                                {/* Vehicle Field - SIMPLIFIED */}
                                 <FormField
                                     control={form.control}
                                     name="vehicle"
@@ -555,7 +555,7 @@ export function VisitForm({
                                     )}
                                 />
 
-                                {/* Visit Date Field */}
+                                {/* Rest of your form fields remain the same */}
                                 <FormField
                                     control={form.control}
                                     name="visitDate"
@@ -638,7 +638,7 @@ export function VisitForm({
                                 {/* Pack Select with Custom Option */}
                                 <FormField
                                     control={form.control}
-                                    name="pack.pack"
+                                    name="pack.packName"
                                     render={({ field }) => {
                                         const isCustomPack = field.value === "CUSTOM PACK";
                                         const availablePacks = [
@@ -682,13 +682,13 @@ export function VisitForm({
                                                             <CommandGroup className="max-h-[300px] overflow-y-auto">
                                                                 {availablePacks.map((p) => {
                                                                     const pack = packs.find(pack => pack.packName === p);
-                                                                    const packPrice = pack?.price ?? pack?.amount ?? 0;
+                                                                    const packPrice = pack?.amount ?? pack?.amount ?? 0;
                                                                     return (
                                                                         <CommandItem
                                                                             key={p}
                                                                             value={p}
                                                                             onSelect={() => {
-                                                                                form.setValue("pack.pack", p);
+                                                                                form.setValue("pack.packName", p);
                                                                                 if (p !== "CUSTOM PACK") {
                                                                                     setSelectedServices([]);
                                                                                 }
@@ -725,7 +725,7 @@ export function VisitForm({
                                                                 )}
                                                             </div>
                                                             <p className="font-bold text-sm">
-                                                                €{(selectedPackObj.price ?? selectedPackObj.amount ?? 0).toFixed(2)}
+                                                                €{(selectedPackObj.amount ?? selectedPackObj.amount ?? 0).toFixed(2)}
                                                             </p>
                                                         </div>
                                                     </div>

@@ -23,12 +23,7 @@ import { Service } from "@/types/service";
 import {Textarea} from "@/components/ui/textarea";
 
 interface ServiceFormProps {
-    initialData?: {
-        serviceId: string;
-        serviceName: string;
-        serviceDescription: string;
-        price: number;
-    } | null;
+    initialData?: Service | null;
     children?: React.ReactNode;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -48,7 +43,7 @@ export function ServiceForm({
 
     const form = useForm<Service>({
         defaultValues: {
-            serviceId: "",
+            id: "",
             serviceName: "",
             serviceDescription: "",
             price: 0,
@@ -60,7 +55,7 @@ export function ServiceForm({
             form.reset(initialData);
         } else if (open && !initialData) {
             form.reset({
-                serviceId: "",
+                id: "",
                 serviceName: "",
                 serviceDescription: "",
                 price: 0,
@@ -70,9 +65,9 @@ export function ServiceForm({
 
     const handleSubmit = async (data: Service) => {
         try {
-            const isUpdate = !!initialData?.serviceId;
+            const isUpdate = !!initialData?.id;
             const endpoint = isUpdate
-                ? `http://localhost:8080/api/update-service/${initialData.serviceId}`
+                ? `http://localhost:8080/api/update-service/${initialData?.id}`
                 : "http://localhost:8080/api/create-service";
             const method = isUpdate ? "PUT" : "POST";
 
@@ -89,7 +84,7 @@ export function ServiceForm({
             }
 
             form.reset({
-                serviceId: "",
+                id: "",
                 serviceName: "",
                 serviceDescription: "",
                 price: 0,
@@ -170,7 +165,7 @@ export function ServiceForm({
                                         <FormItem>
                                             <FormLabel>Description</FormLabel>
                                             <FormControl>
-                                                <Textarea placeholder="Type your message here." id="message" />
+                                                <Textarea {...field} placeholder="Type your message here." />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -180,7 +175,7 @@ export function ServiceForm({
                                 {/* Price */}
                                 <FormField
                                     control={form.control}
-                                    name="totalPrice"
+                                    name="price"
                                     rules={{
                                         required: "Total price is required",
                                         min: { value: 0, message: "Price must be positive" },

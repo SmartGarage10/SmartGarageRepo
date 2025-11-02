@@ -29,7 +29,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.hibernate.common:hibernate-commons-annotations:6.0.6.Final'
 
-
 	// Validation
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'jakarta.validation:jakarta.validation-api'
@@ -50,6 +49,10 @@ dependencies {
 
 	// Message validation dependency
 	implementation 'com.google.guava:guava:32.1.2-jre'
+
+    // Mapper dependency
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
 	implementation 'org.eclipse.angus:jakarta.mail:2.0.3'
 

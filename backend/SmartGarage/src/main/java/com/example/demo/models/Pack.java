@@ -53,13 +53,4 @@ public class Pack {
                 .mapToDouble(Double::doubleValue)
                 .sum();
     }
-
-    public void addService(ServiceItem service) {
-        if (this.services == null) this.services = new ArrayList<>();
-        this.services.add(service);
-    }
-
-    public void removeService(ServiceItem service) {
-        if (this.services != null) this.services.remove(service);
-    }
 }
