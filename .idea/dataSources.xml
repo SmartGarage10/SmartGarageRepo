@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="smart_garage@localhost" uuid="863e6e52-1ad5-4d01-b737-cad2c2e56037">
+    <data-source source="LOCAL" name="@localhost" uuid="3706618a-c09f-4966-a9d2-7ee0cc7fc2e9">
       <driver-ref>mariadb</driver-ref>
       <synchronize>true</synchronize>
+      <remarks>smart_garage</remarks>
       <jdbc-driver>org.mariadb.jdbc.Driver</jdbc-driver>
-      <jdbc-url>jdbc:mariadb://localhost:3306/smart_garage</jdbc-url>
+      <jdbc-url>jdbc:mariadb://localhost:3306</jdbc-url>
       <jdbc-additional-properties>
         <property name="com.intellij.clouds.kubernetes.db.host.port" />
         <property name="com.intellij.clouds.kubernetes.db.enabled" value="false" />

@@ -261,8 +261,8 @@ export function VisitForm({
                 status: data.status || "SCHEDULED",
                 amount: data.amount,
                 currency: data.currency || "EUR",
-                pack: selectedPackObj || { packName: data.pack?.packName }, // Send pack object or create minimal one
-                services: selectedPack === "CUSTOM PACK" ? selectedServices : null
+                pack: selectedPackObj || null, // Send pack object or create minimal one
+                visitServices: selectedPack === "CUSTOM PACK" ? selectedServices : null
             };
 
             console.log("Submitting payload:", payload);

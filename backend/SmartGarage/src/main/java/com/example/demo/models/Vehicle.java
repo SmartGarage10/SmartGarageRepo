@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDate;
 import java.time.Year;
@@ -28,6 +29,7 @@ public class Vehicle {
 
     @ManyToOne
     @JoinColumn(name = "client_id", nullable = false)
+    @ToString.Exclude
     private User client;
 
     @Column(name = "brand", nullable = false)
@@ -40,6 +42,7 @@ public class Vehicle {
     private Year year;
 
     @OneToMany(mappedBy = "vehicle")
+    @ToString.Exclude
     private Set<Visit> visits;
 
 }

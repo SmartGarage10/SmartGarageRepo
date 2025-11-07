@@ -12,7 +12,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PackDTO {
-    private int id;
     private String packName;      // BASIC, STANDARD, PREMIUM, CUSTOM
     private String description;
     private double amount;

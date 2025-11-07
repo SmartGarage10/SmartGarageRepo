@@ -55,7 +55,7 @@ public class VisitControllerRest {
             ValidationHelper.validate(bindingResult);
 
             User currentUser = securityHelper.getCurrentUser();
-            Visit visit = visitMapper.visitDtoToVisit(visitDTO);
+            Visit visit = visitMapper.toEntity(visitDTO);
 
             return ResponseEntity.ok(visitService.createVisit(currentUser, visit));
         } catch (AuthorizationException e) {
@@ -63,7 +63,7 @@ public class VisitControllerRest {
         }
     }
 
-    @PutMapping("update-visit/{id}")
+    @PutMapping("/update-visit/{id}")
     public ResponseEntity<?> updateVehicle(@Valid @RequestBody VisitDTO visitDTO,
                                                  @PathVariable int id,
                                                  BindingResult bindingResult){
@@ -71,7 +71,7 @@ public class VisitControllerRest {
             ValidationHelper.validate(bindingResult);
 
             User currentUser = securityHelper.getCurrentUser();
-            Visit visit = visitMapper.visitDtoToVisit(visitDTO);
+            Visit visit = visitMapper.toEntity(visitDTO);
 
             return ResponseEntity.ok(visitService.update(currentUser, id , visit));
         }

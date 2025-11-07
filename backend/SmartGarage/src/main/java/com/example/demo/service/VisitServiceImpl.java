@@ -98,11 +98,11 @@ public class VisitServiceImpl implements VisitService{
         // 1. Check User permissions
         restrictHelper.isUserAdminOrEmployee(user);
 
-        // 2. Find existing vehicle
+        // 2. Find existing visit
         Visit existingVisit = visitRepository.findById(visitId)
                 .orElseThrow(() -> new EntityNotFoundException("Visit", "id", String.valueOf(visitId)));
 
-        // 3. Get all vehicles (for duplicate checking)
+        // 3. Get all visits (for duplicate checking)
         List<Visit> allVisits = visitRepository.findAll();
 
         // 4. Process all updatable fields
@@ -117,11 +117,20 @@ public class VisitServiceImpl implements VisitService{
                             .ifPresent(newValue -> GenericFieldAccessor.setFieldValue(existingVisit, entry.getKey(), newValue));
                 });
 
-        // 5. Process fields without duplicate checking
+        // 5. Process fields without duplicate checking - MANUAL PACK HANDLING
+        if (changes.getPack() != null) {
+            // If pack is provided, set it (could be null or actual pack)
+            existingVisit.setPack(changes.getPack());
+        } else {
+            // Explicitly set to null for custom packs
+            existingVisit.setPack(null);
+        }
+
+        // Process other fields
         Stream.of(
                         Map.entry("employee", changes.getEmployee()),
                         Map.entry("status", changes.getStatus()),
-                        Map.entry("pack", changes.getPack())
+                        Map.entry("visitServices", changes.getVisitServices())
                 )
                 .forEach(entry -> {
                     String currentValue = GenericFieldAccessor.getFieldValue(existingVisit, entry.getKey());
@@ -129,6 +138,14 @@ public class VisitServiceImpl implements VisitService{
                             .filter(newValue -> !newValue.equals(currentValue)) // Skip if unchanged
                             .ifPresent(newValue -> GenericFieldAccessor.setFieldValue(existingVisit, entry.getKey(), newValue));
                 });
+
+        // 6. Update amount and currency separately
+        if (changes.getAmount() != existingVisit.getAmount()) {
+            existingVisit.setAmount(changes.getAmount());
+        }
+        if (changes.getCurrency() != null && !changes.getCurrency().equals(existingVisit.getCurrency())) {
+            existingVisit.setCurrency(changes.getCurrency());
+        }
 
         return visitRepository.save(existingVisit);
     }

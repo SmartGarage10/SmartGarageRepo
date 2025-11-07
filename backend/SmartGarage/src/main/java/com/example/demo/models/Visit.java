@@ -2,10 +2,12 @@ package com.example.demo.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,20 +45,12 @@ public class    Visit {
 
     // ✅ NEW: flag for identifying if this order is a custom pack
     @ManyToOne
-    @JoinColumn(name = "pack_id", nullable = false)
+    @JoinColumn(name = "pack_id")
     @JsonIgnoreProperties({"visits"}) // Prevent circular reference during serialization while still including the pack data
     private Pack pack; // e.g. BASIC, PREMIUM, DELUXE, CUSTOM
 
     @OneToMany(mappedBy = "visit", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private List<Visit_Service> visitServices;
 
-    // Helper method to calculate total from individual services
-    public double calculateTotalFromServices() {
-        if (visitServices != null && !visitServices.isEmpty()) {
-            return visitServices.stream()
-                    .mapToDouble(vs -> vs.getService().getPrice())
-                    .sum();
-        }
-        return 0.0;
-    }
 }

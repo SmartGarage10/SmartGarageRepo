@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.util.List;
 
@@ -32,7 +33,7 @@ public class ServiceItem {
     private List<Visit_Service> visitServices;
 
     @ManyToMany(mappedBy = "services")
-    @JsonIgnore // prevent loops
+    @ToString.Exclude  // prevents StackOverflow in toString
     private List<Pack> packs;
     
 }
