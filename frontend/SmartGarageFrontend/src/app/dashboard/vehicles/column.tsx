@@ -22,6 +22,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Vehicle } from "@/types/vehicle";
+
 
 interface ColumnsConfig {
     onEdit: (vehicle: Vehicle) => void;
@@ -29,22 +31,6 @@ interface ColumnsConfig {
     brandOptions?: { label: string; value: string }[];
     modelOptions?: { label: string; value: string }[];
     isLoading?: boolean;
-}
-
-export interface User {
-    id: string;
-    name: string;
-    email: string;
-}
-
-export interface Vehicle {
-    id: string;
-    vehiclePlate: string;
-    vin: string;
-    client: User;
-    brand: string;
-    model: string;
-    year: string;
 }
 const currentYear = new Date().getFullYear();
 

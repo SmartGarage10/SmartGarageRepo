@@ -1,5 +1,6 @@
 package com.example.demo.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -42,6 +43,7 @@ public class Vehicle {
     private Year year;
 
     @OneToMany(mappedBy = "vehicle")
+    @JsonIgnore // Prevent circular JSON serialization
     @ToString.Exclude
     private Set<Visit> visits;
 

@@ -1,18 +1,16 @@
 package com.example.demo.filter;
 
 import com.example.demo.DTO.Filter;
-import com.example.demo.models.User;
-import com.example.demo.models.Vehicle;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
 
-public class VisitSpecification extends BaseSpecifications{
+public class VisitSpecification extends BaseSpecifications {
+
     @Override
     public <T> Specification<T> createSpecification(List<Filter> filters) {
         return (root, query, cb) -> {
@@ -21,48 +19,74 @@ public class VisitSpecification extends BaseSpecifications{
             }
 
             List<Predicate> predicates = new ArrayList<>();
+
             for (Filter filter : filters) {
                 if (filter == null) continue;
 
+                // -----------------------------------------
+                // CLIENT FILTER
+                // -----------------------------------------
                 if ("client".equals(filter.getId())) {
-                    Join<Vehicle, User> clientJoin = root.join("client", JoinType.LEFT);
+                    Join<?, ?> vehicleJoin = root.join("vehicle", JoinType.LEFT);
+                    Join<?, ?> clientJoin = vehicleJoin.join("client", JoinType.LEFT);
+
                     predicates.add(buildPredicate(
                             new Filter(
-                                    "name",  // Change the filter to target the name field
+                                    "name",  // target client's name
                                     filter.getValue(),
                                     filter.getVariant(),
                                     filter.getOperator(),
                                     filter.getFilterId()
                             ),
-                            clientJoin,  // Apply to the joined User entity
+                            clientJoin,
                             cb
                     ));
-                } else if ("year".equals(filter.getId())) {
-                    if (filter.getValue() instanceof List<?> yearStrings && !yearStrings.isEmpty()) {
-                        List<Year> yearList = yearStrings.stream()
-                                .map(Object::toString)
-                                .map(String::trim)
-                                .filter(s -> !s.isEmpty())
-                                .map(Year::parse)
-                                .toList();
+                }
+                // -----------------------------------------
+                // BRAND FILTER
+                // -----------------------------------------
+                else if ("brand".equals(filter.getId())) {
+                    Join<?, ?> vehicleJoin = root.join("vehicle", JoinType.LEFT);
 
-                        if (!yearList.isEmpty()) {
-                            // Create a new filter with the parsed Year objects
-                            predicates.add(buildPredicate(
-                                    new Filter(
-                                            filter.getId(), // "year"
-                                            yearList,
-                                            filter.getVariant(),
-                                            filter.getOperator(),
-                                            filter.getFilterId()
-                                    ), root, cb));
-                        }
-                    }
-                } else {
+                    predicates.add(buildPredicate(
+                            new Filter(
+                                    "brand",  // target vehicle's brand
+                                    filter.getValue(),
+                                    filter.getVariant(),
+                                    filter.getOperator(),
+                                    filter.getFilterId()
+                            ),
+                            vehicleJoin,
+                            cb
+                    ));
+                }
+                // -----------------------------------------
+                // EMPLOYEE FILTER
+                // -----------------------------------------
+                else if ("employee".equals(filter.getId())) {
+                    Join<?, ?> employeeJoin = root.join("employee", JoinType.LEFT);
+
+                    predicates.add(buildPredicate(
+                            new Filter(
+                                    "name", // filter by employee's name
+                                    filter.getValue(),
+                                    filter.getVariant(),
+                                    filter.getOperator(),
+                                    filter.getFilterId()
+                            ),
+                            employeeJoin,
+                            cb
+                    ));
+                }
+                // -----------------------------------------
+                // DEFAULT FILTER (Visit fields)
+                // -----------------------------------------
+                else {
                     predicates.add(buildPredicate(filter, root, cb));
                 }
-        };
-            return cb.and(predicates.toArray(new Predicate[0]));
+            }
+
+            return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(new Predicate[0]));
         };
     }
 }

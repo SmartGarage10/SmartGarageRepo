@@ -1,6 +1,7 @@
 package com.example.demo.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -29,11 +30,13 @@ public class ServiceItem {
     @Column(name = "price", nullable = false)
     private double price;
 
-    @OneToMany(mappedBy = "service", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Visit_Service> visitServices;
+    @ManyToMany(mappedBy = "visitServices")
+    @JsonIgnoreProperties({"visitServices"})
+    @ToString.Exclude
+    private List<Visit> visits;
 
     @ManyToMany(mappedBy = "services")
-    @ToString.Exclude  // prevents StackOverflow in toString
+    @JsonIgnoreProperties({"services"})
+    @ToString.Exclude
     private List<Pack> packs;
-    
 }

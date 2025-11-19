@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -25,10 +26,14 @@ public class    Visit {
 
     @ManyToOne
     @JoinColumn(name = "vehicle_id", nullable = false)
+    @JsonIgnoreProperties({"visits"})
+    @ToString.Exclude
     private Vehicle vehicle;
 
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
+    @JsonIgnoreProperties({"vehicles", "visits"})
+    @ToString.Exclude
     private User employee;
 
     @Column(name = "visit_date", nullable = false)
@@ -46,11 +51,18 @@ public class    Visit {
     // ✅ NEW: flag for identifying if this order is a custom pack
     @ManyToOne
     @JoinColumn(name = "pack_id")
-    @JsonIgnoreProperties({"visits"}) // Prevent circular reference during serialization while still including the pack data
+    @JsonIgnoreProperties({"visits"})
+    @ToString.Exclude
     private Pack pack; // e.g. BASIC, PREMIUM, DELUXE, CUSTOM
 
-    @OneToMany(mappedBy = "visit", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ManyToMany
+    @JoinTable(
+            name = "visit_service",
+            joinColumns = @JoinColumn(name = "visit_id"),
+            inverseJoinColumns = @JoinColumn(name = "serviceitem_id")
+    )
+    @JsonIgnoreProperties({"visits"})
     @ToString.Exclude
-    private List<Visit_Service> visitServices;
+    private List<ServiceItem> visitServices;
 
 }

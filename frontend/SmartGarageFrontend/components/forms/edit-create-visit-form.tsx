@@ -27,13 +27,11 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-import { Visit } from "@/types/visit"
-import { createApi } from "@/api/genericApi";
-import {User, UserRole} from "@/types/user";
+import { Visit, Status } from "@/types/visit"
+import {User} from "@/types/user";
 import {Vehicle} from "@/types/vehicle";
 import {Pack} from "@/types/pack";
 import {Service} from "@/types/service";
-
 
 interface VisitFormProps {
     initialData?: Visit | null;
@@ -41,7 +39,16 @@ interface VisitFormProps {
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
     onSuccess?: () => void;
+    onSubmit?: (data: Visit) => Promise<boolean>;
     isSubmitting?: boolean;
+    // New props for pre-fetched data
+    clients?: User[];
+    employees?: User[];
+    vehicles?: Vehicle[];
+    packs?: Pack[];
+    services?: Service[];
+    isLoading?: boolean;
+    statusOptions?: string[];
 }
 
 export function VisitForm({
@@ -50,7 +57,17 @@ export function VisitForm({
                               open,
                               onOpenChange,
                               onSuccess,
+                              onSubmit,
                               isSubmitting = false,
+                              // New props with defaults
+                              clients = [],
+                              employees = [],
+                              vehicles = [],
+                              packs = [],
+                              services = [],
+                              isLoading = false,
+                              // Add statusOptions with default
+                              statusOptions = Object.values(Status),
                           }: VisitFormProps) {
     const router = useRouter();
 
@@ -69,18 +86,13 @@ export function VisitForm({
             },
             employee: { id: "", name: "", email: "" },
             visitDate: "",
-            status: "SCHEDULED",
+            status: statusOptions[0] || "SCHEDULED",
             amount: 0,
             currency: "EUR",
             pack: undefined,
         },
     });
 
-    const [clients, setClients] = useState<User[]>([]);
-    const [employees, setEmployees] = useState<User[]>([]);
-    const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-    const [packs, setPacks] = useState<Pack[]>([]);
-    const [services, setServices] = useState<Service[]>([]);
     const [selectedServices, setSelectedServices] = useState<Service[]>([]);
 
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -89,78 +101,61 @@ export function VisitForm({
     const [packDropdownOpen, setPackDropdownOpen] = useState(false);
     const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
-    const [statuses] = useState<string[]>([
-        "SCHEDULED",
-        "IN_PROGRESS",
-        "COMPLETED",
-        "CANCELLED",
-    ]);
-
-    const packApi = createApi<Pack>("packs");
-    const userApi = createApi<User>("users");
-    const vehicleApi = createApi<Vehicle>("vehicles");
-    const serviceApi = createApi<Service>("services");
-
-    // Load Data
-    useEffect(() => {
-        async function loadData() {
-            try {
-                const [fetchedPacks, fetchedUsers, fetchedVehicles, fetchedServices] =
-                    await Promise.all([
-                        packApi.getAll(),
-                        userApi.getAll(),
-                        vehicleApi.getAll(),
-                        serviceApi.getAll(),
-                    ]);
-
-                console.log("Loaded packs:", fetchedPacks);
-                console.log("Loaded services:", fetchedServices);
-                setPacks(fetchedPacks);
-                setClients(
-                    fetchedUsers.filter((u: User) => u.role?.roleName === UserRole.CLIENT)
-                );
-                setEmployees(
-                    fetchedUsers.filter(
-                        (u: User) =>
-                            u.role?.roleName === UserRole.ADMIN ||
-                            u.role?.roleName === UserRole.EMPLOYEE
-                    )
-                );
-                setVehicles(fetchedVehicles);
-                setServices(fetchedServices);
-            } catch (error) {
-                console.error("Failed to load initial data", error);
-            }
-        }
-        loadData();
-    }, []);
-
-    // Reset form when initialData changes or dialog opens - FIXED VERSION
+    // Reset form when initialData changes - FIXED FOR CLIENT FROM VEHICLE
     useEffect(() => {
         if (open && initialData) {
-            console.log("Setting form with initial data:", initialData);
+            console.log("=== FORM RESET DEBUG ===");
+            console.log("InitialData:", initialData);
+            console.log("Vehicle client:", initialData.vehicle?.client);
 
-            // Use the initialData directly - don't try to find matching objects
-            // The form will use whatever objects are in initialData
+            // Wait for data to load
+            if (clients.length === 0 || vehicles.length === 0 || employees.length === 0) {
+                console.log("Waiting for data to load...");
+                return;
+            }
+
+            // Get client from vehicle (since client field is undefined)
+            const vehicleClient = initialData.vehicle?.client;
+
+            // Find matching client from pre-fetched data
+            const matchingClient = clients.find(client =>
+                client.id === vehicleClient?.id
+            );
+
+            console.log("Vehicle client:", vehicleClient);
+            console.log("Matching client:", matchingClient);
+
+            // Use the client from vehicle or find a match
+            const finalClient = matchingClient || vehicleClient;
+
+            // Find other matching objects
+            const matchingVehicle = vehicles.find(vehicle => vehicle.id === initialData.vehicle?.id);
+            const matchingEmployee = employees.find(employee => employee.id === initialData.employee?.id);
+            const matchingPack = packs.find(pack => pack.id === initialData.pack?.id);
+
             const formData = {
                 ...initialData,
-                visitDate: initialData.visitDate
-                    ? new Date(initialData.visitDate).toISOString().slice(0, 16)
-                    : ""
+                client: finalClient, // Use the client from vehicle
+                vehicle: matchingVehicle || initialData.vehicle,
+                employee: matchingEmployee || initialData.employee,
+                pack: matchingPack || initialData.pack,
             };
 
-            console.log("Form data to set:", formData);
+            console.log("Final form data with client:", formData);
 
-            // Reset the form with the initial data
-            form.reset(formData);
+            const timer = setTimeout(() => {
+                form.reset(formData);
 
-            if (initialData.pack?.packName === "CUSTOM PACK" && initialData.services) {
-                setSelectedServices(initialData.services);
-            } else {
-                setSelectedServices([]);
-            }
+                if (initialData.pack?.packName === "CUSTOM PACK" && initialData.visitServices) {
+                    setSelectedServices(initialData.visitServices);
+                } else {
+                    setSelectedServices([]);
+                }
+            }, 100);
+
+            return () => clearTimeout(timer);
         } else if (!open) {
-            // Reset form when dialog closes without initialData
+            // Reset form when dialog closes
             form.reset({
                 id: "",
                 client: { id: "", name: "", email: "" },
@@ -175,14 +170,14 @@ export function VisitForm({
                 },
                 employee: { id: "", name: "", email: "" },
                 visitDate: "",
-                status: "SCHEDULED",
+                status: statusOptions[0] || "SCHEDULED",
                 amount: 0,
                 currency: "EUR",
                 pack: undefined,
             });
             setSelectedServices([]);
         }
-    }, [initialData, open, form]);
+    }, [initialData, open, form, clients, vehicles, employees, packs, statusOptions]);
 
     // --- Amount logic ---
     const [amount, setAmount] = useState<number>(0);
@@ -205,6 +200,7 @@ export function VisitForm({
         form.setValue("amount", newAmount, { shouldValidate: true, shouldDirty: true });
     }, [selectedPack, selectedServices, packs, form]);
 
+    // SIMPLIFIED SUBMIT HANDLER - ONLY VALIDATION AND CALLS PARENT
     const handleSubmit = async (data: Visit) => {
         try {
             // Validate required fields
@@ -240,56 +236,28 @@ export function VisitForm({
                 return;
             }
 
-            const isUpdate = !!initialData?.id;
-            const endpoint = isUpdate
-                ? `http://localhost:8080/api/update-visit/${initialData?.id}`
-                : "http://localhost:8080/api/create-visit";
-            const method = isUpdate ? "PUT" : "POST";
-
-            // Safe date handling
-            const visitDate = new Date(data.visitDate);
-
-            // Find the selected pack object
-            const selectedPackObj = packs.find(p => p.packName === data.pack?.packName);
-
-            // Fix the payload structure - send full objects as expected by the DTO
-            const payload = {
-                client: data.client, // Send full client object
-                vehicle: data.vehicle, // Send full vehicle object
-                employee: data.employee, // Send full employee object
-                visitDate: visitDate.toISOString(),
-                status: data.status || "SCHEDULED",
-                amount: data.amount,
-                currency: data.currency || "EUR",
-                pack: selectedPackObj || null, // Send pack object or create minimal one
-                visitServices: selectedPack === "CUSTOM PACK" ? selectedServices : null
+            // Add selected services to data for custom packs
+            const formDataWithServices = {
+                ...data,
+                visitServices: selectedPack === "CUSTOM PACK" ? selectedServices : []
             };
 
-            console.log("Submitting payload:", payload);
-
-            const response = await fetch(endpoint, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-                credentials: "include",
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || "Request failed");
+            // Call the parent's onSubmit function
+            if (onSubmit) {
+                const success = await onSubmit(formDataWithServices);
+                if (success) {
+                    // Reset form if it was a create operation
+                    if (!initialData) {
+                        form.reset();
+                        setSelectedServices([]);
+                    }
+                    onOpenChange?.(false);
+                    onSuccess?.();
+                    router.refresh();
+                }
             }
-
-            if (!initialData) {
-                form.reset();
-                setSelectedServices([]);
-            }
-
-            onOpenChange?.(false);
-            onSuccess?.();
-            router.refresh();
         } catch (error) {
             console.error("Operation error:", error);
-            // Using setError for root errors
             form.setError("root", {
                 type: "manual",
                 message: error instanceof Error ? error.message : "An error occurred",
@@ -303,6 +271,25 @@ export function VisitForm({
 
     // Get selected pack object for displaying price below
     const selectedPackObj = packs.find((p) => p.packName === selectedPack);
+
+    // Show loading state if data is still loading
+    if (isLoading) {
+        return (
+            <Dialog.Root open={open} onOpenChange={onOpenChange}>
+                {children && <Dialog.Trigger asChild>{children}</Dialog.Trigger>}
+                <Dialog.Portal>
+                    <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
+                    <Dialog.Content className="fixed right-0 top-0 z-50 h-full w-full max-w-sm border-l bg-background shadow-lg">
+                        <div className="h-full overflow-y-auto p-6">
+                            <div className="flex justify-center items-center h-32">
+                                <p>Loading form data...</p>
+                            </div>
+                        </div>
+                    </Dialog.Content>
+                </Dialog.Portal>
+            </Dialog.Root>
+        );
+    }
 
     return (
         <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -335,7 +322,7 @@ export function VisitForm({
 
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                                {/* Client Field - SIMPLIFIED */}
+                                {/* Client Field */}
                                 <FormField
                                     control={form.control}
                                     name="client"
@@ -404,7 +391,7 @@ export function VisitForm({
                                     )}
                                 />
 
-                                {/* Vehicle Field - SIMPLIFIED */}
+                                {/* Vehicle Field - FORCE SAME WIDTH */}
                                 <FormField
                                     control={form.control}
                                     name="vehicle"
@@ -432,24 +419,25 @@ export function VisitForm({
                                                                 variant="outline"
                                                                 role="combobox"
                                                                 className={cn(
-                                                                    "w-full h-10 justify-between",
+                                                                    "w-full min-h-10 justify-between",
                                                                     !field.value?.id && "text-muted-foreground",
                                                                     !clientSelected && "opacity-50 cursor-not-allowed"
                                                                 )}
                                                                 disabled={!clientSelected}
                                                             >
-                                                                {!clientSelected
-                                                                    ? "Select a client first"
-                                                                    : field.value?.id
-                                                                        ? formatVehicleLabel(field.value)
-                                                                        : "Select vehicle"}
+                                <span className="truncate flex-1 text-left">
+                                    {!clientSelected
+                                        ? "Select a client first"
+                                        : field.value?.id
+                                            ? formatVehicleLabel(field.value)
+                                            : "Select vehicle"}
+                                </span>
                                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                             </Button>
                                                         </FormControl>
                                                     </PopoverTrigger>
                                                     <PopoverContent
-                                                        className="w-full p-0"
-                                                        style={{ width: "var(--radix-popover-trigger-width)" }}
+                                                        className="w-[var(--radix-popover-trigger-width)] p-0" // Force same width
                                                         align="start"
                                                     >
                                                         <Command>
@@ -464,11 +452,21 @@ export function VisitForm({
                                                                             form.setValue("vehicle", vehicle);
                                                                             setVehicleDropdownOpen(false);
                                                                         }}
+                                                                        className="flex items-center justify-between"
                                                                     >
-                                                                        {formatVehicleLabel(vehicle)}
+                                        <span className="flex-1 min-w-0">
+                                            <div className="font-medium truncate">
+                                                {formatVehicleLabel(vehicle)}
+                                            </div>
+                                            {vehicle.vin && (
+                                                <div className="text-xs text-muted-foreground truncate">
+                                                    VIN: {vehicle.vin}
+                                                </div>
+                                            )}
+                                        </span>
                                                                         <Check
                                                                             className={cn(
-                                                                                "ml-auto h-4 w-4",
+                                                                                "ml-2 h-4 w-4 shrink-0",
                                                                                 field.value?.id === vehicle.id
                                                                                     ? "opacity-100"
                                                                                     : "opacity-0"
@@ -555,7 +553,7 @@ export function VisitForm({
                                     )}
                                 />
 
-                                {/* Rest of your form fields remain the same */}
+                                {/* Visit Date Field */}
                                 <FormField
                                     control={form.control}
                                     name="visitDate"
@@ -610,7 +608,7 @@ export function VisitForm({
                                                     <Command>
                                                         <CommandEmpty>No status found.</CommandEmpty>
                                                         <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                                            {statuses.map((status) => (
+                                                            {statusOptions.map((status) => (
                                                                 <CommandItem
                                                                     key={status}
                                                                     value={status}

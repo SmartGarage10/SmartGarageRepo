@@ -1,9 +1,6 @@
 package com.example.demo.DTO;
 
-import com.example.demo.models.Pack;
-import com.example.demo.models.ServiceItem;
-import com.example.demo.models.User;
-import com.example.demo.models.Vehicle;
+import com.example.demo.models.*;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,5 +22,5 @@ public class VisitDTO {
     private double amount;
     private String currency;
     private Pack pack;
-    private List<ServiceItemDTO> visitServices;
+    private List<ServiceItem> visitServices;
 }

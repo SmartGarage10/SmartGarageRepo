@@ -129,8 +129,7 @@ public class VisitServiceImpl implements VisitService{
         // Process other fields
         Stream.of(
                         Map.entry("employee", changes.getEmployee()),
-                        Map.entry("status", changes.getStatus()),
-                        Map.entry("visitServices", changes.getVisitServices())
+                        Map.entry("status", changes.getStatus())
                 )
                 .forEach(entry -> {
                     String currentValue = GenericFieldAccessor.getFieldValue(existingVisit, entry.getKey());
@@ -138,6 +137,9 @@ public class VisitServiceImpl implements VisitService{
                             .filter(newValue -> !newValue.equals(currentValue)) // Skip if unchanged
                             .ifPresent(newValue -> GenericFieldAccessor.setFieldValue(existingVisit, entry.getKey(), newValue));
                 });
+
+        // visitServices handled separately because it can be null
+        existingVisit.setVisitServices(changes.getVisitServices()); // can be null safely
 
         // 6. Update amount and currency separately
         if (changes.getAmount() != existingVisit.getAmount()) {
