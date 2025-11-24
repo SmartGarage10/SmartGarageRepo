@@ -1,38 +1,72 @@
 package com.example.demo.filter;
 
-import com.example.demo.models.Role;
-import com.example.demo.models.User;
 import com.example.demo.DTO.Filter;
-import com.example.demo.repositories.RoleRepository;
-import jakarta.persistence.criteria.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.persistence.criteria.From;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Component
-public class UserSpecifications extends BaseSpecifications{
+public class UserSpecifications extends BaseSpecifications {
 
-    public Specification<User> createRoleSpecification(List<Role> roles) {
+    // -------------------------
+    // RELATION CONFIG REGISTRY
+    // -------------------------
+    private static final Map<String, RelationConfig> RELATIONS = Map.of(
+            "role", RelationConfig.of(List.of("role"), "roleName") // Join to 'role' and filter on 'roleName'
+    );
+
+
+    // -------------------------
+    // MAIN SPECIFICATION
+    // -------------------------
+    @Override
+    public <T> Specification<T> createSpecification(List<Filter> filters) {
         return (root, query, cb) -> {
-            if (roles == null || roles.isEmpty()) {
-                return cb.conjunction(); // No filtering if no roles
+
+            if (filters == null || filters.isEmpty()) {
+                return cb.conjunction();
             }
 
             List<Predicate> predicates = new ArrayList<>();
 
-            for (Role role : roles) {
-                if (role != null) {
-                    // Use equals or like depending on your requirement
-                    // If exact match:
-                    predicates.add(cb.equal(root.get("role"), role));
+            for (Filter filter : filters) {
+                if (filter == null) continue;
+
+                RelationConfig config = RELATIONS.get(filter.getId());
+
+                if (config != null) {
+                    // Perform dynamic join chain
+                    From<?, ?> path = root;
+                    for (String joinName : config.path()) {
+                        path = path.join(joinName, JoinType.LEFT);
+                    }
+
+                    // Create the final filter
+                    Filter mapped = new Filter(
+                            config.targetField(),
+                            filter.getValue(),
+                            filter.getVariant(),
+                            filter.getOperator(),
+                            filter.getFilterId()
+                    );
+
+                    predicates.add(buildPredicate(mapped, path, cb));
+
+                } else {
+                    // Default (no special rule)
+                    predicates.add(buildPredicate(filter, root, cb));
                 }
             }
 
-            return predicates.isEmpty() ? cb.conjunction() : cb.or(predicates.toArray(new Predicate[0]));
+            return predicates.isEmpty()
+                    ? cb.conjunction()
+                    : cb.and(predicates.toArray(new Predicate[0]));
         };
     }
-
 }

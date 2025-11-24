@@ -29,29 +29,32 @@ import {
     ShieldCheck,
     Trash2,
     User2,
-    Text, // Added missing import
+    Text,
 } from "lucide-react";
-import { User, UserRole, UserRoleType } from "@/types/user";
+import { User, UserRole } from "@/types/user";
 
 interface ColumnsConfig {
     onEdit: (user: User) => void;
     onDelete: (userId: string) => Promise<void>;
+    roleOptions?: { label: string; value: string }[];
 }
 
 /**
  * Normalizes role to UserRole enum value
- * Handles both string and UserRoleType inputs
+ * Handles both string and object role inputs
  */
-const normalizeRole = (role: UserRoleType | UserRole): UserRole => {
-    // If role is already a string (UserRole), return it directly
+const normalizeRole = (role: any): UserRole => {
     if (typeof role === "string") {
         // Validate it's actually a valid UserRole
-        return Object.values(UserRole).includes(role)
-            ? role
+        return Object.values(UserRole).includes(role as UserRole)
+            ? role as UserRole
             : UserRole.CLIENT; // Default to CLIENT if invalid
     }
-    // If role is UserRoleType, return the roleName
-    return role.roleName;
+    // If role is an object, return the roleName
+    if (role && typeof role === "object" && role.roleName) {
+        return role.roleName as UserRole;
+    }
+    return UserRole.CLIENT; // Default fallback
 };
 
 /**
@@ -65,12 +68,15 @@ const getRoleIcon = (role: UserRole) => {
             return Briefcase;
         case UserRole.CLIENT:
             return User2;
+        default:
+            return User2;
     }
 };
 
 export const getColumns = ({
                                onEdit,
                                onDelete,
+                               roleOptions = [],
                            }: ColumnsConfig): ColumnDef<User>[] => [
     {
         id: "select",
@@ -156,19 +162,19 @@ export const getColumns = ({
                 </Badge>
             );
         },
-        // NEW: Added accessorFn to normalize role data before sorting/filtering
-        accessorFn: (row) => normalizeRole(row.role),
-        // NEW: Custom filter function to handle normalized roles
-        filterFn: (row, id, value) => {
-            const role = normalizeRole(row.getValue(id));
-            return value.includes(role);
+        filterFn: (row, columnId, filterValue) => {
+            if (!filterValue || filterValue.length === 0) return true;
+            const role = normalizeRole(row.getValue(columnId));
+            return filterValue.includes(role);
         },
-        // NEW: Custom sorting function to properly compare roles
-        sortingFn: (rowA, rowB, columnId) => {
-            const roleA = normalizeRole(rowA.getValue(columnId));
-            const roleB = normalizeRole(rowB.getValue(columnId));
-            return roleA.localeCompare(roleB);
-        }
+        meta: {
+            label: "Role",
+            placeholder: "Filter by role...",
+            variant: "multiSelect",
+            icon: User2,
+            options: roleOptions,
+        },
+        enableColumnFilter: true,
     },
     {
         id: "address",
@@ -177,7 +183,7 @@ export const getColumns = ({
             <DataTableColumnHeader column={column} title="Address" />
         ),
         cell: ({ row }) => (
-            <div className="truncate max-w-[200px]">{row.getValue("address")}</div>
+            <div className="truncate max-w-[200px]">{row.getValue("address") || "-"}</div>
         ),
         meta: {
             label: "Address",
@@ -193,7 +199,7 @@ export const getColumns = ({
         header: ({ column }) => (
             <DataTableColumnHeader column={column} title="Phone" />
         ),
-        cell: ({ row }) => <div>{row.getValue("phone")}</div>,
+        cell: ({ row }) => <div>{row.getValue("phone") || "-"}</div>,
         meta: {
             label: "Phone",
             placeholder: "Search by phone...",

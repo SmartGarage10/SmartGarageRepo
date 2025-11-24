@@ -6,10 +6,46 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
 
 public class VisitSpecification extends BaseSpecifications {
+    // Transformer method for visitDate
+    private static Object transformVisitDate(Object value) {
+        if (value instanceof String) {
+            try {
+                long timestamp = Long.parseLong((String) value);
+                return LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault());
+            } catch (NumberFormatException e) {
+                return value;
+            }
+        } else if (value instanceof List) {
+            List<LocalDateTime> converted = new ArrayList<>();
+            for (Object item : (List<?>) value) {
+                if (item instanceof String) {
+                    try {
+                        long timestamp = Long.parseLong((String) item);
+                        converted.add(LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault()));
+                    } catch (NumberFormatException e) {
+                        // Skip invalid timestamps
+                    }
+                }
+            }
+            return converted;
+        }
+        return value;
+    }
+
+    // Central config for all JOIN-based filters
+    private static final Map<String, RelationConfig> RELATIONS = Map.of(
+            "client", RelationConfig.of(List.of("vehicle", "client"), "name"),
+            "brand", RelationConfig.of(List.of("vehicle"), "brand"),
+            "employee", RelationConfig.of(List.of("employee"), "name"),
+            "pack", RelationConfig.of(List.of("pack"), "packName"),
+            "visitDate", RelationConfig.of(List.of(), "visitDate", VisitSpecification::transformVisitDate)
+    );
 
     @Override
     public <T> Specification<T> createSpecification(List<Filter> filters) {
@@ -23,67 +59,85 @@ public class VisitSpecification extends BaseSpecifications {
             for (Filter filter : filters) {
                 if (filter == null) continue;
 
-                // -----------------------------------------
-                // CLIENT FILTER
-                // -----------------------------------------
-                if ("client".equals(filter.getId())) {
-                    Join<?, ?> vehicleJoin = root.join("vehicle", JoinType.LEFT);
-                    Join<?, ?> clientJoin = vehicleJoin.join("client", JoinType.LEFT);
+                System.out.println("=== PROCESSING FILTER: " + filter.getId() + " ===");
+                System.out.println("Original value: " + filter.getValue() + " (type: " +
+                        (filter.getValue() != null ? filter.getValue().getClass().getSimpleName() : "null") + ")");
 
-                    predicates.add(buildPredicate(
-                            new Filter(
-                                    "name",  // target client's name
-                                    filter.getValue(),
-                                    filter.getVariant(),
-                                    filter.getOperator(),
-                                    filter.getFilterId()
-                            ),
-                            clientJoin,
-                            cb
-                    ));
-                }
-                // -----------------------------------------
-                // BRAND FILTER
-                // -----------------------------------------
-                else if ("brand".equals(filter.getId())) {
-                    Join<?, ?> vehicleJoin = root.join("vehicle", JoinType.LEFT);
+                RelationConfig config = RELATIONS.get(filter.getId());
 
-                    predicates.add(buildPredicate(
-                            new Filter(
-                                    "brand",  // target vehicle's brand
-                                    filter.getValue(),
-                                    filter.getVariant(),
-                                    filter.getOperator(),
-                                    filter.getFilterId()
-                            ),
-                            vehicleJoin,
-                            cb
-                    ));
-                }
-                // -----------------------------------------
-                // EMPLOYEE FILTER
-                // -----------------------------------------
-                else if ("employee".equals(filter.getId())) {
-                    Join<?, ?> employeeJoin = root.join("employee", JoinType.LEFT);
+                if (config != null) {
+                    // APPLY THE TRANSFORMER HERE
+                    Object valueToUse = filter.getValue();
+                    if (config.transformer() != null) {
+                        valueToUse = config.transformer().apply(filter.getValue());
+                        System.out.println("Transformed value: " + valueToUse + " (type: " +
+                                (valueToUse != null ? valueToUse.getClass().getSimpleName() : "null") + ")");
+                    } else {
+                        System.out.println("No transformer applied");
+                    }
+                    // SPECIAL HANDLING FOR CUSTOM PACK FILTER - FIXED
+                    if ("pack".equals(filter.getId()) && "CUSTOM PACK".equalsIgnoreCase(filter.getValue().toString())) {
+                        System.out.println("=== CUSTOM PACK FILTER ACTIVATED ===");
+                        // For custom packs, we want visits where pack IS NULL
+                        Predicate customPackPredicate = cb.isNull(root.get("pack"));
+                        predicates.add(customPackPredicate);
+                        System.out.println("=== CUSTOM PACK FILTER COMPLETE ===\n");
+                        continue; // Skip normal processing for this filter
+                    }
 
-                    predicates.add(buildPredicate(
-                            new Filter(
-                                    "name", // filter by employee's name
-                                    filter.getValue(),
-                                    filter.getVariant(),
-                                    filter.getOperator(),
-                                    filter.getFilterId()
-                            ),
-                            employeeJoin,
-                            cb
-                    ));
-                }
-                // -----------------------------------------
-                // DEFAULT FILTER (Visit fields)
-                // -----------------------------------------
-                else {
+                    // SPECIAL HANDLING FOR DATE EQUALITY - CONVERT TO DATE RANGE
+                    if ("visitDate".equals(config.targetField()) && "eq".equals(filter.getOperator())) {
+                        if (valueToUse instanceof LocalDateTime dateTime) {
+                            System.out.println("=== DATE RANGE FILTER ACTIVATED ===");
+
+                            // Create date range for the entire day
+                            LocalDateTime startOfDay = dateTime.toLocalDate().atStartOfDay();
+                            LocalDateTime endOfDay = dateTime.toLocalDate().atTime(23, 59, 59, 999999999);
+
+                            System.out.println("Date range: " + startOfDay + " to " + endOfDay);
+
+                            // Create between predicate for the date range
+                            Predicate dateRangePredicate = cb.between(
+                                    root.get("visitDate"),
+                                    startOfDay,
+                                    endOfDay
+                            );
+                            predicates.add(dateRangePredicate);
+
+                            System.out.println("=== DATE RANGE FILTER COMPLETE ===\n");
+                            continue; // Skip normal predicate building for this filter
+                        }
+                    }
+
+                    // Create the transformed filter for normal cases
+                    Filter transformedFilter = new Filter(
+                            config.targetField(),
+                            valueToUse,
+                            filter.getVariant(),
+                            filter.getOperator(),
+                            filter.getFilterId()
+                    );
+
+                    System.out.println("Final filter - Field: " + transformedFilter.getId() +
+                            ", Value: " + transformedFilter.getValue() +
+                            " (type: " + (transformedFilter.getValue() != null ?
+                            transformedFilter.getValue().getClass().getSimpleName() : "null") + ")");
+
+                    // Build join path if needed
+                    if (!config.path().isEmpty()) {
+                        Join<?, ?> join = null;
+                        for (String path : config.path()) {
+                            join = (join == null) ? root.join(path, JoinType.LEFT) : join.join(path, JoinType.LEFT);
+                        }
+                        predicates.add(buildPredicate(transformedFilter, join, cb));
+                    } else {
+                        predicates.add(buildPredicate(transformedFilter, root, cb));
+                    }
+                } else {
+                    System.out.println("No config found for filter: " + filter.getId());
                     predicates.add(buildPredicate(filter, root, cb));
                 }
+                System.out.println("=== FILTER PROCESSING COMPLETE ===\n");
             }
 
             return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(new Predicate[0]));

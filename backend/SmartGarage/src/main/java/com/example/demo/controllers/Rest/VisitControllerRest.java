@@ -38,7 +38,7 @@ public class VisitControllerRest {
 
 
     @GetMapping("/visits")
-    public ResponseEntity<List<Visit>> getAllVehicles(@RequestParam MultiValueMap<String, String> allParams){
+    public ResponseEntity<List<Visit>> getallVisits(@RequestParam MultiValueMap<String, String> allParams){
         try {
             securityHelper.isAuthenticated();
             return ResponseEntity.ok(visitService.getAllVisits(allParams));
@@ -48,7 +48,7 @@ public class VisitControllerRest {
     }
 
     @PostMapping("/create-visit")
-    public ResponseEntity<?> createVehicle(@Valid @RequestBody VisitDTO visitDTO,
+    public ResponseEntity<?> createVisit(@Valid @RequestBody VisitDTO visitDTO,
                                                  BindingResult bindingResult){
         try {
             // Check for validation errors
@@ -64,7 +64,7 @@ public class VisitControllerRest {
     }
 
     @PutMapping("/update-visit/{id}")
-    public ResponseEntity<?> updateVehicle(@Valid @RequestBody VisitDTO visitDTO,
+    public ResponseEntity<?> updateVisit(@Valid @RequestBody VisitDTO visitDTO,
                                                  @PathVariable int id,
                                                  BindingResult bindingResult){
         try {
@@ -81,7 +81,7 @@ public class VisitControllerRest {
     }
 
     @DeleteMapping("/visits/{id}")
-    public ResponseEntity<?> deleteSingleVehicle(@PathVariable int id) {
+    public ResponseEntity<?> deleteSingleVisit(@PathVariable int id) {
         try {
             User currentUser = securityHelper.getCurrentUser();
             visitService.deleteVisit(currentUser, id);
@@ -92,7 +92,7 @@ public class VisitControllerRest {
     }
 
     @DeleteMapping("/visits/delete")
-    public ResponseEntity<?> deleteManyVehicles(@RequestBody List<Integer> ids) {
+    public ResponseEntity<?> deleteManyVisits(@RequestBody List<Integer> ids) {
         try {
             User currentUser = securityHelper.getCurrentUser();
             visitService.deleteVisits(currentUser, ids);

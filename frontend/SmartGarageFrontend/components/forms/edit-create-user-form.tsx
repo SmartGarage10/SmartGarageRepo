@@ -84,7 +84,7 @@ export function UserForm({
 
     const handleSubmit = async (data: User) => {
         try {
-            // Validate before submission
+            // Validate required fields
             if (!data.name || data.name.trim().length === 0) {
                 form.setError("name", { message: "Full name is required" });
                 return;
@@ -133,47 +133,12 @@ export function UserForm({
                 return;
             }
 
-            // Proceed with submission if validation passes
+            // Call the parent's onSubmit function (like VisitForm does)
             if (onSubmit) {
                 await onSubmit(data);
             } else {
-                const isUpdate = !!initialData?.id;
-                const endpoint = isUpdate
-                    ? `http://localhost:8080/api/user/${initialData.id}`
-                    : 'http://localhost:8080/api/register';
-                const method = isUpdate ? 'PUT' : 'POST';
-
-                const payload = {
-                    ...data,
-                    ...(!isUpdate && {
-                        password: "defaultPassword",
-                        confirmPassword: "defaultPassword"
-                    })
-                };
-
-                const response = await fetch(endpoint, {
-                    method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload),
-                    credentials: 'include'
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message ||
-                        (isUpdate ? 'Update failed' : 'Registration failed'));
-                }
+                throw new Error("onSubmit function is required");
             }
-
-            if (!initialData) {
-                form.reset();
-            }
-
-            onOpenChange?.(false);
-            onSuccess?.();
-            router.refresh();
 
         } catch (error) {
             console.error("Operation error:", error);

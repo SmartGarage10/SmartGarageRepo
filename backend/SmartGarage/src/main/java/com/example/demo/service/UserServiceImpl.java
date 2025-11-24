@@ -9,6 +9,7 @@ import com.example.demo.helpers.PasswordGeneratorHelper;
 import com.example.demo.helpers.RestrictHelper;
 import com.example.demo.models.Role;
 import com.example.demo.models.User;
+import com.example.demo.models.Visit;
 import com.example.demo.repositories.RoleRepository;
 import com.example.demo.repositories.UserRepository;
 import com.example.demo.response.RegistrationResponse;
@@ -122,13 +123,12 @@ public class UserServiceImpl implements UserService {
         Specification<User> spec = Specification.where(null);
         UserSpecifications userSpecs = new UserSpecifications();
 
-        // 1. Apply role filters if present
-        if (allParams.containsKey("role")) {
-            List<String> roles = allParams.get("role");
-            List<Role> roleList = roleRepository.findByRoleNameIn(roles);
-            if (!roles.isEmpty()) {
-                Specification<User> roleSpec = userSpecs.createRoleSpecification(roleList);
-                spec = spec.and(roleSpec);
+        // 1. Apply other filters
+        if (allParams.containsKey("filters")) {
+            List<Filter> filters = filterHelper.convertToFilters(allParams);
+            if (filters != null && !filters.isEmpty()) {
+                Specification<User> filterSpec = userSpecs.createSpecification(filters);
+                spec = spec.and(filterSpec);
             }
         }
 

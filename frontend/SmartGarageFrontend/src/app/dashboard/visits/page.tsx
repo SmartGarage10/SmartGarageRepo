@@ -22,13 +22,13 @@ import { CarService } from '@/services/CarService';
 import { VisitForm } from '@/components/forms/edit-create-visit-form';
 import { createApi } from '@/api/genericApi';
 
-interface FilterItem {
-    id: string;
-    value: string | string[];
-    variant: string;
-    operator: string;
-    filterId: string;
-}
+// interface FilterItem {
+//     id: string;
+//     value: string | string[];
+//     variant: string;
+//     operator: string;
+//     filterId: string;
+// }
 
 export default function VehiclesPage() {
     const searchParams = useSearchParams();
@@ -60,29 +60,35 @@ export default function VehiclesPage() {
         label: status.replace('_', ' ') // "IN_PROGRESS" -> "IN PROGRESS"
     }));
 
-    const packFilterOptions = packs.map(pack => ({
-        label: pack.packName,
-        value: pack.packName
-    }));
+    // FIXED: Add "Custom Pack" to filter options
+    const packFilterOptions = [
+        // Regular packs from database
+        ...packs.map(pack => ({
+            label: pack.packName,
+            value: pack.packName
+        })),
+        // Custom pack option for filtering
+        { label: "CUSTOM PACK", value: "CUSTOM PACK" }
+    ];
 
     // Parse brand filter from URL
-    useEffect(() => {
-        const filtersParam = searchParams.get('filters');
-        if (filtersParam) {
-            try {
-                const filters: FilterItem[] = JSON.parse(decodeURIComponent(filtersParam));
-                const brandFilter = filters.find((f) => f.id === 'brand');
-                const brand = brandFilter?.value
-                    ? Array.isArray(brandFilter.value)
-                        ? brandFilter.value[0] || ''
-                        : brandFilter.value
-                    : '';
-                setSelectedBrand(brand);
-            } catch (error) {
-                console.error('Error parsing filters:', error);
-            }
-        }
-    }, [searchParams]);
+    // useEffect(() => {
+    //     const filtersParam = searchParams.get('filters');
+    //     if (filtersParam) {
+    //         try {
+    //             const filters: FilterItem[] = JSON.parse(decodeURIComponent(filtersParam));
+    //             const brandFilter = filters.find((f) => f.id === 'brand');
+    //             const brand = brandFilter?.value
+    //                 ? Array.isArray(brandFilter.value)
+    //                     ? brandFilter.value[0] || ''
+    //                     : brandFilter.value
+    //                 : '';
+    //             setSelectedBrand(brand);
+    //         } catch (error) {
+    //             console.error('Error parsing filters:', error);
+    //         }
+    //     }
+    // }, [searchParams]);
 
     // Load all data (clients, employees, vehicles, packs, services)
     useEffect(() => {

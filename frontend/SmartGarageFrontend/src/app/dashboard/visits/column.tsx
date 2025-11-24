@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
-import { Euro, MoreHorizontal, Pencil, Text, Trash2 } from "lucide-react";
+import {Calendar, Euro, MoreHorizontal, Pencil, Text, Trash2} from "lucide-react";
 
 import {
     AlertDialog,
@@ -139,7 +139,13 @@ export const getColumns = ({
             const dateValue = row.original.visitDate;
             return dateValue ? <div>{format(new Date(dateValue), "MMM dd, yyyy - HH:mm")}</div> : <div>—</div>;
         },
-        meta: { label: "Date", placeholder: "Search by date...", variant: "text", icon: Text },
+        meta: {
+            label: "Date",
+            placeholder: "Search by date...",
+            variant: "date",
+            icon: Calendar
+        },
+        enableColumnFilter: true,
     },
     {
         id: "amount",
@@ -156,25 +162,59 @@ export const getColumns = ({
     },
     {
         id: "pack",
-        accessorFn: (row) => row.pack?.packName ?? "Custom Pack", // Add accessorFn
+        accessorFn: (row) => {
+            // Return the pack name if exists, otherwise "Custom Pack"
+            return row.pack?.packName ?? "Custom Pack";
+        },
         header: ({ column }) => <DataTableColumnHeader column={column} title="Pack" />,
         cell: ({ row }) => {
             const pack = row.original.pack;
-            if (!pack || typeof pack !== "object") return <div className="text-muted-foreground">—</div>;
+
+            // If no pack object, it's a custom pack
+            if (!pack) {
+                return (
+                    <div className="flex flex-col">
+                        <div className="flex items-center text-sm font-medium">
+                            <span>Custom Pack</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                            {row.original.visitServices?.length ?? 0} services
+                        </div>
+                    </div>
+                );
+            }
+
+            // If pack exists but no packName (shouldn't happen, but safe check)
+            if (!pack.packName) {
+                return (
+                    <div className="flex flex-col">
+                        <div className="flex items-center text-sm font-medium">
+                            <span>Custom Pack</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                            {row.original.visitServices?.length ?? 0} services
+                        </div>
+                    </div>
+                );
+            }
+
+            // Regular pack with packName
             return (
                 <div className="flex flex-col">
                     <div className="flex items-center text-sm font-medium capitalize">
-                        <span>{pack.packName?.toLowerCase() ?? "Custom Pack"}</span>
+                        <span>{pack.packName.toLowerCase()}</span>
                     </div>
-                    <div className="text-xs text-muted-foreground">{(pack.services?.length ?? 0)} services</div>
+                    <div className="text-xs text-muted-foreground">
+                        {(pack.services?.length ?? 0)} services
+                    </div>
                 </div>
             );
         },
         meta: {
             label: "Pack",
             placeholder: "Filter by pack...",
-            variant: "select", // Change from "text" to "select"
-            options: packFilterOptions || [] // Use the passed pack options
+            variant: "select",
+            options: packFilterOptions || []
         },
         enableColumnFilter: true,
     },

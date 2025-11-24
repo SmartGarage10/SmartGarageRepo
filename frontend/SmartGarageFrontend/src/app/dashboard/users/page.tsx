@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useDataTable } from '@/hooks/useDataTable';
 import { getColumns } from '@/src/app/dashboard/users/column';
 import { User, UserRole } from '@/types/user';
@@ -11,21 +11,21 @@ import { DataTableFilterList } from '@/components/data-table/data-table-filter-l
 import { SearchInput } from '@/components/data-table/data-search';
 import { UserForm } from '@/components/forms/edit-create-user-form';
 import { Toaster } from 'sonner';
-import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function Page() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
+    // Fix role options - ensure they have proper values
+    const roleOptions = Object.values(UserRole).map((r) => ({
+        label: r,
+        value: r
+    }));
 
-    // Extract role filter from URL (or empty)
-    const [roleFilter, setRoleFilter] = useState<string[]>([]);
+    // Edit callback
+    const handleEdit = useCallback((user: User) => {
+        console.log('[DEBUG] Editing user', user);
+        setSelectedRow(user);
+    }, []);
 
-    useEffect(() => {
-        const roles = searchParams.getAll('role');
-        setRoleFilter(roles.length ? roles : []);
-    }, [searchParams]);
-
-    // Hook for generic table (excluding role)
+    // Hook for generic table
     const {
         table,
         globalFilter,
@@ -39,29 +39,62 @@ export default function Page() {
         handleDeleteSelected,
     } = useDataTable<User>({
         fetchUrl: 'http://localhost:8080/api/users',
-        getColumns,
+        getColumns: ({ onDelete }) => {
+            return getColumns({
+                onEdit: (row: User) => {
+                    handleEdit(row);
+                    setIsFormOpen(true);
+                },
+                onDelete: async (id: string) => {
+                    await onDelete(id);
+                },
+                roleOptions, // Pass the fixed role options
+            });
+        },
     });
 
-    // Sync role filter changes to URL and table filters
-    const onRoleChange = (values: string[]) => {
-        setRoleFilter(values);
+    // Submit handler for users - ONLY IN PAGE
+    const handleUserSubmit = useCallback(
+        async (userData: User) => {
+            try {
+                const isEdit = !!selectedRow?.id;
+                const endpoint = isEdit
+                    ? `http://localhost:8080/api/user/${selectedRow.id}`
+                    : 'http://localhost:8080/api/register';
 
-        // Update URL params manually
-        const params = new URLSearchParams(window.location.search);
-        params.delete('role');
-        values.forEach((val) => params.append('role', val));
+                const method = isEdit ? 'PUT' : 'POST';
 
-        router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
-    };
+                const payload = {
+                    ...userData,
+                    // Add default password for new users
+                    ...(!isEdit && {
+                        password: "defaultPassword",
+                        confirmPassword: "defaultPassword"
+                    })
+                };
 
-    // When roleFilter changes, update the filter in table
-    useEffect(() => {
-        if (!table) return;
-        const roleCol = table.getColumn('role');
-        if (!roleCol) return;
+                console.log("Submitting user payload:", payload);
 
-        roleCol.setFilterValue(roleFilter.length > 0 ? roleFilter : undefined);
-    }, [roleFilter, table]);
+                const response = await fetch(endpoint, {
+                    method,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                    credentials: "include",
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || "Request failed");
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Error saving user:', error);
+                throw error;
+            }
+        },
+        [selectedRow]
+    );
 
     return (
         <div className="space-y-4">
@@ -73,71 +106,40 @@ export default function Page() {
                     className="px-0"
                     menuLabel="Add User"
                     onCreateClick={() => {
+                        console.log('[DEBUG] Creating new user');
                         setSelectedRow(null);
                         setIsFormOpen(true);
                     }}
                     onDeleteClick={
-                        table.getSelectedRowModel().rows.length > 0 ? handleDeleteSelected : undefined
+                        table.getSelectedRowModel().rows.length > 0
+                            ? handleDeleteSelected
+                            : undefined
                     }
-                    onClearAll={() => {
-                        clearAllFilters();
-                        onRoleChange([]);
-                    }}
+                    onClearAll={clearAllFilters}
                 >
                     <DataTableFilterList table={table} onClearAll={clearAllFilters} />
 
                     <SearchInput
                         value={globalFilter}
                         onChange={setGlobalFilter}
-                        placeholder="Search by name..."
+                        placeholder="Search users..."
                         onClear={() => {
                             setGlobalFilter('');
                             table.resetGlobalFilter();
                         }}
-                    />
-
-                    <DataTableFacetedFilter
-                        column={table.getColumn('role')}
-                        title="Role"
-                        options={Object.values(UserRole).map((r) => ({
-                            label: r,
-                            value: r,
-                        }))}
-                        multiple
-                        value={roleFilter}
-                        onChange={onRoleChange}
-                        onClear={() => onRoleChange([])}
                     />
                 </DataTableAdvancedToolbar>
             </DataTable>
 
             <UserForm
                 open={isFormOpen}
-                onOpenChange={(open) => {
-                    setIsFormOpen(open);
-                    if (!open) setSelectedRow(null);
-                }}
+                onOpenChange={setIsFormOpen}
                 initialData={selectedRow}
-                onSubmit={async (user: User) => {
-                    const isEdit = !!selectedRow;
-
-                    const res = await fetch(
-                        isEdit
-                            ? `http://localhost:8080/api/user/${selectedRow?.id}`
-                            : 'http://localhost:8080/api/register',
-                        {
-                            method: isEdit ? 'PUT' : 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify(user),
-                        }
-                    );
-
-                    if (res.ok) {
-                        fetchData();
-                        setIsFormOpen(false);
-                    }
+                onSuccess={() => {
+                    fetchData();
+                    setIsFormOpen(false);
                 }}
+                onSubmit={handleUserSubmit}
                 isSubmitting={false}
             />
         </div>

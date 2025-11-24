@@ -1,15 +1,15 @@
 package com.example.demo.filter;
 
 import com.example.demo.DTO.Filter;
-import com.example.demo.models.User;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
-import org.checkerframework.checker.units.qual.C;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -37,36 +37,49 @@ public class BaseSpecifications {
 
     protected <T> Predicate buildPredicate(Filter filter, Path<T> root, CriteriaBuilder cb) {
         String field = filter.getId();
-        Object rawValue = filter.getValue(); // can be String or List
+        Object rawValue = filter.getValue(); // This is already transformed by VisitSpecification
         String operator = filter.getOperator().toLowerCase();
 
         Path<?> fieldPath = root.get(field);
         Class<?> fieldType = fieldPath.getJavaType();
 
-        // Normalize string value
-        String stringValue = rawValue != null ? rawValue.toString() : "";
+        // DEBUG: See what's coming in
+        System.out.println(">>> BaseSpecifications.buildPredicate() - Field: " + field +
+                ", Raw Value: " + rawValue +
+                ", Raw Value Type: " + (rawValue != null ? rawValue.getClass().getName() : "null") +
+                ", Field Type: " + fieldType.getName());
 
-        // Normalize arrayValue for in/notin
-        List<Object> valuesList;
-        if (rawValue instanceof List) {
-            valuesList = ((List<?>) rawValue).stream()
-                    .map(v -> convertToType(v.toString(), fieldType))
-                    .toList();  // Java 16+ toList(), otherwise use collect(Collectors.toList())
-        } else {
-            valuesList = Arrays.stream(stringValue.split(","))
-                    .map(v -> convertToType(v, fieldType))
-                    .toList();
+        // SKIP EVERYTHING IF VALUE IS NULL - return a predicate that does nothing
+        if (rawValue == null) {
+            System.out.println(">>> Skipping predicate - value is null");
+            return cb.conjunction(); // This means "true" - no filtering applied
         }
 
+        // Also skip if it's an empty string
+        if (rawValue instanceof String && ((String) rawValue).trim().isEmpty()) {
+            System.out.println(">>> Skipping predicate - value is empty string");
+            return cb.conjunction(); // This means "true" - no filtering applied
+        }
+
+        // Use rawValue directly for most operations - it's already the correct type
         switch (operator) {
             case "ilike":
-                return cb.like(cb.lower(fieldPath.as(String.class)), "%" + stringValue.toLowerCase() + "%");
             case "notilike":
-                return cb.notLike(cb.lower(fieldPath.as(String.class)), "%" + stringValue.toLowerCase() + "%");
+                // For LIKE operations, we need strings
+                String stringValue = rawValue.toString();
+                if (operator.equals("ilike")) {
+                    return cb.like(cb.lower(fieldPath.as(String.class)), "%" + stringValue.toLowerCase() + "%");
+                } else {
+                    return cb.notLike(cb.lower(fieldPath.as(String.class)), "%" + stringValue.toLowerCase() + "%");
+                }
+
             case "eq":
-                return cb.equal(fieldPath, stringValue);
+                // Use the rawValue directly - it's already the correct type (LocalDateTime)
+                return cb.equal(fieldPath, rawValue);
+
             case "ne":
-                return cb.notEqual(fieldPath, stringValue);
+                return cb.notEqual(fieldPath, rawValue);
+
             case "isempty":
                 return cb.or(
                         cb.isNull(fieldPath),
@@ -80,20 +93,63 @@ public class BaseSpecifications {
                         cb.notEqual(fieldPath, " ")
                 );
             case "inarray":
-                return fieldPath.in(valuesList);
             case "notinarray":
-                return fieldPath.in(valuesList).not();
+                // Handle lists with proper type conversion
+                List<Object> valuesList;
+                if (rawValue instanceof List) {
+                    valuesList = ((List<?>) rawValue).stream()
+                            .map(v -> ensureTypeCompatibility(v, fieldType))
+                            .toList();
+                } else {
+                    valuesList = Arrays.stream(rawValue.toString().split(","))
+                            .map(v -> ensureTypeCompatibility(v, fieldType))
+                            .toList();
+                }
+                Predicate inPredicate = fieldPath.in(valuesList);
+                return operator.equals("inarray") ? inPredicate : inPredicate.not();
+
             default:
                 throw new IllegalArgumentException("Unsupported operator: " + operator);
         }
     }
 
-    private Object convertToType(String value, Class<?> type) {
-        if (type.equals(Integer.class) || type.equals(int.class)) return Integer.valueOf(value);
-        if (type.equals(Long.class) || type.equals(long.class)) return Long.valueOf(value);
-        if (type.equals(java.time.Year.class)) return java.time.Year.parse(value);
-        if (type.equals(Double.class) || type.equals(double.class)) return Double.valueOf(value);
-        return value; // default String
-    }
+    /**
+     * Ensure value compatibility with field type
+     */
+    private Object ensureTypeCompatibility(Object value, Class<?> targetType) {
+        if (value == null) return null;
 
+        // If types already match, return as-is
+        if (targetType.isInstance(value)) {
+            return value;
+        }
+
+        // Convert string to target type if needed
+        if (value instanceof String stringValue) {
+            try {
+                if (targetType == LocalDateTime.class) {
+                    // Handle timestamp strings (your transformer should handle this, but as fallback)
+                    try {
+                        long timestamp = Long.parseLong(stringValue);
+                        return LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault());
+                    } catch (NumberFormatException e) {
+                        // Try parsing as ISO string if needed
+                        return LocalDateTime.parse(stringValue);
+                    }
+                }
+                if (targetType.equals(Integer.class) || targetType.equals(int.class))
+                    return Integer.valueOf(stringValue);
+                if (targetType.equals(Long.class) || targetType.equals(long.class))
+                    return Long.valueOf(stringValue);
+                if (targetType.equals(java.time.Year.class))
+                    return java.time.Year.parse(stringValue);
+                if (targetType.equals(Double.class) || targetType.equals(double.class))
+                    return Double.valueOf(stringValue);
+            } catch (Exception e) {
+                System.err.println("Type conversion failed for value '" + value + "' to type " + targetType + ": " + e.getMessage());
+            }
+        }
+
+        return value; // Return original if conversion fails or not needed
+    }
 }
