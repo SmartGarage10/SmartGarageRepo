@@ -1,18 +1,21 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useDataTable } from '@/hooks/useDataTable';
-import { getColumns } from '@/src/app/dashboard/users/column';
+import { getColumns } from '@/app/dashboard/users/column';
 import { User, UserRole } from '@/types/user';
 import { DataTable } from '@/components/data-table/data-table';
 import { DataTableAdvancedToolbar } from '@/components/data-table/data-table-advanced-toolbar';
-import { DataTableFacetedFilter } from '@/components/data-table/data-table-faceted-filter';
 import { DataTableFilterList } from '@/components/data-table/data-table-filter-list';
 import { SearchInput } from '@/components/data-table/data-search';
 import { UserForm } from '@/components/forms/edit-create-user-form';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 
 export default function Page() {
+    // Add a refresh key to force re-renders
+    const [refreshKey, setRefreshKey] = useState(0);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     // Fix role options - ensure they have proper values
     const roleOptions = Object.values(UserRole).map((r) => ({
         label: r,
@@ -23,6 +26,7 @@ export default function Page() {
     const handleEdit = useCallback((user: User) => {
         console.log('[DEBUG] Editing user', user);
         setSelectedRow(user);
+        setIsFormOpen(true);
     }, []);
 
     // Hook for generic table
@@ -46,7 +50,16 @@ export default function Page() {
                     setIsFormOpen(true);
                 },
                 onDelete: async (id: string) => {
-                    await onDelete(id);
+                    const toastId = toast.loading('Deleting user...');
+                    try {
+                        await onDelete(id);
+                        toast.success('User deleted successfully!', { id: toastId });
+                        // Refresh after delete
+                        fetchData();
+                        setRefreshKey(prev => prev + 1);
+                    } catch (error) {
+                        toast.error('Failed to delete user', { id: toastId });
+                    }
                 },
                 roleOptions, // Pass the fixed role options
             });
@@ -56,6 +69,9 @@ export default function Page() {
     // Submit handler for users - ONLY IN PAGE
     const handleUserSubmit = useCallback(
         async (userData: User) => {
+            setIsSubmitting(true);
+            const toastId = toast.loading(selectedRow?.id ? 'Updating user...' : 'Creating user...');
+
             try {
                 const isEdit = !!selectedRow?.id;
                 const endpoint = isEdit
@@ -87,18 +103,70 @@ export default function Page() {
                     throw new Error(errorData.message || "Request failed");
                 }
 
+                // Show success message
+                toast.success(
+                    isEdit ? 'User updated successfully!' : 'User created successfully!',
+                    {
+                        id: toastId,
+                        duration: 3000 // Keep for 3 seconds
+                    }
+                );
+
+                // Force refresh after success
+                fetchData();
+                setRefreshKey(prev => prev + 1);
+
+                // Reset form state
+                setIsFormOpen(false);
+                setSelectedRow(null);
+
                 return true;
             } catch (error) {
                 console.error('Error saving user:', error);
+                toast.error(
+                    error instanceof Error ? error.message : 'Failed to save user',
+                    {
+                        id: toastId,
+                        duration: 4000 // Show errors longer
+                    }
+                );
                 throw error;
+            } finally {
+                setIsSubmitting(false);
             }
         },
-        [selectedRow]
+        [selectedRow, fetchData, setIsFormOpen, setSelectedRow]
     );
 
+    // Handle form success
+    const handleSuccess = useCallback(() => {
+        const toastId = toast.success('Operation completed successfully!', {
+            duration: 3000
+        });
+        fetchData();
+        setIsFormOpen(false);
+        setSelectedRow(null);
+        setRefreshKey(prev => prev + 1);
+    }, [fetchData, setIsFormOpen, setSelectedRow]);
+
+    // Force initial fetch
+    useEffect(() => {
+        fetchData();
+    }, [fetchData, refreshKey]);
+
     return (
-        <div className="space-y-4">
-            <Toaster richColors position="top-center" toastOptions={{ className: 'font-sans' }} />
+        <div key={refreshKey} className="space-y-4">
+            <Toaster
+                richColors
+                position="top-center"
+                toastOptions={{
+                    className: 'font-sans',
+                    duration: 3000, // Default duration
+                }}
+                closeButton
+                expand
+                visibleToasts={3}
+            />
 
             <DataTable table={table} className="px-10">
                 <DataTableAdvancedToolbar
@@ -112,7 +180,17 @@ export default function Page() {
                     }}
                     onDeleteClick={
                         table.getSelectedRowModel().rows.length > 0
-                            ? handleDeleteSelected
+                            ? async () => {
+                                const toastId = toast.loading('Deleting selected users...');
+                                try {
+                                    await handleDeleteSelected();
+                                    toast.success('Users deleted successfully!', { id: toastId });
+                                    fetchData();
+                                    setRefreshKey(prev => prev + 1);
+                                } catch (error) {
+                                    toast.error('Failed to delete users', { id: toastId });
+                                }
+                            }
                             : undefined
                     }
                     onClearAll={clearAllFilters}
@@ -135,12 +213,10 @@ export default function Page() {
                 open={isFormOpen}
                 onOpenChange={setIsFormOpen}
                 initialData={selectedRow}
-                onSuccess={() => {
-                    fetchData();
-                    setIsFormOpen(false);
-                }}
+                onSuccess={handleSuccess}
                 onSubmit={handleUserSubmit}
-                isSubmitting={false}
+                isSubmitting={isSubmitting}
+                key={selectedRow?.id || 'new'} // Force re-render when data changes
             />
         </div>
     );

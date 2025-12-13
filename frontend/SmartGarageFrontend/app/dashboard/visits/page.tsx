@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-import { getColumns} from '@/src/app/dashboard/visits/column';
+import { getColumns} from '@/app/dashboard/visits/column';
 import { Vehicle } from '@/types/vehicle';
 import { User } from '@/types/user';
 import { Pack } from '@/types/pack';

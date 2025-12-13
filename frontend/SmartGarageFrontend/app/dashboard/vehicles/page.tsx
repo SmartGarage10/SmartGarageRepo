@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-import { getColumns, Vehicle, User } from '@/src/app/dashboard/vehicles/column';
+import { getColumns, Vehicle, User } from '@/app/dashboard/vehicles/column';
 import { DataTable } from '@/components/data-table/data-table';
 import { DataTableAdvancedToolbar } from '@/components/data-table/data-table-advanced-toolbar';
 import { DataTableFilterList } from '@/components/data-table/data-table-filter-list';

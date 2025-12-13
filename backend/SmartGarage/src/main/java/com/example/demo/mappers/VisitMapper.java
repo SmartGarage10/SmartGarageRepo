@@ -9,7 +9,7 @@ import org.mapstruct.Mapping;
 public interface VisitMapper {
     VisitDTO toDto(Visit visit);
 
-    @Mapping(target = "visitServices", source = "visitServices")
+//    @Mapping(target = "visitServices", source = "visitServices")
     Visit toEntity(VisitDTO visitDTO);
 }
 
