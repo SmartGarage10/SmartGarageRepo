@@ -38,7 +38,7 @@ public class VisitControllerRest {
 
 
     @GetMapping("/visits")
-    public ResponseEntity<List<Visit>> getallVisits(@RequestParam MultiValueMap<String, String> allParams){
+    public ResponseEntity<List<Visit>> getAllVisits(@RequestParam MultiValueMap<String, String> allParams){
         try {
             securityHelper.isAuthenticated();
             return ResponseEntity.ok(visitService.getAllVisits(allParams));

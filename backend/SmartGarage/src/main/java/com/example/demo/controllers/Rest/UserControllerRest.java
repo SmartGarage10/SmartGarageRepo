@@ -3,6 +3,7 @@ package com.example.demo.controllers.Rest;
 import com.example.demo.DTO.*;
 import com.example.demo.exceptions.AuthorizationException;
 import com.example.demo.helpers.*;
+import com.example.demo.mappers.UserMapper;
 import com.example.demo.models.User;
 import com.example.demo.service.UserService;
 import jakarta.validation.Valid;
@@ -11,12 +12,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -53,9 +52,8 @@ public class UserControllerRest {
             ValidationHelper.validate(bindingResult);
 
             User currentUser = securityHelper.getCurrentUser();
-            User newUser = userMapper.fromDto(request);
 
-            return ResponseEntity.ok(userService.register(currentUser, newUser));
+            return ResponseEntity.ok(userService.register(currentUser, request));
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
@@ -72,9 +70,8 @@ public class UserControllerRest {
             ValidationHelper.validate(bindingResult);
 
             User currentUser = securityHelper.getCurrentUser();
-            User updateUser = userMapper.fromDto(request);
 
-            return ResponseEntity.ok(userService.updateUser(currentUser, id, updateUser));
+            return ResponseEntity.ok(userService.updateUser(currentUser, id, request));
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }

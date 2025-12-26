@@ -2,76 +2,62 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
 
-import { getColumns, Vehicle, User } from '@/app/dashboard/vehicles/column';
+import { getColumns } from '@/app/dashboard/vehicles/column';
+import { Vehicle } from '@/types/vehicle';
+import { User } from '@/types/user';
+
 import { DataTable } from '@/components/data-table/data-table';
 import { DataTableAdvancedToolbar } from '@/components/data-table/data-table-advanced-toolbar';
 import { DataTableFilterList } from '@/components/data-table/data-table-filter-list';
 import { SearchInput } from '@/components/data-table/data-search';
 import { Toaster } from 'sonner';
+
 import { VehicleForm } from '@/components/forms/edit-create-vehicle-form';
 import { useDataTable } from '@/hooks/useDataTable';
 import { CarService } from '@/services/CarService';
-
-interface FilterItem {
-    id: string;
-    value: string | string[];
-    variant: string;
-    operator: string;
-    filterId: string;
-}
+import { createApi } from '@/api/genericApi';
 
 export default function VehiclesPage() {
-    const searchParams = useSearchParams();
-
-    // Mounted state to avoid hydration issues with Next.js
     const [isMounted, setIsMounted] = useState(false);
 
-    // Clients list loaded from backend for VehicleForm client select
     const [clients, setClients] = useState<User[]>([]);
 
-    // Options for Brand and Model selects, loaded async
     const [brandOptions, setBrandOptions] = useState<{ label: string; value: string }[]>([]);
     const [modelOptions, setModelOptions] = useState<{ label: string; value: string }[]>([]);
-
-    // Selected brand (sync with URL filter param)
     const [selectedBrand, setSelectedBrand] = useState<string>('');
 
-    // Loading states for selects
-    const [isModelsLoading, setIsModelsLoading] = useState(false);
     const [isBrandsLoading, setIsBrandsLoading] = useState(false);
+    const [isModelsLoading, setIsModelsLoading] = useState(false);
+
+    const [selectedRow, setSelectedRow] = useState<Vehicle | null>(null);
+
+    const userApi = createApi<User>('users');
 
     // -------------------------
-    // Parse brand filter from URL filters param, update selectedBrand
+    // Load clients
     useEffect(() => {
-        const filtersParam = searchParams.get('filters');
-        if (filtersParam) {
+        const loadClients = async () => {
             try {
-                const filters: FilterItem[] = JSON.parse(decodeURIComponent(filtersParam));
-                const brandFilter = filters.find((f) => f.id === 'brand');
-                const brand = brandFilter?.value
-                    ? Array.isArray(brandFilter.value)
-                        ? brandFilter.value[0] || ''
-                        : brandFilter.value
-                    : '';
-                setSelectedBrand(brand);
+                const users = await userApi.getAll();
+                setClients(users.filter(u => u.role?.roleName === 'CLIENT'));
             } catch (error) {
-                console.error('Error parsing filters:', error);
+                console.error('Failed to load clients', error);
             }
-        }
-    }, [searchParams]);
+        };
+        loadClients();
+    }, []);
 
     // -------------------------
-    // Load brand options on mount
+    // Load brands
     useEffect(() => {
         const loadBrands = async () => {
             setIsBrandsLoading(true);
             try {
                 const brands = await CarService.fetchBrands();
-                setBrandOptions(brands.map((brand: string) => ({ label: brand, value: brand })));
-            } catch (err) {
-                console.error('Error loading brands:', err);
+                setBrandOptions(brands.map(b => ({ label: b, value: b })));
+            } catch (error) {
+                console.error('Failed to load brands', error);
             } finally {
                 setIsBrandsLoading(false);
             }
@@ -80,7 +66,7 @@ export default function VehiclesPage() {
     }, []);
 
     // -------------------------
-    // Load models when selectedBrand changes
+    // Load models on brand change
     useEffect(() => {
         const loadModels = async () => {
             if (!selectedBrand) {
@@ -90,9 +76,9 @@ export default function VehiclesPage() {
             setIsModelsLoading(true);
             try {
                 const models = await CarService.fetchModels(selectedBrand);
-                setModelOptions(models.map((model: string) => ({ label: model, value: model })));
-            } catch (err) {
-                console.error('Error loading models:', err);
+                setModelOptions(models.map(m => ({ label: m, value: m })));
+            } catch (error) {
+                console.error('Failed to load models', error);
                 setModelOptions([]);
             } finally {
                 setIsModelsLoading(false);
@@ -101,45 +87,20 @@ export default function VehiclesPage() {
         loadModels();
     }, [selectedBrand]);
 
-    // -------------------------
-    // Fetch clients on mount for VehicleForm
     useEffect(() => {
         setIsMounted(true);
-        const fetchClients = async () => {
-            try {
-                const res = await fetch('http://localhost:8080/api/users', {
-                    credentials: 'include',
-                });
-                if (!res.ok) {
-                    console.error('Failed to fetch clients:', res.status, res.statusText);
-                    throw new Error('Failed to fetch clients');
-                }
-                const data = await res.json();
-                setClients(data);
-            } catch (error) {
-                console.error('Error fetching clients:', error);
-            }
-        };
-        fetchClients();
         return () => setIsMounted(false);
     }, []);
 
     // -------------------------
-    // Local selected row state to control edit modal, synced with hook state
-    const [selectedRow, setSelectedRow] = useState<Vehicle | null>(null);
-
-    // Edit callback called from columns config
+    // Edit handler
     const handleEdit = useCallback((vehicle: Vehicle) => {
         setSelectedRow(vehicle);
         setSelectedBrand(vehicle.brand);
     }, []);
 
     // -------------------------
-    // Setup getColumns callback with handlers from hook, including delete from hook
-    // Note: handleSingleDelete comes from useDataTable hook below,
-    // so we need to define getCols after that
-
-    // Use destructuring assignment *after* to get hook's handlers including handleSingleDelete
+    // Data table
     const {
         table,
         globalFilter,
@@ -149,42 +110,26 @@ export default function VehiclesPage() {
         handleDeleteSelected,
         isFormOpen,
         setIsFormOpen,
-        selectedRow: hookSelectedRow,
-        setSelectedRow: setHookSelectedRow,
     } = useDataTable<Vehicle>({
         fetchUrl: 'http://localhost:8080/api/vehicles',
-        getColumns: ({ onDelete }) => {
-            return getColumns({
+        getColumns: ({ onDelete }) =>
+            getColumns({
                 onEdit: (row: Vehicle) => {
                     handleEdit(row);
                     setIsFormOpen(true);
                 },
-                onDelete: async (id: string) => {
-                    await onDelete(id);
-                },
-                brandOptions, modelOptions
-            });
-        },
+                onDelete,
+                brandOptions,
+                modelOptions,
+            }),
     });
 
-    // Keep selectedRow state in sync between hook and page
-    useEffect(() => {
-        if (hookSelectedRow !== selectedRow) {
-            setSelectedRow(hookSelectedRow);
-        }
-    }, [hookSelectedRow, selectedRow]);
-
-    useEffect(() => {
-        setHookSelectedRow(selectedRow);
-    }, [selectedRow, setHookSelectedRow]);
-
     // -------------------------
-    // Form submit handler for create/update vehicle
+    // Submit handler
     const handleSubmit = useCallback(
         async (vehicleData: Omit<Vehicle, 'id'> & { id?: string }) => {
-            if (!isMounted) return false;
             try {
-                const isEdit = !!selectedRow;
+                const isEdit = !!selectedRow?.id;
                 const endpoint = isEdit
                     ? `http://localhost:8080/api/vehicles/${selectedRow!.id}`
                     : 'http://localhost:8080/api/vehicles';
@@ -194,39 +139,35 @@ export default function VehiclesPage() {
                 const payload = {
                     vehiclePlate: vehicleData.vehiclePlate,
                     vin: vehicleData.vin,
-                    client: { id: vehicleData.client.id },
                     brand: vehicleData.brand,
                     model: vehicleData.model,
                     year: vehicleData.year,
+                    client: { id: vehicleData.client.id },
                 };
 
                 const res = await fetch(endpoint, {
                     method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
+                    credentials: 'include',
                 });
 
                 if (!res.ok) {
                     const errorData = await res.json().catch(() => ({}));
-                    throw new Error(
-                        errorData.message || `Failed to ${isEdit ? 'update' : 'create'} vehicle (${res.status})`
-                    );
+                    throw new Error(errorData.message || 'Failed to save vehicle');
                 }
 
-                await fetchData();
-                setIsFormOpen(false);
                 return true;
             } catch (error) {
                 console.error('Error saving vehicle:', error);
                 throw error;
             }
         },
-        [selectedRow, fetchData, isMounted, setIsFormOpen]
+        [selectedRow]
     );
 
-    // Brand select options disabled if models loading to avoid confusion
     const brandSelectOptions = useMemo(
-        () => brandOptions.map((opt) => ({ ...opt, disabled: isModelsLoading })),
+        () => brandOptions.map(opt => ({ ...opt, disabled: isModelsLoading })),
         [brandOptions, isModelsLoading]
     );
 
@@ -236,14 +177,9 @@ export default function VehiclesPage() {
         <div className="space-y-4">
             <Toaster richColors position="top-center" />
 
-            <DataTable
-                table={table}
-                className="px-10"
-                key={`brand-${brandOptions.length}-model-${modelOptions.length}`}
-            >
+            <DataTable table={table} className="px-10">
                 <DataTableAdvancedToolbar
                     table={table}
-                    className="px-0"
                     menuLabel="Add Vehicle"
                     onCreateClick={() => {
                         setSelectedRow(null);
@@ -251,7 +187,9 @@ export default function VehiclesPage() {
                         setIsFormOpen(true);
                     }}
                     onDeleteClick={
-                        table.getSelectedRowModel().rows.length > 0 ? handleDeleteSelected : undefined
+                        table.getSelectedRowModel().rows.length > 0
+                            ? handleDeleteSelected
+                            : undefined
                     }
                     onClearAll={clearAllFilters}
                 >
@@ -267,12 +205,7 @@ export default function VehiclesPage() {
             <VehicleForm
                 open={isFormOpen}
                 onOpenChange={setIsFormOpen}
-                initialData={selectedRow
-                    ? {
-                        ...selectedRow,
-                        year: Number(selectedRow.year),
-                    }
-                    : null}
+                initialData={selectedRow}
                 clients={clients}
                 onSubmit={handleSubmit}
                 onSuccess={() => {
@@ -281,12 +214,12 @@ export default function VehiclesPage() {
                 }}
                 brandOptions={brandSelectOptions}
                 modelOptions={modelOptions}
-                isModelsLoading={isModelsLoading}
                 isBrandsLoading={isBrandsLoading}
+                isModelsLoading={isModelsLoading}
                 selectedBrand={selectedBrand}
                 onBrandChange={(brand: string) => {
-                    setModelOptions([]);
                     setSelectedBrand(brand);
+                    setModelOptions([]);
                 }}
             />
         </div>

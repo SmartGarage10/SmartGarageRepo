@@ -1,9 +1,11 @@
 package com.example.demo.service;
 
-import com.example.demo.DTO.Filter;
+import com.example.demo.exceptions.ResourceConflictException;
+import com.example.demo.exceptions.ResourceNotFoundException;
+import com.example.demo.filter.Filter;
 import com.example.demo.exceptions.EntityNotFoundException;
 import com.example.demo.filter.VehicleSpecifications;
-import com.example.demo.helpers.FilterHelper;
+import com.example.demo.filter.FilterHelper;
 import com.example.demo.helpers.GenericFieldAccessor;
 import com.example.demo.helpers.RestrictHelper;
 import com.example.demo.models.User;
@@ -69,10 +71,10 @@ public class VehicleServiceImpl implements VehicleService{
         restrictHelper.isUserAdminOrEmployee(user);
 
         if (vehicleRepository.existsByVehiclePlate(vehicle.getVehiclePlate())) {
-            throw new IllegalArgumentException("Vehicle Plate already exists.");
+            throw new ResourceConflictException(String.format("Vehicle with plate %s already exists", vehicle.getVehiclePlate()));
         }
         if (vehicleRepository.existsByVin(vehicle.getVin())) {
-            throw new IllegalArgumentException("Vehicle VIN already exists.");
+            throw new ResourceConflictException(String.format("Vehicle with plate %s already exists", vehicle.getVin()));
         }
 
         return vehicleRepository.save(vehicle);
@@ -84,7 +86,7 @@ public class VehicleServiceImpl implements VehicleService{
 
         // 2. Find existing vehicle
         Vehicle existingVehicle = vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new EntityNotFoundException("Vehicle", "id", String.valueOf(vehicleId)));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Vehicle with id %s not found", vehicleId)));
 
         // 3. Get all vehicles (for duplicate checking)
         List<Vehicle> allVehicles = vehicleRepository.findAll();
@@ -126,7 +128,7 @@ public class VehicleServiceImpl implements VehicleService{
 
         // 2. Check if the target user exists
         Vehicle targetVehicle = vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new EntityNotFoundException("Vehicle with ID - " + vehicleId + " not found."));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Vehicle with id %s not found", vehicleId)));
 
         // 3. Perform deletion
         vehicleRepository.delete(targetVehicle);

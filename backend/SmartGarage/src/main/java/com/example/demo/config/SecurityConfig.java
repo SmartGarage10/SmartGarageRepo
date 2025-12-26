@@ -45,24 +45,39 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable) // Keep disabled for API
-                .authorizeHttpRequests(authz ->
-                        authz.requestMatchers("/auth/**").permitAll().
-                              requestMatchers("/api/**").authenticated().
-                              anyRequest().authenticated()
+                .csrf(AbstractHttpConfigurer::disable) // disable CSRF for REST
+                .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/webjars/**", "/homepage").permitAll()
+                        .requestMatchers("/auth/login").permitAll()      // login is public
+                        .requestMatchers("/auth/logout").authenticated() // logout requires auth
+                        .requestMatchers("/api/users", "/api/user/{id}", "/api/register", "/api/users/{id}", "/api/users/delete").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers("/api/vehicles", "/api/create-vehicle", "/api/update-vehicle/{id}", "/api/vehicles/{id}", "/api/vehicles/delete").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers("/api/visits", "/api/create-visit", "/api/update-visit/{id}", "/api/visits/{id}", "/api/visits/delete").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers("/api/packs","/api/create-pack","/api/update-pack/{id}", "/api/packs/{id}", "/api/packs/delete").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers("/api/services", "/api/create-service", "/api/update-service/{id}", "/api/services/{id}", "/api/services/delete").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .anyRequest().authenticated()
                 )
-                // Remove formLogin() for pure REST API
-                .sessionManagement(session -> {
-                    session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED); // Enforce session creation
-                    session.maximumSessions(1).maxSessionsPreventsLogin(true);
-                    session.sessionFixation().newSession();
-                })
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        .maximumSessions(1).maxSessionsPreventsLogin(true)
+                        .and()
+                        .sessionFixation().newSession()
+                )
                 .userDetailsService(userService)
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint((request, response, authException) ->
-                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
-                        .accessDeniedHandler((request, response, accessDeniedException) ->
-                                response.sendError(HttpServletResponse.SC_FORBIDDEN))
+                        .authenticationEntryPoint((req, res, ex) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                        .accessDeniedHandler((req, res, ex) -> res.sendError(HttpServletResponse.SC_FORBIDDEN))
+                )
+                .formLogin(form -> form
+                        .loginProcessingUrl("/auth/login")
+                        .usernameParameter("username")  // your login form field
+                        .passwordParameter("password")
+                        .successHandler((req, res, auth) -> res.setStatus(200))
+                        .failureHandler((req, res, ex) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/auth/logout")
+                        .logoutSuccessHandler((req, res, auth) -> res.setStatus(200))
                 );
 
         return http.build();

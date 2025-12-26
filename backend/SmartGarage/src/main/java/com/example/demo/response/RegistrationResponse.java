@@ -9,6 +9,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class RegistrationResponse {
     private String message;
-    private String username;
+    private String email;
     private LocalDateTime timestamp;
 }

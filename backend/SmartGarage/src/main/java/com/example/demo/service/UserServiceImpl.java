@@ -1,15 +1,18 @@
 package com.example.demo.service;
 
-import com.example.demo.DTO.Filter;
-import com.example.demo.exceptions.EntityDuplicateException;
-import com.example.demo.exceptions.EntityNotFoundException;
+import com.example.demo.DTO.UserDTO;
+import com.example.demo.exceptions.ResourceConflictException;
+import com.example.demo.filter.Filter;
+import com.example.demo.exceptions.ResourceNotFoundException;
 import com.example.demo.filter.UserSpecifications;
-import com.example.demo.helpers.FilterHelper;
+import com.example.demo.filter.FilterHelper;
+import com.example.demo.helpers.FieldHelper;
+import com.example.demo.helpers.FieldUpdateHelper;
 import com.example.demo.helpers.PasswordGeneratorHelper;
 import com.example.demo.helpers.RestrictHelper;
+import com.example.demo.mappers.UserMapper;
 import com.example.demo.models.Role;
 import com.example.demo.models.User;
-import com.example.demo.models.Visit;
 import com.example.demo.repositories.RoleRepository;
 import com.example.demo.repositories.UserRepository;
 import com.example.demo.response.RegistrationResponse;
@@ -32,67 +35,47 @@ import org.springframework.util.MultiValueMap;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Stream;
 
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final AuthenticationManager authenticationManager;
-    private final RestrictHelper restrictHelper;
+    private final UserMapper userMapper;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final PasswordGeneratorHelper passwordGeneratorHelper;
     private final FilterHelper filterHelper;
 
     @Autowired
-    public UserServiceImpl(UserRepository userRepository,
+    public UserServiceImpl(UserRepository userRepository, UserMapper userMapper,
                            PasswordEncoder passwordEncoder,
-                           @Lazy AuthenticationManager authenticationManager,
-                           @Lazy RestrictHelper restrictHelper,
                            EmailService emailService,
-                           PasswordGeneratorHelper passwordGeneratorHelper,
-                           FilterHelper filterHelper,
+                           PasswordGeneratorHelper passwordGeneratorHelper, FilterHelper filterHelper,
                            RoleRepository roleRepository) {
         this.userRepository = userRepository;
+        this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-        this.restrictHelper = restrictHelper;
         this.emailService = emailService;
         this.passwordGeneratorHelper = passwordGeneratorHelper;
         this.filterHelper = filterHelper;
         this.roleRepository = roleRepository;
     }
-
-
     @Override
-    public Optional<User> authenticate(User user, HttpServletRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        user.getEmail(),
-                        user.getPassword())
-        );
-        // Create new security context and set authentication
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(authentication);
-        SecurityContextHolder.setContext(context);
+    public RegistrationResponse register(User user, UserDTO requestDTO) {
+        // Get roleName from RoleDTO
+        Role.RoleType roleType = Role.RoleType.valueOf(requestDTO.getRole().getRoleName()); // This gets the role name string
 
-        // Store security context in session
-        HttpSession session = request.getSession(true);
-        session.setAttribute("SPRING_SECURITY_CONTEXT", context);
-
-        return userRepository.findUserByEmail(user.getEmail());
-    }
-    @Override
-    public RegistrationResponse register(User user, User request) {
-        restrictHelper.isUserAdminOrEmployee(user);
+        // Find Role entity by role name
+        Role role = roleRepository.findByRoleName(roleType)
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Role %s not found", roleType)));
+        User request = userMapper.userDtoToUserWithRole(requestDTO, role);
 
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new EntityDuplicateException("User", "username", request.getUsername());
+            throw new ResourceConflictException(String.format("User with username %s already exists", request.getUsername()));
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new EntityDuplicateException("User", "email", request.getEmail());
+            throw new ResourceConflictException(String.format("User with email %s already exists", request.getEmail()));
         }
 
         String tempPass = passwordGeneratorHelper.generatePassayPassword();
@@ -110,12 +93,13 @@ public class UserServiceImpl implements UserService {
                 "BMW Garage";
 
         request.setPassword(passwordEncoder.encode(tempPass));
+
         emailService.sendRegistrationEmail(fromEmail, toEmail, subject, body);
         userRepository.save(request);
 
         return new RegistrationResponse(
                 "Registration successful. User can now login with their credentials",
-                request.getUsername(), LocalDateTime.now());
+                request.getEmail(), LocalDateTime.now());
     }
 
     @Override
@@ -141,15 +125,6 @@ public class UserServiceImpl implements UserService {
             }
         }
 
-        // 3. Apply other filters
-        if (allParams.containsKey("filters")) {
-            List<Filter> filters = filterHelper.convertToFilters(allParams);
-            if (filters != null && !filters.isEmpty()) {
-                Specification<User> searchSpec = userSpecs.createSpecification(filters);
-                spec = spec.and(searchSpec);
-            }
-        }
-
         return userRepository.findAll(spec);
     }
     @Override
@@ -158,61 +133,80 @@ public class UserServiceImpl implements UserService {
     }
     @Override
     public Optional<User> getUserByUsername(String username) {
-        if (username.isEmpty()) {
-            throw new EntityNotFoundException("User", "username", username);
-        }
-        return userRepository.findUserByUsername(username);
+        return Optional.ofNullable(username)
+                .filter(u -> !u.isBlank())
+                .map(userRepository::findUserByUsername)
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Username '%s' not found", username)));
     }
     @Override
     public Optional<User> getUserByEmail(String email) {
-        if (email.isEmpty()) {
-            throw new EntityNotFoundException("Email", "email", email);
-        }
-        return userRepository.findUserByEmail(email);
+        return Optional.ofNullable(email)
+                .filter(e -> !e.isBlank())
+                .map(userRepository::findUserByEmail)
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Email '%s' not found", email)));
     }
 
     @Override
-    public User updateUser(User user, int userId, User userDetails) {
-        // 1. Check User permissions
-        restrictHelper.isUserAdminEmployeeOrOwner(user, userId);
-
+    public User updateUser(User user, int userId, UserDTO userDTO) {
+        // 1. Convert DTO to User entity
+        User userDetails = userMapper.userDtoToUser(userDTO);
         // 2. Find existing user
         User existingUser = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User", "id", String.valueOf(userId)));
-
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format("User with id %s not found", userId)));
         // 3. Get all users (for duplicate checking)
         List<User> allUsers = userRepository.findAll();
 
-        // 4. Process all updatable fields
-        Stream.of(
-                        Map.entry("username", userDetails.getUsername()),
-                        Map.entry("email", userDetails.getEmail()),
-                        Map.entry("phone", userDetails.getPhone())
-                )
-                .forEach(entry -> {
-                    String currentValue = getCurrentFieldValue(existingUser, entry.getKey());
-                    Optional.ofNullable(entry.getValue())
-                            .filter(newValue -> !newValue.equals(currentValue)) // Skip if unchanged
-                            .filter(newValue -> !isDuplicateField(allUsers, entry.getKey(), newValue, userId))
-                            .ifPresent(newValue -> setUserField(existingUser, entry.getKey(), newValue));
-                });
+        // 4. Prepare lists of fields that need duplicate checking and those that don't
+        List<FieldUpdateHelper> duplicateCheckFields = Arrays.asList(
+                new FieldUpdateHelper("username", User::getUsername, User::setUsername,
+                        userDetails.getUsername()),
+                new FieldUpdateHelper("email", User::getEmail, User::setEmail,
+                        userDetails.getEmail()),
+                new FieldUpdateHelper("phone", User::getPhone, User::setPhone,
+                        userDetails.getPhone())
+        );
+        List<FieldUpdateHelper> nonDuplicateCheckFields = Arrays.asList(
+                new FieldUpdateHelper("name", User::getName, User::setName,
+                        userDetails.getName()),
+                new FieldUpdateHelper("address", User::getAddress, User::setAddress,
+                        userDetails.getAddress())
+        );
+        // 5. Process fields with duplicate checking and without
+        for (FieldUpdateHelper fieldHelper : duplicateCheckFields) {
+            FieldHelper.updateWithDuplicateCheck(
+                    existingUser,
+                    allUsers,
+                    fieldHelper.getter(),
+                    fieldHelper.setter(),
+                    fieldHelper.newValue(),
+                    userId,
+                    User::getId,
+                    fieldHelper.fieldName()
+            );
+        }
+        for (FieldUpdateHelper fieldHelper : nonDuplicateCheckFields) {
+            FieldHelper.updateFieldIfChanged(
+                    existingUser,
+                    fieldHelper.getter(),
+                    fieldHelper.setter(),
+                    fieldHelper.newValue()
+            );
+        }
 
-        // 5. Process fields without duplicate checking
-        Stream.of(
-                        Map.entry("name", userDetails.getName()),
-                        Map.entry("address", userDetails.getAddress())
-                )
-                .forEach(entry -> {
-                    String currentValue = getCurrentFieldValue(existingUser, entry.getKey());
-                    Optional.ofNullable(entry.getValue())
-                            .filter(newValue -> !newValue.equals(currentValue))
-                            .ifPresent(newValue -> setUserField(existingUser, entry.getKey(), newValue));
-                });
-
-        // 6. Handle role update separately (admin only)
-
-        if (userDetails.getRole() != null && !userDetails.getRole().equals(existingUser.getRole())) {
-            existingUser.setRole(userDetails.getRole());
+        // 6. Handle role update by NAME (not ID)
+        if (userDetails.getRole() != null) {
+            String newRoleName = userDetails.getRole().getRoleName().toString(); // Assuming it's enum
+            // Check if role is actually changing
+            if (existingUser.getRole() == null ||
+                    !newRoleName.equals(existingUser.getRole().getRoleName().toString())) {
+                // Fetch role from database by NAME
+                Role.RoleType roleType = Role.RoleType.valueOf(newRoleName);
+                Role role = roleRepository.findByRoleName(roleType)
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Role not found with name: " + newRoleName));
+                existingUser.setRole(role);
+            }
         }
 
         return userRepository.save(existingUser);
@@ -221,7 +215,7 @@ public class UserServiceImpl implements UserService {
     public void changePassword(User user, String oldPassword, String newPassword) {
 
         if (passwordEncoder.matches(oldPassword, newPassword)) {
-            throw new IllegalArgumentException("Your new password can't be the same as old one ");
+            throw new ResourceConflictException("Your new password cannot be the same as the old password");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -230,22 +224,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(User user, int userId) {
-        // 1. Validate permissions (admin, employee, or owner)
-        restrictHelper.isUserAdminEmployeeOrOwner(user, userId);
-
-        // 2. Check if the target user exists
+        // 1. Check if the target user exists
         User targetUser = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
-
-        // 3. Perform deletion
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format("User with id %s not found", userId)));
+        // 2. Perform deletion
         userRepository.delete(targetUser);
     }
     @Override
     public void deleteUsers(User user, List<Integer> ids) {
-        // 1. Validate permissions (admin or employee)
-        restrictHelper.isUserAdminOrEmployee(user);
-
-        // 2. Perform deletion
+        // 1. Perform deletion
         userRepository.deleteAllById(ids);
     }
 
@@ -264,7 +252,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findUserByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format("User with email %s not found", email)));
 
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())  // or user.getUsername() if needed
@@ -277,33 +266,5 @@ public class UserServiceImpl implements UserService {
                 .credentialsExpired(false)
                 .disabled(false)
                 .build();
-    }
-
-    // Helper to check for duplicates in memory
-    private boolean isDuplicateField(List<User> allUsers, String field, String value, int currentUserId) {
-        return allUsers.stream()
-                .filter(user -> user.getId() != currentUserId) // Exclude current user (int comparison)
-                .anyMatch(user -> value.equals(getCurrentFieldValue(user, field)));
-    }
-    // Helper to get field value
-    private String getCurrentFieldValue(User user, String field) {
-        return switch (field) {
-            case "name" -> user.getName();
-            case "username" -> user.getUsername();
-            case "email" -> user.getEmail();
-            case "phone" -> user.getPhone();
-            case "role" -> user.getRole().toString();
-            default -> null;
-        };
-    }
-    // Helper to set field value
-    private void setUserField(User user, String field, String value) {
-        switch (field) {
-            case "name" -> user.setName(value);
-            case "username" -> user.setUsername(value);
-            case "email" -> user.setEmail(value);
-            case "phone" -> user.setPhone(value);
-            case "address" -> user.setAddress(value);
-        }
     }
 }

@@ -1,7 +1,5 @@
 package com.example.demo.filter;
 
-import com.example.demo.DTO.Filter;
-import com.example.demo.models.Vehicle;
 import jakarta.persistence.criteria.From;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;

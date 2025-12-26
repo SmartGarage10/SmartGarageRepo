@@ -1,23 +1,18 @@
 package com.example.demo.service;
 
-
-import com.example.demo.DTO.Filter;
-import com.example.demo.exceptions.AuthorizationException;
-import com.example.demo.exceptions.EntityNotFoundException;
-import com.example.demo.filter.VehicleSpecifications;
+import com.example.demo.exceptions.ResourceConflictException;
+import com.example.demo.exceptions.ResourceNotFoundException;
+import com.example.demo.filter.Filter;
 import com.example.demo.filter.VisitSpecification;
-import com.example.demo.helpers.FilterHelper;
+import com.example.demo.filter.FilterHelper;
 import com.example.demo.helpers.GenericFieldAccessor;
 import com.example.demo.helpers.RestrictHelper;
-import com.example.demo.models.User;
-import com.example.demo.models.Vehicle;
-import com.example.demo.models.Visit;
-import com.example.demo.repositories.VisitRepository;
-import org.springframework.data.domain.Sort;
+import com.example.demo.models.*;
+import com.example.demo.repositories.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.MultiValueMap;
-import org.webjars.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,13 +26,19 @@ public class VisitServiceImpl implements VisitService{
     private final RestrictHelper restrictHelper;
     private final FilterHelper filterHelper;
     private final VisitRepository visitRepository;
+    private final ServiceRepository serviceItemRepository;
+    private final PackRepository packRepository;
 
     public VisitServiceImpl(RestrictHelper restrictHelper,
                             FilterHelper filterHelper,
-                            VisitRepository visitRepository) {
+                            VisitRepository visitRepository,
+                            ServiceRepository serviceItemRepository,
+                            PackRepository packRepository) {
         this.restrictHelper = restrictHelper;
         this.filterHelper = filterHelper;
         this.visitRepository = visitRepository;
+        this.serviceItemRepository = serviceItemRepository;
+        this.packRepository = packRepository;
     }
 
 
@@ -83,24 +84,32 @@ public class VisitServiceImpl implements VisitService{
     }
 
     @Override
+    @Transactional
     public Visit createVisit(User user, Visit visit) {
         restrictHelper.isUserAdminOrEmployee(user);
 
         if (visitRepository.existsByVisitDate(visit.getVisitDate())) {
-            throw new IllegalArgumentException("The visit already exists.");
+            throw new ResourceConflictException(String.format("Visit with id %s is already exists", visit.getVisitDate()));
         }
+
+        // Validate and calculate total for visit items
+        validateAndProcessVisitItems(visit);
+
+        // Calculate total amount from visit items
+        visit.calculateTotal();
 
         return visitRepository.save(visit);
     }
 
     @Override
+    @Transactional
     public Visit update(User user, int visitId, Visit changes) {
         // 1. Check User permissions
         restrictHelper.isUserAdminOrEmployee(user);
 
         // 2. Find existing visit
         Visit existingVisit = visitRepository.findById(visitId)
-                .orElseThrow(() -> new EntityNotFoundException("Visit", "id", String.valueOf(visitId)));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Visit with id %s not found", visitId)));
 
         // 3. Get all visits (for duplicate checking)
         List<Visit> allVisits = visitRepository.findAll();
@@ -117,19 +126,11 @@ public class VisitServiceImpl implements VisitService{
                             .ifPresent(newValue -> GenericFieldAccessor.setFieldValue(existingVisit, entry.getKey(), newValue));
                 });
 
-        // 5. Process fields without duplicate checking - MANUAL PACK HANDLING
-        if (changes.getPack() != null) {
-            // If pack is provided, set it (could be null or actual pack)
-            existingVisit.setPack(changes.getPack());
-        } else {
-            // Explicitly set to null for custom packs
-            existingVisit.setPack(null);
-        }
-
-        // Process other fields
+        // 5. Process fields without duplicate checking
         Stream.of(
                         Map.entry("employee", changes.getEmployee()),
-                        Map.entry("status", changes.getStatus())
+                        Map.entry("status", changes.getStatus()),
+                        Map.entry("currency", changes.getCurrency())
                 )
                 .forEach(entry -> {
                     String currentValue = GenericFieldAccessor.getFieldValue(existingVisit, entry.getKey());
@@ -138,39 +139,110 @@ public class VisitServiceImpl implements VisitService{
                             .ifPresent(newValue -> GenericFieldAccessor.setFieldValue(existingVisit, entry.getKey(), newValue));
                 });
 
-        // visitServices handled separately because it can be null
-        existingVisit.setVisitServices(changes.getVisitServices()); // can be null safely
+        // 6. Handle vehicle update
+        if (changes.getVehicle() != null) {
+            existingVisit.setVehicle(changes.getVehicle());
+        }
 
-        // 6. Update amount and currency separately
-        if (changes.getAmount() != existingVisit.getAmount()) {
-            existingVisit.setAmount(changes.getAmount());
+        // 7. Handle visit items update (NEW LOGIC)
+        if (changes.getVisitItems() != null) {
+            // Clear existing items
+            existingVisit.getVisitItems().clear();
+
+            // Add new items
+            for (VisitItem item : changes.getVisitItems()) {
+                item.setVisit(existingVisit);
+                validateVisitItem(item);
+                existingVisit.getVisitItems().add(item);
+            }
         }
-        if (changes.getCurrency() != null && !changes.getCurrency().equals(existingVisit.getCurrency())) {
-            existingVisit.setCurrency(changes.getCurrency());
-        }
+
+        // 8. Recalculate amount from visit items
+        existingVisit.calculateTotal();
 
         return visitRepository.save(existingVisit);
     }
 
     @Override
+    @Transactional
     public void deleteVisit(User user, int visitId) {
         // 1. Validate permissions (admin or employee)
         restrictHelper.isUserAdminOrEmployee(user);
 
         // 2. Check if the target user exists
         Visit targetVisit = visitRepository.findById(visitId)
-                .orElseThrow(() -> new EntityNotFoundException("Visit", "id", String.valueOf(visitId)));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Visit with id %s not found", visitId)));
 
-        // 3. Perform deletion
+        // 3. Perform deletion (cascade will delete visit items)
         visitRepository.delete(targetVisit);
     }
 
     @Override
+    @Transactional
     public void deleteVisits(User user, List<Integer> ids) {
-         // 1. Validate permissions (admin or employee)
+        // 1. Validate permissions (admin or employee)
         restrictHelper.isUserAdminOrEmployee(user);
 
         // 2. Perform deletion
         visitRepository.deleteAllById(ids);
+    }
+
+    // ========== HELPER METHODS ==========
+
+    private void validateAndProcessVisitItems(Visit visit) {
+        if (visit.getVisitItems() == null || visit.getVisitItems().isEmpty()) {
+            return;
+        }
+
+        for (VisitItem item : visit.getVisitItems()) {
+            item.setVisit(visit); // Set the bidirectional relationship
+            validateVisitItem(item);
+        }
+    }
+
+    private void validateVisitItem(VisitItem item) {
+        // Check that either service OR pack is set, not both
+        if (item.getServiceItem() == null && item.getPack() == null) {
+            throw new ResourceNotFoundException("Visit item must have either a service or a pack");
+        }
+
+        if (item.getServiceItem() != null && item.getPack() != null) {
+            throw new ResourceConflictException("Visit item cannot have both service and pack");
+        }
+
+        // Set item type
+        if (item.getServiceItem() != null) {
+            item.setItemType(VisitItem.ItemType.SERVICE);
+
+            // Set default price from service if not provided
+            if (item.getPrice() == null) {
+                item.setPrice(item.getServiceItem().getPrice());
+            }
+
+            // Set item name if not provided
+            if (item.getItemName() == null) {
+                item.setItemName(item.getServiceItem().getServiceName());
+            }
+
+        } else if (item.getPack() != null) {
+            item.setItemType(VisitItem.ItemType.PACK);
+
+            // Set default price from pack if not provided
+            if (item.getPrice() == null && item.getPack().getAmount() != null) {
+                item.setPrice(item.getPack().getAmount());
+            } else if (item.getPrice() == null) {
+                item.setPrice(0.0);
+            }
+
+            // Set item name if not provided
+            if (item.getItemName() == null) {
+                item.setItemName(item.getPack().getPackName());
+            }
+        }
+
+        // Set default quantity
+        if (item.getQuantity() == null) {
+            item.setQuantity(1);
+        }
     }
 }

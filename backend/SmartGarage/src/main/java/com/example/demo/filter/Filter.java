@@ -1,4 +1,4 @@
-package com.example.demo.DTO;
+package com.example.demo.filter;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

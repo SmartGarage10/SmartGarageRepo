@@ -1,7 +1,10 @@
 package com.example.demo.service;
 
-import com.example.demo.exceptions.EntityNotFoundException;
+
+import com.example.demo.exceptions.RequestValidationException;
+import com.example.demo.exceptions.ResourceNotFoundException;
 import com.example.demo.models.Role;
+import com.example.demo.models.Role.RoleType;
 import com.example.demo.repositories.RoleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,19 +27,22 @@ public class RoleServiceImpl implements RoleService{
 
     @Override
     public Role getRoleById(Integer roleId) {
-        return roleRepository.findById(roleId).get();
+        return roleRepository.findById(roleId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format("Role with id %d not found.", roleId)
+                ));
     }
 
     @Override
-    public Role getRoleByRoleName(String roleName) {
-        Role.RoleType roleType;
+    public Role getRoleByRoleName(String roleName){
+        RoleType roleType;
         try {
-            roleType = Role.RoleType.valueOf(roleName.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid role name: " + roleName, e);
+            roleType = RoleType.valueOf(roleName);
+        } catch (RequestValidationException e) {
+            throw new RequestValidationException(String.format("Invalid role name: %s", roleName));
         }
 
-        return roleRepository.findRoleByRoleName(roleType)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found with name: " + roleName));
+        return roleRepository.findByRoleName(roleType)
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Role with name %s not found.", roleName)));
     }
 }

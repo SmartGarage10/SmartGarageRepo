@@ -20,9 +20,16 @@ public class Payment {
     @JoinColumn(name = "visit_id", nullable = false)
     private Visit visit;
 
-    @Column(name = "method",nullable = false)
+    @Column(name = "method", nullable = false, length = 20)
     private String paymentMethod;
 
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, length = 20)
     private String status;
+
+    // Add amount field to match visit amount
+    @Column(name = "amount", nullable = false, columnDefinition = "DECIMAL(10,2)")
+    private Double amount;
+
+    @Column(name = "currency", length = 3)
+    private String currency = "USD";
 }

@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-13T09:46:43+0200",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.8.jar, environment: Java 22.0.2 (Amazon.com Inc.)"
 )
 @Component
@@ -21,6 +20,11 @@ public class ServiceItemMapperImpl implements ServiceItemMapper {
 
         ServiceItemDTO serviceItemDTO = new ServiceItemDTO();
 
+        serviceItemDTO.setId( serviceItem.getId() );
+        serviceItemDTO.setServiceName( serviceItem.getServiceName() );
+        serviceItemDTO.setServiceDescription( serviceItem.getServiceDescription() );
+        serviceItemDTO.setPrice( serviceItem.getPrice() );
+
         return serviceItemDTO;
     }
 
@@ -31,6 +35,11 @@ public class ServiceItemMapperImpl implements ServiceItemMapper {
         }
 
         ServiceItem serviceItem = new ServiceItem();
+
+        serviceItem.setId( serviceItemDTO.getId() );
+        serviceItem.setServiceName( serviceItemDTO.getServiceName() );
+        serviceItem.setServiceDescription( serviceItemDTO.getServiceDescription() );
+        serviceItem.setPrice( serviceItemDTO.getPrice() );
 
         return serviceItem;
     }

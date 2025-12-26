@@ -1,12 +1,17 @@
 package com.example.demo.DTO;
 
+import com.example.demo.models.Role;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.checkerframework.common.aliasing.qual.Unique;
 
 @Data
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class UserDTO {
     @NotNull
     @Size(min = 5, max = 50, message = "The name should be between 5 and 50 symbols")

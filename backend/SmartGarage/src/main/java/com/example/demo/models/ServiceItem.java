@@ -24,19 +24,25 @@ public class ServiceItem {
     @Column(name = "name", nullable = false, length = 100)
     private String serviceName;
 
-    @Column(name = "description")
+    @Column(name = "description", length = 500)
     private String serviceDescription;
 
     @Column(name = "price", nullable = false)
     private double price;
 
-    @ManyToMany(mappedBy = "visitServices")
-    @JsonIgnoreProperties({"visitServices"})
-    @ToString.Exclude
-    private List<Visit> visits;
+    // REMOVE: Old relationship with Visit
+    // @ManyToMany(mappedBy = "visitServices")
+    // private List<Visit> visits;
 
+    // KEEP: Relationship with Pack
     @ManyToMany(mappedBy = "services")
-    @JsonIgnoreProperties({"services"})
+    @JsonIgnoreProperties({"services", "visitItems"})
     @ToString.Exclude
     private List<Pack> packs;
+
+    // ADD: New relationship with VisitItem
+    @OneToMany(mappedBy = "serviceItem")
+    @JsonIgnore
+    @ToString.Exclude
+    private List<VisitItem> visitItems;
 }

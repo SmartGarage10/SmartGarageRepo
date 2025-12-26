@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-12-13T09:46:43+0200",
     comments = "version: 1.6.3, compiler: IncrementalProcessingEnvironment from gradle-language-java-8.8.jar, environment: Java 22.0.2 (Amazon.com Inc.)"
 )
 @Component
@@ -21,6 +20,11 @@ public class VehicleMapperImpl implements VehicleMapper {
 
         VehicleDTO vehicleDTO = new VehicleDTO();
 
+        vehicleDTO.setVehiclePlate( vehicle.getVehiclePlate() );
+        vehicleDTO.setVin( vehicle.getVin() );
+        vehicleDTO.setModel( vehicle.getModel() );
+        vehicleDTO.setBrand( vehicle.getBrand() );
+
         return vehicleDTO;
     }
 
@@ -31,6 +35,11 @@ public class VehicleMapperImpl implements VehicleMapper {
         }
 
         Vehicle vehicle = new Vehicle();
+
+        vehicle.setVehiclePlate( vehicleDTO.getVehiclePlate() );
+        vehicle.setVin( vehicleDTO.getVin() );
+        vehicle.setBrand( vehicleDTO.getBrand() );
+        vehicle.setModel( vehicleDTO.getModel() );
 
         return vehicle;
     }

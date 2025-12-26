@@ -2,7 +2,6 @@ package com.example.demo.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -40,14 +39,19 @@ public class Pack {
             joinColumns = @JoinColumn(name = "pack_id"),
             inverseJoinColumns = @JoinColumn(name = "service_id")
     )
-    @JsonIgnoreProperties("packs")
-    @ToString.Exclude  // prevents StackOverflow in toString
-    private List<ServiceItem> services;
+    @JsonIgnoreProperties({"packs", "visitItems"})
+    @ToString.Exclude
+    private List<ServiceItem> services = new ArrayList<>();
 
+    // REMOVE: Old relationship with Visit
+    // @OneToMany(mappedBy = "pack")
+    // private List<Visit> visits;
+
+    // ADD: New relationship with VisitItem
     @OneToMany(mappedBy = "pack")
     @JsonIgnore
     @ToString.Exclude
-    private List<Visit> visits; // Visits that use this pack
+    private List<VisitItem> visitItems = new ArrayList<>();
 
     // You MUST keep these manual methods
     @Transient
@@ -55,7 +59,7 @@ public class Pack {
     public double getTotalPrice() {
         if (services == null || services.isEmpty()) return 0.0;
         return services.stream()
-                .map(ServiceItem::getPrice) // ServiceItem.getPrice() must return double
+                .map(ServiceItem::getPrice)
                 .mapToDouble(Double::doubleValue)
                 .sum();
     }

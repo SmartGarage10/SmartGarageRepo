@@ -1,6 +1,5 @@
-package com.example.demo.helpers;
+package com.example.demo.filter;
 
-import com.example.demo.DTO.Filter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

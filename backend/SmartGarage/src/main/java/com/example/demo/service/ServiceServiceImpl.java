@@ -1,18 +1,17 @@
 package com.example.demo.service;
 
-import com.example.demo.DTO.Filter;
+import com.example.demo.exceptions.ResourceConflictException;
+import com.example.demo.exceptions.ResourceNotFoundException;
+import com.example.demo.filter.Filter;
 import com.example.demo.exceptions.EntityNotFoundException;
 import com.example.demo.filter.ServiceSpecifications;
-import com.example.demo.filter.VehicleSpecifications;
-import com.example.demo.helpers.FilterHelper;
+import com.example.demo.filter.FilterHelper;
 import com.example.demo.helpers.GenericFieldAccessor;
 import com.example.demo.helpers.RestrictHelper;
 import com.example.demo.models.ServiceItem;
 import com.example.demo.models.User;
-import com.example.demo.models.Vehicle;
 import com.example.demo.repositories.ServiceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
@@ -73,7 +72,7 @@ public class ServiceServiceImpl implements ServiceService {
         restrictHelper.isUserAdminOrEmployee(user);
 
         if (serviceRepository.existsByServiceName(serviceItem.getServiceName())) {
-            throw new IllegalArgumentException("Service with name '" + serviceItem.getServiceName() + "' already exists.");
+            throw new ResourceConflictException(String.format("Service with name %s already exists", serviceItem.getServiceName()));
         }
 
         return serviceRepository.save(serviceItem);
@@ -126,7 +125,7 @@ public class ServiceServiceImpl implements ServiceService {
 
         // 2. Check if the target user exists
         ServiceItem targetServiceItem = serviceRepository.findById(serviceId)
-                .orElseThrow(() -> new EntityNotFoundException("Service with ID - " + serviceId + " not found."));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Service with id %s not found", serviceId)));
 
         // 3. Perform deletion
         serviceRepository.delete(targetServiceItem);

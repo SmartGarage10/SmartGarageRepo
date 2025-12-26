@@ -1,6 +1,8 @@
 package com.example.demo.service;
 
 import com.example.demo.exceptions.EntityNotFoundException;
+import com.example.demo.exceptions.ResourceConflictException;
+import com.example.demo.exceptions.ResourceNotFoundException;
 import com.example.demo.helpers.RestrictHelper;
 import com.example.demo.models.Pack;
 import com.example.demo.models.ServiceItem;
@@ -48,8 +50,8 @@ public class PackServiceImpl implements PackService {
         if (pack.getServices() != null && !pack.getServices().isEmpty()) {
             for (ServiceItem service : pack.getServices()) {
                 // Find service by name instead of ID
-                serviceRepository.findByServiceName(service.getServiceName()).orElseThrow(() -> new IllegalArgumentException(
-                        "Service '" + service.getServiceName() + "' not found in database. " + "Please create the service first."));
+                serviceRepository.findByServiceName(service.getServiceName()).orElseThrow(() ->
+                        new ResourceNotFoundException(String.format("Service %s not found.", service.getServiceName())));
             }
         }
 
@@ -63,12 +65,12 @@ public class PackServiceImpl implements PackService {
 
         // 2. Find existing pack
         Pack existingPack = packRepository.findById(packId)
-                .orElseThrow(() -> new EntityNotFoundException("Pack", "id", String.valueOf(packId)));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Pack with id %d not found.", packId)));
 
         // 3. Check for duplicate pack name (if changed)
         if (changes.getPackName() != null && !changes.getPackName().equals(existingPack.getPackName())) {
             if (packRepository.existsPacksByPackName(changes.getPackName())) {
-                throw new IllegalArgumentException("Pack name already exists.");
+                throw new ResourceConflictException(String.format("Pack with name %s already exists.", changes.getPackName()));
             }
             existingPack.setPackName(changes.getPackName());
         }
@@ -92,9 +94,7 @@ public class PackServiceImpl implements PackService {
                 for (ServiceItem service : changes.getServices()) {
                     // Find the managed service entity from database
                     ServiceItem managedService = serviceRepository.findByServiceName(service.getServiceName())
-                            .orElseThrow(() -> new IllegalArgumentException(
-                                    "Service '" + service.getServiceName() + "' not found in database."
-                            ));
+                            .orElseThrow(() -> new ResourceNotFoundException(String.format("Service %s not found.", service.getServiceName())));
                     managedServices.add(managedService);
                 }
                 existingPack.getServices().addAll(managedServices);
@@ -111,7 +111,7 @@ public class PackServiceImpl implements PackService {
 
         // 2. Check if the target user exists
         Pack targetPack = packRepository.findById(packId)
-                .orElseThrow(() -> new EntityNotFoundException("Pack with ID - " + packId + " not found."));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Pack with id %d not found.", packId)));
 
         // 3. Perform deletion
         packRepository.delete(targetPack);

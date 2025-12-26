@@ -1,6 +1,5 @@
 package com.example.demo.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
@@ -18,7 +17,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class    Visit {
+public class Visit {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "visit_id")
@@ -39,30 +38,70 @@ public class    Visit {
     @Column(name = "visit_date", nullable = false)
     private LocalDateTime visitDate;
 
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, length = 20)
     private String status;
 
     @Column(name = "amount", nullable = false)
     private double amount;
 
-    @Column(name = "currency", nullable = false)
-    private String currency;
+    @Column(name = "currency", nullable = false, length = 3)
+    private String currency = "USD";
 
-    // ✅ NEW: flag for identifying if this order is a custom pack
-    @ManyToOne
-    @JoinColumn(name = "pack_id")
-    @JsonIgnoreProperties({"visits"})
+    // REMOVE: Old pack relationship
+    // @ManyToOne
+    // @JoinColumn(name = "pack_id")
+    // private Pack pack;
+
+    // REMOVE: Old services relationship
+    // @ManyToMany
+    // @JoinTable(...)
+    // private List<ServiceItem> visitServices;
+
+    // ADD: Unified items list
+    @OneToMany(mappedBy = "visit", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     @ToString.Exclude
-    private Pack pack; // e.g. BASIC, PREMIUM, DELUXE, CUSTOM
+    private List<VisitItem> visitItems = new ArrayList<>();
 
-    @ManyToMany
-    @JoinTable(
-            name = "visit_service",
-            joinColumns = @JoinColumn(name = "visit_id"),
-            inverseJoinColumns = @JoinColumn(name = "serviceitem_id")
-    )
-    @JsonIgnoreProperties({"visits"})
-    @ToString.Exclude
-    private List<ServiceItem> visitServices;
+    // Helper methods
+    public void addServiceItem(ServiceItem service, Double customPrice, Integer quantity) {
+        VisitItem item = new VisitItem(service, customPrice, quantity);
+        item.setVisit(this);
+        this.visitItems.add(item);
+        calculateTotal();
+    }
 
+    public void addPackItem(Pack pack, Double customPrice, Integer quantity) {
+        VisitItem item = new VisitItem(pack, customPrice, quantity);
+        item.setVisit(this);
+        this.visitItems.add(item);
+        calculateTotal();
+    }
+
+    public void calculateTotal() {
+        if (visitItems == null || visitItems.isEmpty()) {
+            this.amount = 0.0;
+            return;
+        }
+
+        this.amount = visitItems.stream()
+                .mapToDouble(item -> item.getPrice() * item.getQuantity())
+                .sum();
+    }
+
+    // Get all services included (from both individual items and packs)
+    @Transient
+    public List<ServiceItem> getAllServices() {
+        List<ServiceItem> allServices = new ArrayList<>();
+
+        for (VisitItem item : visitItems) {
+            if (item.getItemType() == VisitItem.ItemType.SERVICE && item.getServiceItem() != null) {
+                allServices.add(item.getServiceItem());
+            } else if (item.getItemType() == VisitItem.ItemType.PACK && item.getPack() != null) {
+                allServices.addAll(item.getPack().getServices());
+            }
+        }
+
+        return allServices;
+    }
 }

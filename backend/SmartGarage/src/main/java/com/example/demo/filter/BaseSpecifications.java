@@ -1,6 +1,5 @@
 package com.example.demo.filter;
 
-import com.example.demo.DTO.Filter;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
