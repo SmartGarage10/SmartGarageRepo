@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -14,6 +15,6 @@ import java.util.List;
 public class PackDTO {
     private String packName;      // BASIC, STANDARD, PREMIUM, CUSTOM
     private String description;
-    private double amount;
+    private BigDecimal amount;
     private List<ServiceItem> services;
 }

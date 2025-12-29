@@ -60,7 +60,7 @@ public class ServiceControllerRest {
 
     @PutMapping("update-service/{id}")
     public ResponseEntity<?> updateService(@Valid @RequestBody ServiceDTO serviceDTO,
-                                           @PathVariable int id,
+                                           @PathVariable Long id,
                                            BindingResult bindingResult){
         try {
             ValidationHelper.validate(bindingResult);
@@ -76,7 +76,7 @@ public class ServiceControllerRest {
     }
 
     @DeleteMapping("/services/{id}")
-    public ResponseEntity<?> deleteSingleService(@PathVariable int id) {
+    public ResponseEntity<?> deleteSingleService(@PathVariable Long id) {
         try {
             User currentUser = securityHelper.getCurrentUser();
             service.deleteService(currentUser, id);
@@ -87,7 +87,7 @@ public class ServiceControllerRest {
     }
 
     @DeleteMapping("/services/delete")
-    public ResponseEntity<?> deleteManyService(@RequestBody List<Integer> ids) {
+    public ResponseEntity<?> deleteManyService(@RequestBody List<Long> ids) {
         try {
             User currentUser = securityHelper.getCurrentUser();
             service.deleteServices(currentUser, ids);

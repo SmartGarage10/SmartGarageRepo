@@ -106,7 +106,7 @@ class UserServiceImplTest {
             RoleDTO roleDTO = userDTO.getRole();
 
             // Mocks using the reusable test data
-            Mockito.when(roleRepository.findByRoleName(Role.RoleType.valueOf(roleDTO.getRoleName())))
+            Mockito.when(roleRepository.findRoleByRoleName(Role.RoleType.valueOf(roleDTO.getRoleName())))
                     .thenReturn(Optional.of(testRoleEntity));
             Mockito.when(userMapper.userDtoToUserWithRole(userDTO, testRoleEntity)).thenReturn(mappedUser);
             Mockito.when(userRepository.existsByUsername(mappedUser.getUsername())).thenReturn(false);
@@ -148,7 +148,7 @@ class UserServiceImplTest {
             RoleDTO roleDTO = userDTO.getRole();
 
             // Mock role repository
-            Mockito.when(roleRepository.findByRoleName(Role.RoleType.valueOf(roleDTO.getRoleName())))
+            Mockito.when(roleRepository.findRoleByRoleName(Role.RoleType.valueOf(roleDTO.getRoleName())))
                     .thenReturn(Optional.of(testRoleEntity));
             Mockito.when(userMapper.userDtoToUserWithRole(userDTO, testRoleEntity)).thenReturn(mappedUser);
 
@@ -178,7 +178,7 @@ class UserServiceImplTest {
             RoleDTO roleDTO = userDTO.getRole();
 
             // Mock role repository
-            Mockito.when(roleRepository.findByRoleName(Role.RoleType.valueOf(roleDTO.getRoleName())))
+            Mockito.when(roleRepository.findRoleByRoleName(Role.RoleType.valueOf(roleDTO.getRoleName())))
                     .thenReturn(Optional.of(testRoleEntity));
             Mockito.when(userMapper.userDtoToUserWithRole(userDTO, testRoleEntity)).thenReturn(mappedUser);
 
@@ -209,7 +209,7 @@ class UserServiceImplTest {
             RoleDTO roleDTO = userDTO.getRole();
 
             // Mock role repository to return empty
-            Mockito.when(roleRepository.findByRoleName(Role.RoleType.valueOf(roleDTO.getRoleName())))
+            Mockito.when(roleRepository.findRoleByRoleName(Role.RoleType.valueOf(roleDTO.getRoleName())))
                     .thenReturn(Optional.empty());
 
             // WHEN & THEN

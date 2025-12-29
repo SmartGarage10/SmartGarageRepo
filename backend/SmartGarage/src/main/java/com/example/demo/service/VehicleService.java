@@ -10,11 +10,11 @@ import java.util.Optional;
 
 public interface VehicleService {
     List<Vehicle> getAllVehicles(MultiValueMap<String, String> allParams);
-    Optional<Vehicle> getVehicleById(int vehicleId);
+    Optional<Vehicle> getVehicleById(Long vehicleId);
 
     Vehicle createNewVehicle(User user, Vehicle vehicle);
-    Vehicle update(User user, int vehicleId, Vehicle changes);
+    Vehicle update(User user, Long vehicleId, Vehicle changes);
 
-    void deleteVehicle(User user, int vehicleId);
-    void deleteVehicles(User user, List<Integer> ids);
+    void deleteVehicle(User user, Long vehicleId);
+    void deleteVehicles(User user, List<Long> ids);
 }

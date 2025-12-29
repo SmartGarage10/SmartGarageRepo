@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.MultiValueMap;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -69,13 +70,13 @@ public class VisitServiceImpl implements VisitService{
     }
 
     @Override
-    public Optional<Visit> getVisitById(int visitId) {
+    public Optional<Visit> getVisitById(Long visitId) {
         return visitRepository.findById(visitId);
     }
 
     @Override
-    public List<Visit> getVisitsByVehicleId(int vehicleId) {
-        return visitRepository.findByVehicleId(vehicleId);
+    public List<Visit> getVisitsByVehicleId(Long vehicleId) {
+        return visitRepository.findByVehicle_Id(vehicleId);
     }
 
     @Override
@@ -103,7 +104,7 @@ public class VisitServiceImpl implements VisitService{
 
     @Override
     @Transactional
-    public Visit update(User user, int visitId, Visit changes) {
+    public Visit update(User user, Long visitId, Visit changes) {
         // 1. Check User permissions
         restrictHelper.isUserAdminOrEmployee(user);
 
@@ -165,7 +166,7 @@ public class VisitServiceImpl implements VisitService{
 
     @Override
     @Transactional
-    public void deleteVisit(User user, int visitId) {
+    public void deleteVisit(User user, Long visitId) {
         // 1. Validate permissions (admin or employee)
         restrictHelper.isUserAdminOrEmployee(user);
 
@@ -179,7 +180,7 @@ public class VisitServiceImpl implements VisitService{
 
     @Override
     @Transactional
-    public void deleteVisits(User user, List<Integer> ids) {
+    public void deleteVisits(User user, List<Long> ids) {
         // 1. Validate permissions (admin or employee)
         restrictHelper.isUserAdminOrEmployee(user);
 
@@ -201,48 +202,35 @@ public class VisitServiceImpl implements VisitService{
     }
 
     private void validateVisitItem(VisitItem item) {
-        // Check that either service OR pack is set, not both
+        if (item == null) {
+            throw new IllegalArgumentException("Visit item cannot be null");
+        }
+
+        // Ensure exactly one of service or pack is set
         if (item.getServiceItem() == null && item.getPack() == null) {
             throw new ResourceNotFoundException("Visit item must have either a service or a pack");
         }
-
         if (item.getServiceItem() != null && item.getPack() != null) {
             throw new ResourceConflictException("Visit item cannot have both service and pack");
         }
 
-        // Set item type
+        // Set item type and defaults
         if (item.getServiceItem() != null) {
             item.setItemType(VisitItem.ItemType.SERVICE);
-
-            // Set default price from service if not provided
-            if (item.getPrice() == null) {
-                item.setPrice(item.getServiceItem().getPrice());
-            }
-
-            // Set item name if not provided
-            if (item.getItemName() == null) {
-                item.setItemName(item.getServiceItem().getServiceName());
-            }
-
-        } else if (item.getPack() != null) {
+            if (item.getPrice() == null) item.setPrice(item.getServiceItem().getPrice());
+            if (item.getItemName() == null) item.setItemName(item.getServiceItem().getServiceName());
+        } else {
             item.setItemType(VisitItem.ItemType.PACK);
-
-            // Set default price from pack if not provided
-            if (item.getPrice() == null && item.getPack().getAmount() != null) {
-                item.setPrice(item.getPack().getAmount());
-            } else if (item.getPrice() == null) {
-                item.setPrice(0.0);
-            }
-
-            // Set item name if not provided
-            if (item.getItemName() == null) {
-                item.setItemName(item.getPack().getPackName());
-            }
+            if (item.getPrice() == null) item.setPrice(
+                    item.getPack().getAmount() != null ? item.getPack().getAmount() : BigDecimal.ZERO
+            );
+            if (item.getItemName() == null) item.setItemName(item.getPack().getPackName());
         }
 
-        // Set default quantity
+        // Default quantity
         if (item.getQuantity() == null) {
             item.setQuantity(1);
         }
     }
+
 }

@@ -7,29 +7,26 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 @Entity
-@Table(name = "role")
-@Data
+@Table(name = "roles")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(exclude = {"users"})
 @ToString(exclude = "users")
-public class Role {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "role_id")
-    private Long roleId;
-
+@EqualsAndHashCode(callSuper = true, exclude = {"users"})
+public class Role extends BaseEntity{
     @Column(name = "role_name", nullable = false, length = 50)
     @Enumerated(EnumType.STRING)
     private RoleType roleName;
 
     @JsonIgnore
-    @OneToMany(mappedBy = "role")
-    private Set<User> users;
+    @OneToMany(mappedBy = "role", fetch = FetchType.LAZY)
+    private Set<User> users = new HashSet<>();
     public enum RoleType{
         CLIENT,
         EMPLOYEE,

@@ -8,61 +8,54 @@ import java.util.function.Function;
 
 @Component
 public class FieldHelper {
-    // This method can check duplicates for ANY type of object
-    public static <T, ID> boolean hasDuplicateField(
-            List<T> entities,               // List of objects (Users, Products, etc.)
-            Function<T, String> fieldGetter, // How to get the field value (like User::getEmail)
-            String value,                   // Value we're checking
-            ID currentEntityId,             // ID of current object (to exclude it)
-            Function<T, ID> idExtractor) {  // How to get the ID (like User::getId)
+
+    // Generic version for ANY type
+    public static <T, ID, V> boolean hasDuplicateField(
+            List<T> entities,
+            Function<T, V> fieldGetter,  // Generic V instead of String
+            V value,                     // Generic V instead of String
+            ID currentEntityId,
+            Function<T, ID> idExtractor) {
 
         return entities.stream()
-                // Exclude the current object (the one being updated)
                 .filter(entity -> !currentEntityId.equals(idExtractor.apply(entity)))
-                // Get the field value for each object
                 .map(fieldGetter)
-                // Check if any matches our value
                 .anyMatch(fieldValue -> fieldValue != null && fieldValue.equals(value));
     }
 
-    public static <T> void updateFieldIfChanged(
-            T item,                          // The object to update
-            Function<T, String> currentValueGetter, // Get current value
-            BiConsumer<T, String> setter,    // Set new value
-            String newValue) {               // Value to set
+    // Generic version for ANY type
+    public static <T, V> void updateFieldIfChanged(
+            T item,
+            Function<T, V> currentValueGetter,  // Generic V
+            BiConsumer<T, V> setter,            // Generic V
+            V newValue) {                       // Generic V
 
-        // Get current value
-        String currentValue = currentValueGetter.apply(item);
+        V currentValue = currentValueGetter.apply(item);
 
-        // Only update if new value is different
         if (newValue != null && !newValue.equals(currentValue)) {
             setter.accept(item, newValue);
         }
     }
 
-    public static <T, ID> void updateWithDuplicateCheck(
+    // Generic version for ANY type
+    public static <T, ID, V> void updateWithDuplicateCheck(
             T item,
             List<T> allItems,
-            Function<T, String> getter,
-            BiConsumer<T, String> setter,
-            String newValue,
+            Function<T, V> getter,     // Generic V
+            BiConsumer<T, V> setter,   // Generic V
+            V newValue,                // Generic V
             ID itemId,
             Function<T, ID> idGetter,
             String fieldName) {
 
-        // Get current value
-        String currentValue = getter.apply(item);
+        V currentValue = getter.apply(item);
 
-        // If value is changing
         if (newValue != null && !newValue.equals(currentValue)) {
-            // Check for duplicates
             if (hasDuplicateField(allItems, getter, newValue, itemId, idGetter)) {
                 throw new RuntimeException(
                         String.format("%s '%s' already exists", fieldName, newValue));
             }
-            // Set new value
             setter.accept(item, newValue);
         }
     }
-
 }

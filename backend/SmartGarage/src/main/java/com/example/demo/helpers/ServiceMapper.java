@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Data
 @Component
 public class ServiceMapper {
-    public ServiceItem fromDto(int id, ServiceDTO serviceDTO){
+    public ServiceItem fromDto(Long id, ServiceDTO serviceDTO){
         ServiceItem serviceItem = fromDto(serviceDTO);
         serviceItem.setId(id);
 

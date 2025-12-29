@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface RoleRepository extends JpaRepository<Role, Integer> {
+public interface RoleRepository extends JpaRepository<Role, Long> {
     List<Role> findByRoleNameIn(List<String> roleNames);
-    Optional<Role> findRoleByRoleId(Integer roleId);
-    Optional<Role> findByRoleName(Role.RoleType roleName);
+    Optional<Role> findRoleById(Long roleId); // Add "Id" after "By"
+    Optional<Role> findRoleByRoleName(Role.RoleType roleName);
 }

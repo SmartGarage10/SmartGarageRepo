@@ -10,11 +10,11 @@ import java.util.Optional;
 
 public interface ServiceService {
     List<ServiceItem> getAllServices(MultiValueMap<String, String> allParams);
-    Optional<ServiceItem> getServiceById(int serviceId);
+    Optional<ServiceItem> getServiceById(Long serviceId);
 
     ServiceItem createNewService(User user, ServiceItem serviceItem);
-    ServiceItem update(User user, int serviceId, ServiceItem serviceItem);
+    ServiceItem update(User user, Long serviceId, ServiceItem serviceItem);
 
-    void deleteService(User user, int serviceId);
-    void deleteServices(User user, List<Integer> ids);
+    void deleteService(User user, Long serviceId);
+    void deleteServices(User user, List<Long> ids);
 }

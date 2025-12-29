@@ -4,12 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ServiceItemDTO {
-    private int id;
+    private Long id;
     private String serviceName;
     private String serviceDescription;
-    private double price;
+    private BigDecimal price;
 }

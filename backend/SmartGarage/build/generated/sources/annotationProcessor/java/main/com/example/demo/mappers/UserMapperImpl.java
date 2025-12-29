@@ -1,5 +1,6 @@
 package com.example.demo.mappers;
 
+import com.example.demo.DTO.LoginDTO;
 import com.example.demo.DTO.RoleDTO;
 import com.example.demo.DTO.UserDTO;
 import com.example.demo.models.Role;
@@ -33,15 +34,15 @@ public class UserMapperImpl implements UserMapper {
     }
 
     @Override
-    public User userDtoToUserLogin(UserDTO userDTO) {
+    public User userDtoToUserLogin(LoginDTO userDTO) {
         if ( userDTO == null ) {
             return null;
         }
 
         User.UserBuilder user = User.builder();
 
+        user.password( userDTO.getPassword() );
         user.email( userDTO.getEmail() );
-        user.role( roleDTOToRole( userDTO.getRole() ) );
 
         return user.build();
     }
@@ -73,7 +74,6 @@ public class UserMapperImpl implements UserMapper {
 
         Role role = new Role();
 
-        role.setRoleId( roleDTO.getRoleId() );
         if ( roleDTO.getRoleName() != null ) {
             role.setRoleName( Enum.valueOf( Role.RoleType.class, roleDTO.getRoleName() ) );
         }

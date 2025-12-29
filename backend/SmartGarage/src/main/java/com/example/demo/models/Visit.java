@@ -3,36 +3,30 @@ package com.example.demo.models;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "visits")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Visit {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "visit_id")
-    private int id;
-
+@EqualsAndHashCode(callSuper = true, exclude = {"vehicle", "employee", "visitItems"})
+@ToString(exclude = {"vehicle", "employee", "visitItems"})
+public class Visit extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "vehicle_id", nullable = false)
     @JsonIgnoreProperties({"visits"})
-    @ToString.Exclude
     private Vehicle vehicle;
 
     @ManyToOne
     @JoinColumn(name = "employee_id", nullable = false)
     @JsonIgnoreProperties({"vehicles", "visits"})
-    @ToString.Exclude
     private User employee;
 
     @Column(name = "visit_date", nullable = false)
@@ -42,36 +36,25 @@ public class Visit {
     private String status;
 
     @Column(name = "amount", nullable = false)
-    private double amount;
+    private BigDecimal amount;
 
     @Column(name = "currency", nullable = false, length = 3)
-    private String currency = "USD";
-
-    // REMOVE: Old pack relationship
-    // @ManyToOne
-    // @JoinColumn(name = "pack_id")
-    // private Pack pack;
-
-    // REMOVE: Old services relationship
-    // @ManyToMany
-    // @JoinTable(...)
-    // private List<ServiceItem> visitServices;
+    private String currency = "EUR";
 
     // ADD: Unified items list
     @OneToMany(mappedBy = "visit", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
-    @ToString.Exclude
     private List<VisitItem> visitItems = new ArrayList<>();
 
     // Helper methods
-    public void addServiceItem(ServiceItem service, Double customPrice, Integer quantity) {
+    public void addServiceItem(ServiceItem service, BigDecimal customPrice, Integer quantity) {
         VisitItem item = new VisitItem(service, customPrice, quantity);
         item.setVisit(this);
         this.visitItems.add(item);
         calculateTotal();
     }
 
-    public void addPackItem(Pack pack, Double customPrice, Integer quantity) {
+    public void addPackItem(Pack pack, BigDecimal customPrice, Integer quantity) {
         VisitItem item = new VisitItem(pack, customPrice, quantity);
         item.setVisit(this);
         this.visitItems.add(item);
@@ -80,14 +63,15 @@ public class Visit {
 
     public void calculateTotal() {
         if (visitItems == null || visitItems.isEmpty()) {
-            this.amount = 0.0;
+            this.amount = BigDecimal.ZERO;
             return;
         }
 
         this.amount = visitItems.stream()
-                .mapToDouble(item -> item.getPrice() * item.getQuantity())
-                .sum();
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
 
     // Get all services included (from both individual items and packs)
     @Transient

@@ -35,7 +35,7 @@ public class PackServiceImpl implements PackService {
     }
 
     @Override
-    public Optional<Pack> getPackById(int packId) {
+    public Optional<Pack> getPackById(Long packId) {
         return packRepository.findById(packId);
     }
 
@@ -59,7 +59,7 @@ public class PackServiceImpl implements PackService {
     }
 
     @Override
-    public Pack update(User user, int packId, Pack changes) {
+    public Pack update(User user, Long packId, Pack changes) {
         // 1. Check User permissions
         restrictHelper.isUserAdmin(user);
 
@@ -105,7 +105,7 @@ public class PackServiceImpl implements PackService {
     }
 
     @Override
-    public void deletePack(User user, int packId) {
+    public void deletePack(User user, Long packId) {
         // 1. Validate permissions (admin)
         restrictHelper.isUserAdmin(user);
 
@@ -118,7 +118,7 @@ public class PackServiceImpl implements PackService {
     }
 
     @Override
-    public void deletePacks(User user, List<Integer> ids) {
+    public void deletePacks(User user, List<Long> ids) {
         // 1. Validate permissions (admin)
         restrictHelper.isUserAdmin(user);
 

@@ -16,7 +16,7 @@ public class LoginMapper {
         this.userService = userService;
     }
 
-    public User fromDto(int id, LoginDTO loginDTO){
+    public User fromDto(Long id, LoginDTO loginDTO){
         User user = fromDto(loginDTO);
         user.setId(id);
 

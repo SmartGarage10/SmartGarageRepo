@@ -63,7 +63,7 @@ public class ServiceServiceImpl implements ServiceService {
     }
 
     @Override
-    public Optional<ServiceItem> getServiceById(int serviceId) {
+    public Optional<ServiceItem> getServiceById(Long serviceId) {
         return serviceRepository.findById(serviceId);
     }
 
@@ -79,7 +79,7 @@ public class ServiceServiceImpl implements ServiceService {
     }
 
     @Override
-    public ServiceItem update(User user, int serviceId, ServiceItem changes) {
+    public ServiceItem update(User user, Long serviceId, ServiceItem changes) {
         // 1. Check User permissions
         restrictHelper.isUserAdminOrEmployee(user);
 
@@ -119,7 +119,7 @@ public class ServiceServiceImpl implements ServiceService {
     }
 
     @Override
-    public void deleteService(User user, int serviceId) {
+    public void deleteService(User user, Long serviceId) {
         // 1. Validate permissions (admin or employee)
         restrictHelper.isUserAdminOrEmployee(user);
 
@@ -132,7 +132,7 @@ public class ServiceServiceImpl implements ServiceService {
     }
 
     @Override
-    public void deleteServices(User user, List<Integer> ids) {
+    public void deleteServices(User user, List<Long> ids) {
         // 1. Validate permissions (admin or employee)
         restrictHelper.isUserAdminOrEmployee(user);
 

@@ -7,5 +7,5 @@ import java.util.List;
 public interface RoleService {
     List<Role> getAllRoles();
     Role getRoleByRoleName(String roleName) throws Exception;
-    Role getRoleById(Integer roleId);
+    Role getRoleById(Long roleId);
 }

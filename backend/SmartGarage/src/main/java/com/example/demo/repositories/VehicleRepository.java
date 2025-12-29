@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface VehicleRepository extends JpaRepository<Vehicle, Integer>, JpaSpecificationExecutor<Vehicle> {
+public interface VehicleRepository extends JpaRepository<Vehicle, Long>, JpaSpecificationExecutor<Vehicle> {
     Optional<Vehicle> findByVin(String vin);
     Optional<Vehicle> findByClient(User user);
     Optional<Vehicle> findByVehiclePlate(String vehiclePLate);

@@ -25,9 +25,7 @@ public class PackMapperImpl implements PackMapper {
 
         packDTO.setPackName( pack.getPackName() );
         packDTO.setDescription( pack.getDescription() );
-        if ( pack.getAmount() != null ) {
-            packDTO.setAmount( pack.getAmount() );
-        }
+        packDTO.setAmount( pack.getAmount() );
         List<ServiceItem> list = pack.getServices();
         if ( list != null ) {
             packDTO.setServices( new ArrayList<ServiceItem>( list ) );

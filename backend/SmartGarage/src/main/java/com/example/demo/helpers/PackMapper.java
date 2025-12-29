@@ -19,7 +19,7 @@ public class PackMapper {
         this.serviceMapper = serviceMapper;
     }
 
-    public Pack fromDto(int id, PackDTO packageDTO){
+    public Pack fromDto(Long id, PackDTO packageDTO){
         Pack pack = fromDto(packageDTO);
         pack.setId(id);
         return pack;

@@ -32,8 +32,7 @@ public class SecurityHelper {
         Authentication authentication = getAuthentication();
         if (authentication != null) {
             Object principal = authentication.getPrincipal();
-            if (principal instanceof org.springframework.security.core.userdetails.User springUser) {
-                UserDetails userDetails = (UserDetails) principal;
+            if (principal instanceof org.springframework.security.core.userdetails.User userDetails) {
                 return userRepository.findUserByEmail(userDetails.getUsername()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
             }
         }

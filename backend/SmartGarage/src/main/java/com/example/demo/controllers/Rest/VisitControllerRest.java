@@ -65,7 +65,7 @@ public class VisitControllerRest {
 
     @PutMapping("/update-visit/{id}")
     public ResponseEntity<?> updateVisit(@Valid @RequestBody VisitDTO visitDTO,
-                                                 @PathVariable int id,
+                                                 @PathVariable Long id,
                                                  BindingResult bindingResult){
         try {
             ValidationHelper.validate(bindingResult);
@@ -81,7 +81,7 @@ public class VisitControllerRest {
     }
 
     @DeleteMapping("/visits/{id}")
-    public ResponseEntity<?> deleteSingleVisit(@PathVariable int id) {
+    public ResponseEntity<?> deleteSingleVisit(@PathVariable Long id) {
         try {
             User currentUser = securityHelper.getCurrentUser();
             visitService.deleteVisit(currentUser, id);
@@ -92,7 +92,7 @@ public class VisitControllerRest {
     }
 
     @DeleteMapping("/visits/delete")
-    public ResponseEntity<?> deleteManyVisits(@RequestBody List<Integer> ids) {
+    public ResponseEntity<?> deleteManyVisits(@RequestBody List<Long> ids) {
         try {
             User currentUser = securityHelper.getCurrentUser();
             visitService.deleteVisits(currentUser, ids);

@@ -10,11 +10,11 @@ import java.util.Optional;
 
 public interface PackService {
     List<Pack> getAllPacks();
-    Optional<Pack> getPackById(int packId);
+    Optional<Pack> getPackById(Long packId);
 
     Pack createPack(User user, Pack pack);
-    Pack update(User user, int packId, Pack changes);
+    Pack update(User user, Long packId, Pack changes);
 
-    void deletePack(User user, int packId);
-    void deletePacks(User user, List<Integer> ids);
+    void deletePack(User user, Long packId);
+    void deletePacks(User user, List<Long> ids);
 }

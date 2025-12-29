@@ -38,7 +38,7 @@ public class AuthenticationControllerRest {
 
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody UserDTO userDTO, HttpServletRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginDTO userDTO, HttpServletRequest request) {
         try {
             return ResponseEntity.ok(authenticationService.authenticate(userDTO, request));
         } catch (AuthorizationException e) {

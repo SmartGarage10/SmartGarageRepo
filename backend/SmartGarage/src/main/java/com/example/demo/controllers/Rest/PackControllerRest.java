@@ -67,7 +67,7 @@ public class PackControllerRest {
 
     @PutMapping("update-pack/{id}")
     public ResponseEntity<?> updateService(@Valid @RequestBody PackDTO packDTO,
-                                           @PathVariable int id,
+                                           @PathVariable Long id,
                                            BindingResult bindingResult){
         try {
             ValidationHelper.validate(bindingResult);
@@ -83,7 +83,7 @@ public class PackControllerRest {
     }
 
     @DeleteMapping("/packs/{id}")
-    public ResponseEntity<?> deleteSingleService(@PathVariable int id) {
+    public ResponseEntity<?> deleteSingleService(@PathVariable Long id) {
         try {
             User currentUser = securityHelper.getCurrentUser();
             packService.deletePack(currentUser, id);
@@ -94,7 +94,7 @@ public class PackControllerRest {
     }
 
     @DeleteMapping("/packs/delete")
-    public ResponseEntity<?> deleteManyService(@RequestBody List<Integer> ids) {
+    public ResponseEntity<?> deleteManyService(@RequestBody List<Long> ids) {
         try {
             User currentUser = securityHelper.getCurrentUser();
             packService.deletePacks(currentUser, ids);

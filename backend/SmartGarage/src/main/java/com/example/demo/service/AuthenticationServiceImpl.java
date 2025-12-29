@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.DTO.LoginDTO;
 import com.example.demo.DTO.UserDTO;
 import com.example.demo.mappers.UserMapper;
 import com.example.demo.models.User;
@@ -31,14 +32,22 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public Optional<User> authenticate(UserDTO userDTO, HttpServletRequest request) {
+    public Optional<User> authenticate(LoginDTO userDTO, HttpServletRequest request) {
         User user = userMapper.userDtoToUserLogin(userDTO);
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         user.getEmail(),
                         user.getPassword())
         );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        return userRepository.findUserByEmail(userDTO.getEmail());
+        // Create new security context and set authentication
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+
+        // Store security context in session
+        HttpSession session = request.getSession(true);
+        session.setAttribute("SPRING_SECURITY_CONTEXT", context);
+
+        return userRepository.findUserByEmail(user.getEmail());
     }
 }

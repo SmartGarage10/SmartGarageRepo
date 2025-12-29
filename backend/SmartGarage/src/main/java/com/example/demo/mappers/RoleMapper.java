@@ -9,7 +9,6 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface RoleMapper {
-    @Mapping(target = "roleId", source = "roleId")
     @Mapping(target = "roleName", source = "roleName")
     Role roleDtoToRole(RoleDTO roleDTO);
 }

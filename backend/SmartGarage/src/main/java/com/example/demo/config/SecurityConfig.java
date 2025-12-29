@@ -68,13 +68,6 @@ public class SecurityConfig {
                         .authenticationEntryPoint((req, res, ex) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED))
                         .accessDeniedHandler((req, res, ex) -> res.sendError(HttpServletResponse.SC_FORBIDDEN))
                 )
-                .formLogin(form -> form
-                        .loginProcessingUrl("/auth/login")
-                        .usernameParameter("username")  // your login form field
-                        .passwordParameter("password")
-                        .successHandler((req, res, auth) -> res.setStatus(200))
-                        .failureHandler((req, res, ex) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED))
-                )
                 .logout(logout -> logout
                         .logoutUrl("/auth/logout")
                         .logoutSuccessHandler((req, res, auth) -> res.setStatus(200))
@@ -114,23 +107,5 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    // JavaMailSender bean configured for Gmail SMTP - useful for sending emails (e.g. password reset)
-    @Bean
-    public JavaMailSender getJavaMailSender() {
-        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
-        mailSender.setHost("smtp.gmail.com");
-        mailSender.setPort(587);
-        mailSender.setUsername("emanuilpavlov2002@gmail.com");
-        mailSender.setPassword("pgvw yxfl csbz htdz"); // ideally use environment variables or secrets
-
-        Properties props = mailSender.getJavaMailProperties();
-        props.put("mail.transport.protocol", "smtp");
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.debug", "true"); // enable mail debug logs
-
-        return mailSender;
     }
 }

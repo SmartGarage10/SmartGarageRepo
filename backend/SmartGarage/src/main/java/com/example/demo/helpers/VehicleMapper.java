@@ -21,7 +21,7 @@ public class VehicleMapper {
     private final VehicleService vehicleService;
     private final UserService userService;
 
-    public Vehicle fromDto(int id, VehicleDTO vehicleDTO){
+    public Vehicle fromDto(Long id, VehicleDTO vehicleDTO){
         Vehicle vehicle = fromDto(vehicleDTO);
         vehicle.setId(id);
 

@@ -1,10 +1,13 @@
 package com.example.demo.helpers;
 
-import com.example.demo.models.User;
-
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public record FieldUpdateHelper(String fieldName, Function<User, String> getter, BiConsumer<User, String> setter,
-                                String newValue) {
+// Generic with two type parameters: T (entity), V (field value)
+public record FieldUpdateHelper<T, V>(
+        String fieldName,
+        Function<T, V> getter,
+        BiConsumer<T, V> setter,
+        V newValue
+) {
 }

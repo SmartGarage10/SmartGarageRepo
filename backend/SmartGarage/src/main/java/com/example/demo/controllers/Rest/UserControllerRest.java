@@ -61,7 +61,7 @@ public class UserControllerRest {
 
     @PutMapping("/user/{id}")
     public ResponseEntity<?> updateUser(
-            @PathVariable int id,
+            @PathVariable Long id,
             @Valid @RequestBody UserDTO request,
             BindingResult bindingResult) {
 
@@ -90,7 +90,7 @@ public class UserControllerRest {
 //    }
 //
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable int id) {
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
             User currentUser = securityHelper.getCurrentUser();
             userService.deleteUser(currentUser, id);
@@ -101,7 +101,7 @@ public class UserControllerRest {
     }
 
     @DeleteMapping("/users/delete")
-    public ResponseEntity<?> deleteUser(@RequestBody List<Integer> ids) {
+    public ResponseEntity<?> deleteUser(@RequestBody List<Long> ids) {
         try {
             User currentUser = securityHelper.getCurrentUser();
             userService.deleteUsers(currentUser, ids);

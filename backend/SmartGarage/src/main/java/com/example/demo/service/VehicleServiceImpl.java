@@ -2,11 +2,12 @@ package com.example.demo.service;
 
 import com.example.demo.exceptions.ResourceConflictException;
 import com.example.demo.exceptions.ResourceNotFoundException;
+import com.example.demo.filter.EntitySpecificationProvider;
 import com.example.demo.filter.Filter;
-import com.example.demo.exceptions.EntityNotFoundException;
 import com.example.demo.filter.VehicleSpecifications;
 import com.example.demo.filter.FilterHelper;
-import com.example.demo.helpers.GenericFieldAccessor;
+import com.example.demo.helpers.EntityServiceHelper;
+import com.example.demo.helpers.FieldUpdateHelper;
 import com.example.demo.helpers.RestrictHelper;
 import com.example.demo.models.User;
 import com.example.demo.models.Vehicle;
@@ -16,16 +17,19 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 
+import java.time.Year;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 @Service
-public class VehicleServiceImpl implements VehicleService{
+public class VehicleServiceImpl implements VehicleService, EntitySpecificationProvider<Vehicle> {
     private final VehicleRepository vehicleRepository;
     private final RestrictHelper restrictHelper;
     private final FilterHelper filterHelper;
+    private final VehicleSpecifications vehicleSpecs;
+    private final EntityServiceHelper<Vehicle, Long, VehicleRepository> entityHelper;
 
     @Autowired
     public VehicleServiceImpl(VehicleRepository vehicleRepository,
@@ -34,112 +38,128 @@ public class VehicleServiceImpl implements VehicleService{
         this.vehicleRepository = vehicleRepository;
         this.restrictHelper = restrictHelper;
         this.filterHelper = filterHelper;
+        this.vehicleSpecs = new VehicleSpecifications();
+
+        // Create EntityServiceHelper instance
+        this.entityHelper = new EntityServiceHelper<>(
+                vehicleRepository,
+                filterHelper,
+                Vehicle.class,
+                this  // Pass 'this' as specification provider
+        );
     }
 
+    // ========== SPECIFICATION PROVIDER IMPLEMENTATION ==========
+    @Override
+    public Specification<Vehicle> createFilterSpecification(List<Filter> filters) {
+        return vehicleSpecs.createSpecification(filters);
+    }
+    @Override
+    public Specification<Vehicle> createSearchSpecification(String search) {
+        String searchField = getSearchField();
+        return vehicleSpecs.createSearchSpecification(search, searchField);
+    }
+    @Override
+    public String getSearchField() {
+        return "vehiclePlate";  // Default search field for vehicles
+    }
+
+    // ========== SERVICE METHODS USING HELPER ==========
     @Override
     public List<Vehicle> getAllVehicles(MultiValueMap<String, String> allParams) {
-        Specification<Vehicle> spec = Specification.where(null);
-        VehicleSpecifications vehicleSpecs = new VehicleSpecifications();
-
-        // 1. Apply search filter if present
-        if (allParams.containsKey("search")) {
-            String search = allParams.getFirst("search");
-            if (search != null && !search.trim().isEmpty()) {
-                Specification<Vehicle> searchSpec = vehicleSpecs.createSearchSpecification(search, "vehiclePlate");
-                spec = spec.and(searchSpec);
-            }
-        }
-
-        // 2. Apply other filters
-        if (allParams.containsKey("filters")) {
-            List<Filter> filters = filterHelper.convertToFilters(allParams);
-            if (filters != null && !filters.isEmpty()) {
-                Specification<Vehicle> filterSpec = vehicleSpecs.createSpecification(filters);
-                spec = spec.and(filterSpec);
-            }
-        }
-
-        return vehicleRepository.findAll(spec);
+        // Use entityHelper.getAll() - specifications are handled automatically
+        return entityHelper.getAll(allParams);
     }
+
     @Override
-    public Optional<Vehicle> getVehicleById(int vehicleId){
+    public Optional<Vehicle> getVehicleById(Long vehicleId) {
         return vehicleRepository.findById(vehicleId);
     }
 
     @Override
-    public Vehicle createNewVehicle(User user, Vehicle vehicle){
+    public Vehicle createNewVehicle(User user, Vehicle vehicle) {
         restrictHelper.isUserAdminOrEmployee(user);
 
         if (vehicleRepository.existsByVehiclePlate(vehicle.getVehiclePlate())) {
             throw new ResourceConflictException(String.format("Vehicle with plate %s already exists", vehicle.getVehiclePlate()));
         }
         if (vehicleRepository.existsByVin(vehicle.getVin())) {
-            throw new ResourceConflictException(String.format("Vehicle with plate %s already exists", vehicle.getVin()));
+            throw new ResourceConflictException(String.format("Vehicle with VIN %s already exists", vehicle.getVin()));
         }
 
         return vehicleRepository.save(vehicle);
     }
+
     @Override
-    public Vehicle update(User user, int vehicleId, Vehicle changes) {
+    public Vehicle update(User user, Long vehicleId, Vehicle changes) {
         // 1. Check User permissions
         restrictHelper.isUserAdminOrEmployee(user);
 
         // 2. Find existing vehicle
         Vehicle existingVehicle = vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("Vehicle with id %s not found", vehicleId)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format("Vehicle with id %s not found", vehicleId)));
 
-        // 3. Get all vehicles (for duplicate checking)
-        List<Vehicle> allVehicles = vehicleRepository.findAll();
+        // 3. Prepare FieldUpdateHelper lists WITH CORRECT TYPES
 
-        // 4. Process all updatable fields
-        Stream.of(
-                        Map.entry("vehiclePlate", changes.getVehiclePlate()),
-                        Map.entry("vin", changes.getVin())
-                )
-                .forEach(entry -> {
-                    String currentValue = GenericFieldAccessor.getFieldValue(existingVehicle, entry.getKey());
-                    Optional.ofNullable(entry.getValue())
-                            .filter(newValue -> !newValue.equals(currentValue)) // Skip if unchanged
-                            .filter(newValue -> !GenericFieldAccessor.isDuplicateField(allVehicles, entry.getKey(), newValue, vehicleId))
-                            .ifPresent(newValue -> GenericFieldAccessor.setFieldValue(existingVehicle, entry.getKey(), newValue));
-                });
+        // String fields with duplicate checking
+        List<FieldUpdateHelper<Vehicle, ?>> duplicateCheckFields = Arrays.asList(
+                new FieldUpdateHelper<>("vehiclePlate",
+                        Vehicle::getVehiclePlate,
+                        Vehicle::setVehiclePlate,
+                        changes.getVehiclePlate()),
+                new FieldUpdateHelper<>("vin",
+                        Vehicle::getVin,
+                        Vehicle::setVin,
+                        changes.getVin())
+        );
 
-        // 5. Process fields without duplicate checking
-        Stream.of(
-                        Map.entry("brand", changes.getBrand()),
-                        Map.entry("model", changes.getModel()),
-                        Map.entry("year", changes.getYear()),
-                        Map.entry("client", changes.getClient())
-                )
-                .forEach(entry -> {
-                    String currentValue = GenericFieldAccessor.getFieldValue(existingVehicle, entry.getKey());
-                    Optional.ofNullable(entry.getValue())
-                            .filter(newValue -> !newValue.equals(currentValue)) // Skip if unchanged
-                            .ifPresent(newValue -> GenericFieldAccessor.setFieldValue(existingVehicle, entry.getKey(), newValue));
-                });
+        // Mixed types - you can't have different types in the same generic list!
+        // You need to handle this differently
+        List<FieldUpdateHelper<Vehicle, ?>> nonDuplicateCheckFields = Arrays.asList(
+                // String fields
+                new FieldUpdateHelper<>("brand",
+                        Vehicle::getBrand,
+                        Vehicle::setBrand,
+                        changes.getBrand()),
+                new FieldUpdateHelper<>("model",
+                        Vehicle::getModel,
+                        Vehicle::setModel,
+                        changes.getModel()),
+                new FieldUpdateHelper<>("client",
+                        Vehicle::getClient,
+                        Vehicle::setClient,
+                        changes.getClient()),
 
-        return vehicleRepository.save(existingVehicle);
+                // Integer field - THIS IS THE PROBLEM!
+                new FieldUpdateHelper<>("year",
+                        Vehicle::getYear,
+                        Vehicle::setYear,
+                        changes.getYear()!= null ? Year.of(changes.getYear().getValue()) : null)
+        );
+
+        // 4. Use entityHelper.update()
+        return entityHelper.update(
+                vehicleId,
+                existingVehicle,
+                duplicateCheckFields,
+                nonDuplicateCheckFields,
+                Vehicle::getId
+        );
     }
 
     @Override
-    public void deleteVehicle(User user, int vehicleId) {
-        // 1. Validate permissions (admin or employee)
-        restrictHelper.isUserAdminOrEmployee(user);
-
-        // 2. Check if the target user exists
+    public void deleteVehicle(User user, Long vehicleId) {
+        // 1. Check if the target vehicle exists
         Vehicle targetVehicle = vehicleRepository.findById(vehicleId)
                 .orElseThrow(() -> new ResourceNotFoundException(String.format("Vehicle with id %s not found", vehicleId)));
-
-        // 3. Perform deletion
-        vehicleRepository.delete(targetVehicle);
+        // 2. Use entityHelper.delete()
+        entityHelper.delete(vehicleId);
     }
 
     @Override
-    public void deleteVehicles(User user, List<Integer> ids) {
-        // 1. Validate permissions (admin or employee)
-        restrictHelper.isUserAdminOrEmployee(user);
-
-        // 2. Perform deletion
-        vehicleRepository.deleteAllById(ids);
+    public void deleteVehicles(User user, List<Long> ids) {
+        // 1. Use entityHelper.deleteAllById()
+        entityHelper.deleteAllById(ids);
     }
 }

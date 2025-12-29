@@ -2,14 +2,12 @@ package com.example.demo.service;
 
 import com.example.demo.DTO.UserDTO;
 import com.example.demo.exceptions.ResourceConflictException;
+import com.example.demo.filter.EntitySpecificationProvider;
 import com.example.demo.filter.Filter;
 import com.example.demo.exceptions.ResourceNotFoundException;
 import com.example.demo.filter.UserSpecifications;
 import com.example.demo.filter.FilterHelper;
-import com.example.demo.helpers.FieldHelper;
-import com.example.demo.helpers.FieldUpdateHelper;
-import com.example.demo.helpers.PasswordGeneratorHelper;
-import com.example.demo.helpers.RestrictHelper;
+import com.example.demo.helpers.*;
 import com.example.demo.mappers.UserMapper;
 import com.example.demo.models.Role;
 import com.example.demo.models.User;
@@ -37,7 +35,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl implements UserService, EntitySpecificationProvider<User> {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserMapper userMapper;
@@ -45,13 +43,17 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordGeneratorHelper passwordGeneratorHelper;
     private final FilterHelper filterHelper;
+    private final UserSpecifications userSpecifications;
+    private final EntityServiceHelper<User, Long, UserRepository> entityHelper;
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository, UserMapper userMapper,
                            PasswordEncoder passwordEncoder,
                            EmailService emailService,
-                           PasswordGeneratorHelper passwordGeneratorHelper, FilterHelper filterHelper,
-                           RoleRepository roleRepository) {
+                           PasswordGeneratorHelper passwordGeneratorHelper,
+                           FilterHelper filterHelper,
+                           RoleRepository roleRepository,
+                           @Lazy UserSpecifications userSpecifications) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
@@ -59,15 +61,43 @@ public class UserServiceImpl implements UserService {
         this.passwordGeneratorHelper = passwordGeneratorHelper;
         this.filterHelper = filterHelper;
         this.roleRepository = roleRepository;
+        this.userSpecifications = userSpecifications;
+        // Create EntityServiceHelper instance manually
+        this.entityHelper = new EntityServiceHelper<>(
+                userRepository,
+                filterHelper,
+                User.class,
+                this
+        );
     }
+
+    @Override
+    public Specification<User> createFilterSpecification(List<Filter> filters) {
+        return userSpecifications.createSpecification(filters);
+    }
+
+    @Override
+    public Specification<User> createSearchSpecification(String search) {
+        String searchField = getSearchField();
+        return userSpecifications.createSearchSpecification(search, searchField);
+    }
+
+    @Override
+    public String getSearchField() {
+        return "name";
+    }
+
+    @Override
+    public List<User> getAllUsers(MultiValueMap<String, String> params) {
+        return entityHelper.getAll(params);
+    }
+
+
     @Override
     public RegistrationResponse register(User user, UserDTO requestDTO) {
-        // Get roleName from RoleDTO
-        Role.RoleType roleType = Role.RoleType.valueOf(requestDTO.getRole().getRoleName()); // This gets the role name string
-
         // Find Role entity by role name
-        Role role = roleRepository.findByRoleName(roleType)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("Role %s not found", roleType)));
+        Role role = roleRepository.findRoleByRoleName(Role.RoleType.valueOf(requestDTO.getRole().getRoleName()))
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Role %s not found", requestDTO.getRole().getRoleName())));
         User request = userMapper.userDtoToUserWithRole(requestDTO, role);
 
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -79,22 +109,10 @@ public class UserServiceImpl implements UserService {
         }
 
         String tempPass = passwordGeneratorHelper.generatePassayPassword();
-
-        String fromEmail = user.getEmail();
-        String toEmail = request.getEmail();
-        String subject = "Welcome to BMW Garage";
-        String body = "We are thrilled to have you on board. Your registration has been successfully completed, and we are excited for you to begin your journey with us.\n" +
-                "Username: " + request.getUsername() + "\n" +
-                "Password: " + tempPass + "\n\n" +
-                "Please make sure to keep this information secure. You can log in and change your password after your first login.\n\n" +
-                "If you have any questions or need assistance, feel free to reach out.\n\n" +
-                "We look forward to working with you!\n\n" +
-                "Best regards,\n" +
-                "BMW Garage";
-
         request.setPassword(passwordEncoder.encode(tempPass));
 
-        emailService.sendRegistrationEmail(fromEmail, toEmail, subject, body);
+        String toEmail = request.getEmail();
+        emailService.sendRegistrationEmail(toEmail, request.getUsername(), tempPass);
         userRepository.save(request);
 
         return new RegistrationResponse(
@@ -103,32 +121,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<User> getAllUsers(MultiValueMap<String, String> allParams) {
-        Specification<User> spec = Specification.where(null);
-        UserSpecifications userSpecs = new UserSpecifications();
-
-        // 1. Apply other filters
-        if (allParams.containsKey("filters")) {
-            List<Filter> filters = filterHelper.convertToFilters(allParams);
-            if (filters != null && !filters.isEmpty()) {
-                Specification<User> filterSpec = userSpecs.createSpecification(filters);
-                spec = spec.and(filterSpec);
-            }
-        }
-
-        // 2. Apply search filter if present
-        if (allParams.containsKey("search")) {
-            String search = allParams.getFirst("search");
-            if (search != null && !search.trim().isEmpty()) {
-                Specification<User> searchSpec = userSpecs.createSearchSpecification(search, "name");
-                spec = spec.and(searchSpec);
-            }
-        }
-
-        return userRepository.findAll(spec);
-    }
-    @Override
-    public Optional<User> getUserById(int userId) {
+    public Optional<User> getUserById(Long userId) {
         return userRepository.findById(userId);
     }
     @Override
@@ -147,54 +140,31 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User updateUser(User user, int userId, UserDTO userDTO) {
+    public User updateUser(User user, Long userId, UserDTO userDTO) {
         // 1. Convert DTO to User entity
         User userDetails = userMapper.userDtoToUser(userDTO);
         // 2. Find existing user
         User existingUser = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         String.format("User with id %s not found", userId)));
-        // 3. Get all users (for duplicate checking)
-        List<User> allUsers = userRepository.findAll();
 
-        // 4. Prepare lists of fields that need duplicate checking and those that don't
-        List<FieldUpdateHelper> duplicateCheckFields = Arrays.asList(
-                new FieldUpdateHelper("username", User::getUsername, User::setUsername,
+        // 3. Prepare lists of fields that need duplicate checking and those that don't
+        List<FieldUpdateHelper<User, ?>> duplicateCheckFields = Arrays.asList(
+                new FieldUpdateHelper<>("username", User::getUsername, User::setUsername,
                         userDetails.getUsername()),
-                new FieldUpdateHelper("email", User::getEmail, User::setEmail,
+                new FieldUpdateHelper<>("email", User::getEmail, User::setEmail,
                         userDetails.getEmail()),
-                new FieldUpdateHelper("phone", User::getPhone, User::setPhone,
+                new FieldUpdateHelper<>("phone", User::getPhone, User::setPhone,
                         userDetails.getPhone())
         );
-        List<FieldUpdateHelper> nonDuplicateCheckFields = Arrays.asList(
-                new FieldUpdateHelper("name", User::getName, User::setName,
+        List<FieldUpdateHelper<User, ?>> nonDuplicateCheckFields = Arrays.asList(
+                new FieldUpdateHelper<>("name", User::getName, User::setName,
                         userDetails.getName()),
-                new FieldUpdateHelper("address", User::getAddress, User::setAddress,
+                new FieldUpdateHelper<>("address", User::getAddress, User::setAddress,
                         userDetails.getAddress())
         );
-        // 5. Process fields with duplicate checking and without
-        for (FieldUpdateHelper fieldHelper : duplicateCheckFields) {
-            FieldHelper.updateWithDuplicateCheck(
-                    existingUser,
-                    allUsers,
-                    fieldHelper.getter(),
-                    fieldHelper.setter(),
-                    fieldHelper.newValue(),
-                    userId,
-                    User::getId,
-                    fieldHelper.fieldName()
-            );
-        }
-        for (FieldUpdateHelper fieldHelper : nonDuplicateCheckFields) {
-            FieldHelper.updateFieldIfChanged(
-                    existingUser,
-                    fieldHelper.getter(),
-                    fieldHelper.setter(),
-                    fieldHelper.newValue()
-            );
-        }
 
-        // 6. Handle role update by NAME (not ID)
+        // 4. Handle role update by NAME (not ID)
         if (userDetails.getRole() != null) {
             String newRoleName = userDetails.getRole().getRoleName().toString(); // Assuming it's enum
             // Check if role is actually changing
@@ -202,14 +172,14 @@ public class UserServiceImpl implements UserService {
                     !newRoleName.equals(existingUser.getRole().getRoleName().toString())) {
                 // Fetch role from database by NAME
                 Role.RoleType roleType = Role.RoleType.valueOf(newRoleName);
-                Role role = roleRepository.findByRoleName(roleType)
+                Role role = roleRepository.findRoleByRoleName(roleType)
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 "Role not found with name: " + newRoleName));
                 existingUser.setRole(role);
             }
         }
 
-        return userRepository.save(existingUser);
+        return entityHelper.update(userId, existingUser, duplicateCheckFields, nonDuplicateCheckFields, User::getId);
     }
     @Override
     public void changePassword(User user, String oldPassword, String newPassword) {
@@ -223,18 +193,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deleteUser(User user, int userId) {
-        // 1. Check if the target user exists
-        User targetUser = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        String.format("User with id %s not found", userId)));
-        // 2. Perform deletion
-        userRepository.delete(targetUser);
+    public void deleteUser(User user, Long userId) {
+        // 1. Perform deletion
+        entityHelper.delete(userId);
     }
     @Override
-    public void deleteUsers(User user, List<Integer> ids) {
+    public void deleteUsers(User user, List<Long> ids) {
         // 1. Perform deletion
-        userRepository.deleteAllById(ids);
+        entityHelper.deleteAllById(ids);
     }
 
     /**

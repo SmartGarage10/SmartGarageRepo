@@ -14,7 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @Component
-public class BaseSpecifications {
+public abstract class BaseSpecifications {
     public <T> Specification<T> createSearchSpecification(String searchFilter, String type) {
         return (root, query, cb) ->
                 cb.like(cb.lower(root.get(type)), searchFilter.toLowerCase() + "%");

@@ -43,11 +43,10 @@ export function UserForm({
                              children,
                              open,
                              onOpenChange,
-                             onSuccess,
                              onSubmit,
                              isSubmitting = false,
                          }: UserFormProps) {
-    const router = useRouter();
+    useRouter();
     const form = useForm<User>({
         defaultValues: {
             id: "",

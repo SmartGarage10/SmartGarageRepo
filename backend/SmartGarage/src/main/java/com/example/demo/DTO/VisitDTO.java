@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,7 +20,7 @@ public class VisitDTO {
     private User employee;
     private LocalDateTime visitDate;
     private String status;
-    private double amount;
+    private BigDecimal amount;
     private String currency;
     private Pack pack;
     private List<ServiceItem> visitServices;

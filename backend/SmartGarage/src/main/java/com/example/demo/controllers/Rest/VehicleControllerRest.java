@@ -70,7 +70,7 @@ public class VehicleControllerRest {
 
     @PutMapping("update-vehicle/{id}")
     public ResponseEntity<?> updateVehicle(@Valid @RequestBody VehicleDTO vehicleDTO,
-                                                 @PathVariable int id,
+                                                 @PathVariable Long id,
                                                  BindingResult bindingResult){
         try {
             ValidationHelper.validate(bindingResult);
@@ -86,7 +86,7 @@ public class VehicleControllerRest {
     }
 
     @DeleteMapping("/vehicles/{id}")
-    public ResponseEntity<?> deleteSingleVehicle(@PathVariable int id) {
+    public ResponseEntity<?> deleteSingleVehicle(@PathVariable Long id) {
         try {
             User currentUser = securityHelper.getCurrentUser();
             vehicleService.deleteVehicle(currentUser, id);
@@ -97,7 +97,7 @@ public class VehicleControllerRest {
     }
 
     @DeleteMapping("/vehicles/delete")
-    public ResponseEntity<?> deleteManyVehicles(@RequestBody List<Integer> ids) {
+    public ResponseEntity<?> deleteManyVehicles(@RequestBody List<Long> ids) {
         try {
             User currentUser = securityHelper.getCurrentUser();
             vehicleService.deleteVehicles(currentUser, ids);

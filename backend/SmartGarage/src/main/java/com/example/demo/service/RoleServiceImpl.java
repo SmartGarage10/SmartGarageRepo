@@ -26,7 +26,7 @@ public class RoleServiceImpl implements RoleService{
     }
 
     @Override
-    public Role getRoleById(Integer roleId) {
+    public Role getRoleById(Long roleId) {
         return roleRepository.findById(roleId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         String.format("Role with id %d not found.", roleId)
@@ -42,7 +42,7 @@ public class RoleServiceImpl implements RoleService{
             throw new RequestValidationException(String.format("Invalid role name: %s", roleName));
         }
 
-        return roleRepository.findByRoleName(roleType)
+        return roleRepository.findRoleByRoleName(roleType)
                 .orElseThrow(() -> new ResourceNotFoundException(String.format("Role with name %s not found.", roleName)));
     }
 }

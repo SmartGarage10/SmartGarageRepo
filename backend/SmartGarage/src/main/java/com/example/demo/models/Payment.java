@@ -1,21 +1,19 @@
 package com.example.demo.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
+import java.math.BigDecimal;
 
 @Entity
-@Table(name = "payment")
-@Data
+@Table(name = "payments")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Payment {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "payment_id")
-    private int paymentId;
-
+@ToString(exclude = "visit")
+@EqualsAndHashCode(callSuper = true, exclude = {"visit"})
+public class Payment extends BaseEntity{
     @ManyToOne
     @JoinColumn(name = "visit_id", nullable = false)
     private Visit visit;
@@ -27,8 +25,8 @@ public class Payment {
     private String status;
 
     // Add amount field to match visit amount
-    @Column(name = "amount", nullable = false, columnDefinition = "DECIMAL(10,2)")
-    private Double amount;
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal amount;
 
     @Column(name = "currency", length = 3)
     private String currency = "USD";

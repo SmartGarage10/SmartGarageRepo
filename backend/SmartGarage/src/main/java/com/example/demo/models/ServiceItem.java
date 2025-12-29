@@ -3,24 +3,21 @@ package com.example.demo.models;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "service")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ServiceItem {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "service_id")
-    private int id;
-
+@EqualsAndHashCode(callSuper = true, exclude = {"packs", "visitItems"})
+@ToString(exclude = {"packs", "visitItems"})
+public class ServiceItem extends  BaseEntity {
     @Column(name = "name", nullable = false, length = 100)
     private String serviceName;
 
@@ -28,21 +25,14 @@ public class ServiceItem {
     private String serviceDescription;
 
     @Column(name = "price", nullable = false)
-    private double price;
-
-    // REMOVE: Old relationship with Visit
-    // @ManyToMany(mappedBy = "visitServices")
-    // private List<Visit> visits;
-
+    private BigDecimal price;
     // KEEP: Relationship with Pack
-    @ManyToMany(mappedBy = "services")
+    @ManyToMany(mappedBy = "services", fetch = FetchType.LAZY)
     @JsonIgnoreProperties({"services", "visitItems"})
-    @ToString.Exclude
-    private List<Pack> packs;
+    private List<Pack> packs = new ArrayList<>();
 
     // ADD: New relationship with VisitItem
-    @OneToMany(mappedBy = "serviceItem")
+    @OneToMany(mappedBy = "serviceItem", fetch = FetchType.LAZY)
     @JsonIgnore
-    @ToString.Exclude
-    private List<VisitItem> visitItems;
+    private List<VisitItem> visitItems = new ArrayList<>();
 }
