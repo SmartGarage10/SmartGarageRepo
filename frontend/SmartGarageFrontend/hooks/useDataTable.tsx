@@ -8,7 +8,7 @@ import {
     type ColumnFiltersState,
     type ColumnDef,
 } from '@tanstack/react-table';
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { debounce } from 'lodash';
 import { toast } from 'sonner';
@@ -90,7 +90,9 @@ export function useDataTable<T extends { id: string }>({
                             params.append(`${filter.id}`, val);
                         });
                     } else {
-                        params.set(`${filter.id}`, filter.value);
+                        if (typeof filter.value === "string") {
+                            params.set(`${filter.id}`, filter.value);
+                        }
                     }
                 }
             });

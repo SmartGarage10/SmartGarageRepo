@@ -1,12 +1,9 @@
 package com.example.demo.service;
 
 import com.example.demo.DTO.LoginDTO;
-import com.example.demo.DTO.UserDTO;
 import com.example.demo.mappers.UserMapper;
 import com.example.demo.models.User;
 import com.example.demo.repositories.UserRepository;
-import com.example.demo.response.AuthenticationResponse;
-import com.example.demo.response.RegistrationResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -46,12 +46,12 @@ public class ServiceControllerRest {
     public ResponseEntity<?> createService(@Valid @RequestBody ServiceDTO serviceDTO,
                                            BindingResult bindingResult){
         try {
-            // Check for validation errors
-            ValidationHelper.validate(bindingResult);
+            if(bindingResult.hasErrors()){
+                ValidationHelper.validate(bindingResult);
+            }
 
             User currentUser = securityHelper.getCurrentUser();
             ServiceItem serviceItem = serviceMapper.fromDto(serviceDTO);
-
             return ResponseEntity.ok(service.createNewService(currentUser, serviceItem));
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
@@ -63,11 +63,12 @@ public class ServiceControllerRest {
                                            @PathVariable Long id,
                                            BindingResult bindingResult){
         try {
-            ValidationHelper.validate(bindingResult);
+            if(bindingResult.hasErrors()){
+                ValidationHelper.validate(bindingResult);
+            }
 
             User currentUser = securityHelper.getCurrentUser();
             ServiceItem serviceItem = serviceMapper.fromDto(serviceDTO);
-
             return ResponseEntity.ok(service.update(currentUser, id , serviceItem));
         }
         catch (AuthorizationException e){

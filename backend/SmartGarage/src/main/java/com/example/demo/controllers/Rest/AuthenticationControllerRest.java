@@ -1,24 +1,13 @@
 package com.example.demo.controllers.Rest;
 
 import com.example.demo.DTO.LoginDTO;
-import com.example.demo.DTO.UserDTO;
 import com.example.demo.exceptions.AuthorizationException;
-import com.example.demo.helpers.LoginMapper;
 import com.example.demo.helpers.SecurityHelper;
-import com.example.demo.helpers.ValidationHelper;
-import com.example.demo.models.User;
-import com.example.demo.response.AuthenticationResponse;
 import com.example.demo.service.AuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 

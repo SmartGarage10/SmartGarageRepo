@@ -1,7 +1,6 @@
 package com.example.demo.DTO;
 
 import com.example.demo.models.User;
-import com.example.demo.validators.ValidYear;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -12,8 +11,10 @@ import java.time.Year;
 @Data
 @NoArgsConstructor
 public class VehicleDTO {
+
     @JsonProperty("vehiclePlate")
-    @Pattern(regexp = "^[A-Z]{1,2}\\d{4}[A-Z]{1,2}$", message = "Invalid Bulgarian license plate format.")
+    @Pattern(regexp = "^[A-Z]{1,2}\\d{4}[A-Z]{1,2}$",
+            message = "Invalid Bulgarian license plate format.")
     @NotBlank(message = "License plate is mandatory.")
     private String vehiclePlate;
 
@@ -23,7 +24,7 @@ public class VehicleDTO {
     private String vin;
 
     @JsonProperty("year")
-    private int yearOfCreation;
+    private Year yearOfCreation;
 
     @JsonProperty("model")
     @Size(min = 2, max = 50, message = "Model must be between 2 and 50 characters.")
@@ -39,3 +40,4 @@ public class VehicleDTO {
     @NotNull(message = "User is mandatory.")
     private User user;
 }
+

@@ -9,7 +9,7 @@ import { Vehicle } from '@/types/vehicle';
 import { User } from '@/types/user';
 import { Pack } from '@/types/pack';
 import { Service } from '@/types/service';
-import { Visit, VISIT_STATUS_OPTIONS } from '@/types/visit';
+import {Visit, VISIT_STATUS_OPTIONS, VisitItem, VisitItemType} from '@/types/visit';
 
 import { DataTable } from '@/components/data-table/data-table';
 import { DataTableAdvancedToolbar } from '@/components/data-table/data-table-advanced-toolbar';
@@ -31,9 +31,6 @@ import { createApi } from '@/api/genericApi';
 // }
 
 export default function VehiclesPage() {
-    const searchParams = useSearchParams();
-
-    const [isMounted, setIsMounted] = useState(false);
     const [clients, setClients] = useState<User[]>([]);
     const [employees, setEmployees] = useState<User[]>([]);
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -42,7 +39,6 @@ export default function VehiclesPage() {
     const [brandOptions, setBrandOptions] = useState<{ label: string; value: string }[]>([]);
     const [modelOptions, setModelOptions] = useState<{ label: string; value: string }[]>([]);
     const [selectedBrand, setSelectedBrand] = useState<string>('');
-    const [isModelsLoading, setIsModelsLoading] = useState(false);
     const [isBrandsLoading, setIsBrandsLoading] = useState(false);
     const [isDataLoading, setIsDataLoading] = useState(true);
 
@@ -159,11 +155,6 @@ export default function VehiclesPage() {
         loadModels();
     }, [selectedBrand]);
 
-    useEffect(() => {
-        setIsMounted(true);
-        return () => setIsMounted(false);
-    }, []);
-
     // Edit callback
     const handleEdit = useCallback((visit: Visit) => {
         console.log('[DEBUG] Editing visit', visit);
@@ -199,39 +190,147 @@ export default function VehiclesPage() {
         },
     });
 
-    // Submit handler for visits - ONLY IN PAGE
     const handleVisitSubmit = useCallback(
-        async (visitData: Visit) => {
+        async (visitData: any) => {
             try {
+                console.log("📋 RAW DATA FROM FORM:", visitData);
+                console.log("🔍 Services data:", visitData.visitServices);
+
                 const isEdit = !!selectedRow?.id;
                 const endpoint = isEdit
                     ? `http://localhost:8080/api/update-visit/${selectedRow.id}`
-                    : 'http://localhost:8080/api/create-visit';
+                    : `http://localhost:8080/api/create-visit`;
 
                 const method = isEdit ? 'PUT' : 'POST';
 
-                // Safe date handling
                 const visitDate = new Date(visitData.visitDate);
 
-                // Find the selected pack object
-                const selectedPackObj = packs.find(p => p.packName === visitData.pack?.packName);
+                // ========== CRITICAL FIX: PROPERLY SET SERVICE ID ==========
+                let visitItems: VisitItem[] = [];
 
-                // FIX: Send the full client object, not just the name
+                // Get services data from form
+                const servicesFromForm = visitData.visitServices || [];
+                console.log("🔍 Services from form:", servicesFromForm);
+
+                // CASE 1: Custom Pack
+                if (visitData.pack?.packName === "CUSTOM PACK") {
+                    console.log("🛠️ Processing CUSTOM PACK");
+
+                    if (servicesFromForm.length === 0) {
+                        throw new Error("Custom pack must have at least one service");
+                    }
+
+                    visitItems = servicesFromForm.map((service: any) => {
+                        console.log("Service object:", service);
+                        return {
+                            // ✅ CRITICAL: Must include serviceId or serviceItemId
+                            serviceItem: service,
+                            itemType: VisitItemType.SERVICE,
+                            itemName: service.serviceName || service.name,
+                            price: service.price || 0,
+                            quantity: 1
+                        };
+                    });
+                }
+                // CASE 2: Regular Pack
+                else if (visitData.pack && visitData.pack.packName !== "CUSTOM PACK") {
+                    console.log("📦 Processing REGULAR PACK");
+
+                    const selectedPackObj = packs.find(p => p.packName === visitData.pack?.packName);
+
+                    if (!selectedPackObj) {
+                        throw new Error(`Pack "${visitData.pack?.packName}" not found`);
+                    }
+
+                    visitItems = [{
+                        // ✅ CRITICAL: Must include packId
+                        pack: selectedPackObj,
+                        itemType: VisitItemType.PACK,
+                        itemName: selectedPackObj.packName,
+                        price: selectedPackObj.amount || 0,
+                        quantity: 1
+                    }];
+                }
+                // CASE 3: Individual Services
+                else {
+                    console.log("🔧 Processing INDIVIDUAL SERVICES");
+
+                    if (servicesFromForm.length === 0) {
+                        throw new Error("Please add at least one service");
+                    }
+
+                    visitItems = servicesFromForm.map((service: any) => ({
+                        // ✅ CRITICAL: Must include serviceId
+                        serviceItem: service, // Include both
+                        itemType: VisitItemType.SERVICE,
+                        itemName: service.serviceName || service.name,
+                        price: service.price || 0,
+                        quantity: 1
+                    }));
+                }
+
+                // ========== VALIDATE: Check IDs are present ==========
+                console.log("✅ Generated visitItems (BEFORE validation):", visitItems);
+
+                // Remove items without proper IDs
+                visitItems = visitItems.filter(item => {
+                    const hasServiceId = item.serviceItem?.id;
+                    const hasPackId = item.pack?.id;
+                    const isValid = (hasServiceId && !hasPackId) || (!hasServiceId && hasPackId);
+
+                    if (!isValid) {
+                        console.warn("❌ Removing invalid item (missing ID):", item);
+                    }
+                    return isValid;
+                });
+
+                if (visitItems.length === 0) {
+                    throw new Error("No valid items found. Each item must have either serviceId or packId");
+                }
+
+                console.log("✅ Final visitItems (AFTER validation):", visitItems);
+
+                // Calculate total
+                const totalAmount = visitItems.reduce((sum, item) =>
+                    sum + (item.price * item.quantity), 0
+                );
+
+                // ========== BUILD PAYLOAD ==========
                 const payload = {
-                    client: visitData.vehicle.client, // ← FIXED: Send full client object
+                    client: visitData.client,
                     vehicle: visitData.vehicle,
                     employee: visitData.employee,
                     visitDate: visitDate.toISOString(),
                     status: visitData.status || "SCHEDULED",
-                    amount: visitData.amount,
+                    amount: visitData.amount || totalAmount,
                     currency: visitData.currency || "EUR",
-                    pack: selectedPackObj || null,
-                    visitServices: visitData.pack?.packName === "CUSTOM PACK"
-                        ? visitData.visitServices
-                        : null
+                    pack: visitData.pack?.packName === "CUSTOM PACK" ? null : visitData.pack,
+                    // ✅ Key: Send as visitItems (from your debug output)
+                    visitItems: visitItems
                 };
 
-                console.log("Submitting payload:", payload);
+                console.log("📤 Final payload:", JSON.stringify(payload, null, 2));
+
+                // ========== DEBUG: Check what field names backend expects ==========
+                // const testPayloads = [
+                //     { ...payload, visitItems: visitItems },
+                //     { ...payload, visitServices: visitItems },
+                //     {
+                //         ...payload,
+                //         visitItems: visitItems.map(item => ({
+                //             ...item,
+                //             // Try different ID field names
+                //             serviceId: item.serviceItem?.id,
+                //             serviceItem: item.serviceItem
+                //         }))
+                //     }
+                // ];
+
+                // for (const [index, testPayload] of testPayloads.entries()) {
+                //     console.log(`🧪 Test ${index + 1}:`,
+                //         Object.keys(testPayload).filter(k => Array.isArray(testPayload[k]))
+                //     );
+                // }
 
                 const response = await fetch(endpoint, {
                     method,
@@ -240,14 +339,24 @@ export default function VehiclesPage() {
                     credentials: "include",
                 });
 
+                const responseText = await response.text();
+                console.log("📥 Backend response:", responseText);
+
                 if (!response.ok) {
-                    const errorData = await response.json();
+                    let errorData;
+                    try {
+                        errorData = JSON.parse(responseText);
+                    } catch {
+                        errorData = { message: responseText };
+                    }
+                    console.error("❌ Backend error:", errorData);
                     throw new Error(errorData.message || "Request failed");
                 }
 
+                console.log("✅ Success!");
                 return true;
             } catch (error) {
-                console.error('Error saving visit:', error);
+                console.error('❌ Error:', error);
                 throw error;
             }
         },

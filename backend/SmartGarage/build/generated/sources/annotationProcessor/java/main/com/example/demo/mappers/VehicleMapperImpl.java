@@ -1,6 +1,7 @@
 package com.example.demo.mappers;
 
 import com.example.demo.DTO.VehicleDTO;
+import com.example.demo.models.User;
 import com.example.demo.models.Vehicle;
 import javax.annotation.processing.Generated;
 import org.springframework.stereotype.Component;
@@ -29,17 +30,39 @@ public class VehicleMapperImpl implements VehicleMapper {
     }
 
     @Override
-    public Vehicle toEntity(VehicleDTO vehicleDTO) {
+    public Vehicle vehicleDtoToVehicle(VehicleDTO vehicleDTO) {
         if ( vehicleDTO == null ) {
             return null;
         }
 
         Vehicle vehicle = new Vehicle();
 
+        vehicle.setClient( vehicleDTO.getUser() );
+        vehicle.setYear( vehicleDTO.getYearOfCreation() );
         vehicle.setVehiclePlate( vehicleDTO.getVehiclePlate() );
         vehicle.setVin( vehicleDTO.getVin() );
         vehicle.setBrand( vehicleDTO.getBrand() );
         vehicle.setModel( vehicleDTO.getModel() );
+
+        return vehicle;
+    }
+
+    @Override
+    public Vehicle vehicleDtoToVehicleWithUser(VehicleDTO vehicleDTO, User user) {
+        if ( vehicleDTO == null && user == null ) {
+            return null;
+        }
+
+        Vehicle vehicle = new Vehicle();
+
+        if ( vehicleDTO != null ) {
+            vehicle.setYear( vehicleDTO.getYearOfCreation() );
+            vehicle.setVehiclePlate( vehicleDTO.getVehiclePlate() );
+            vehicle.setVin( vehicleDTO.getVin() );
+            vehicle.setBrand( vehicleDTO.getBrand() );
+            vehicle.setModel( vehicleDTO.getModel() );
+        }
+        vehicle.setClient( user );
 
         return vehicle;
     }

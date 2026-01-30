@@ -1,0 +1,16 @@
+Subject: Welcome to Apex Auto Garage!
+
+Body:
+We are thrilled to have you on board. Your registration has been successfully completed, and we are excited for you to begin your journey with us.
+
+Username: {{username}}
+Password: {{password}}
+
+Please make sure to keep this information secure. You can log in and change your password after your first login.
+
+If you have any questions or need assistance, feel free to reach out.
+
+We look forward to working with you!
+
+Best regards,
+BMW Garage

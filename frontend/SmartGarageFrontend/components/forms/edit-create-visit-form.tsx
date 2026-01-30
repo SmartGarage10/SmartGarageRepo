@@ -88,7 +88,6 @@ export function VisitForm({
             visitDate: "",
             status: statusOptions[0] || "SCHEDULED",
             amount: 0,
-            currency: "EUR",
             pack: undefined,
         },
     });

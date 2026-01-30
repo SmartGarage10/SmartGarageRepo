@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.DTO.VisitDTO;
 import com.example.demo.models.User;
 import com.example.demo.models.Vehicle;
 import com.example.demo.models.Visit;
@@ -16,7 +17,7 @@ public interface VisitService {
         List<Visit> getVisitsByVehicleId(Long vehicleId);
         List<Visit> getVisitsByDate(LocalDateTime dateTime);
 
-        Visit createVisit(User user, Visit visit);
+        Visit createVisit(User user, VisitDTO visitDTO);
         Visit update(User user, Long visitId, Visit changes);
 
         void deleteVisit(User user ,Long visitId);

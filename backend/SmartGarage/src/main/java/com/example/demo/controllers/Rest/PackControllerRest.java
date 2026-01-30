@@ -42,8 +42,7 @@ public class PackControllerRest {
     public ResponseEntity<List<Pack>> getAllVehicles() {
         try {
             securityHelper.isAuthenticated();
-            List<Pack> packs = packService.getAllPacks();
-            return ResponseEntity.ok(packs != null ? packs : List.of()); // never return null
+            return ResponseEntity.ok(packService.getAllPacks());
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }
@@ -53,12 +52,12 @@ public class PackControllerRest {
     public ResponseEntity<?> createService(@Valid @RequestBody PackDTO packDTO,
                                            BindingResult bindingResult){
         try {
-            // Check for validation errors
-            ValidationHelper.validate(bindingResult);
+            if(bindingResult.hasErrors()){
+                ValidationHelper.validate(bindingResult);
+            }
 
             User currentUser = securityHelper.getCurrentUser();
             Pack pack = packMapper.fromDto(packDTO);
-
             return ResponseEntity.ok(packService.createPack(currentUser, pack));
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
@@ -70,11 +69,12 @@ public class PackControllerRest {
                                            @PathVariable Long id,
                                            BindingResult bindingResult){
         try {
-            ValidationHelper.validate(bindingResult);
+            if(bindingResult.hasErrors()){
+                ValidationHelper.validate(bindingResult);
+            }
 
             User currentUser = securityHelper.getCurrentUser();
             Pack pack = packMapper.fromDto(packDTO);
-
             return ResponseEntity.ok(packService.update(currentUser, id , pack));
         }
         catch (AuthorizationException e){

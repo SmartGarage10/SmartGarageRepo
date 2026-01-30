@@ -42,7 +42,7 @@ public class Visit extends BaseEntity {
     private String currency = "EUR";
 
     // ADD: Unified items list
-    @OneToMany(mappedBy = "visit", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "visit", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonManagedReference
     private List<VisitItem> visitItems = new ArrayList<>();
 

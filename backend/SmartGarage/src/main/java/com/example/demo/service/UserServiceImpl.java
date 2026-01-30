@@ -14,17 +14,10 @@ import com.example.demo.models.User;
 import com.example.demo.repositories.RoleRepository;
 import com.example.demo.repositories.UserRepository;
 import com.example.demo.response.RegistrationResponse;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,12 +35,12 @@ public class UserServiceImpl implements UserService, EntitySpecificationProvider
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final PasswordGeneratorHelper passwordGeneratorHelper;
-    private final FilterHelper filterHelper;
     private final UserSpecifications userSpecifications;
     private final EntityServiceHelper<User, Long, UserRepository> entityHelper;
 
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, UserMapper userMapper,
+    public UserServiceImpl(UserRepository userRepository,
+                           UserMapper userMapper,
                            PasswordEncoder passwordEncoder,
                            EmailService emailService,
                            PasswordGeneratorHelper passwordGeneratorHelper,
@@ -59,7 +52,6 @@ public class UserServiceImpl implements UserService, EntitySpecificationProvider
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.passwordGeneratorHelper = passwordGeneratorHelper;
-        this.filterHelper = filterHelper;
         this.roleRepository = roleRepository;
         this.userSpecifications = userSpecifications;
         // Create EntityServiceHelper instance manually
@@ -91,8 +83,6 @@ public class UserServiceImpl implements UserService, EntitySpecificationProvider
     public List<User> getAllUsers(MultiValueMap<String, String> params) {
         return entityHelper.getAll(params);
     }
-
-
     @Override
     public RegistrationResponse register(User user, UserDTO requestDTO) {
         // Find Role entity by role name

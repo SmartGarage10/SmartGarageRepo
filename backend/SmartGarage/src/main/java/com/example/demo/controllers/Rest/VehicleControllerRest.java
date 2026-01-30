@@ -2,11 +2,8 @@ package com.example.demo.controllers.Rest;
 
 import com.example.demo.DTO.VehicleDTO;
 import com.example.demo.exceptions.AuthorizationException;
-import com.example.demo.exceptions.EntityNotFoundException;
-import com.example.demo.helpers.AuthenticationHelper;
 import com.example.demo.helpers.SecurityHelper;
 import com.example.demo.helpers.ValidationHelper;
-import com.example.demo.helpers.VehicleMapper;
 import com.example.demo.models.User;
 import com.example.demo.models.Vehicle;
 import com.example.demo.service.VehicleService;
@@ -14,31 +11,24 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.MultiValueMap;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
 public class VehicleControllerRest {
     private final VehicleService vehicleService;
-    private final VehicleMapper vehicleMapper;
     private final SecurityHelper securityHelper;
 
     @Autowired
     public VehicleControllerRest(VehicleService vehicleService,
-                                 VehicleMapper vehicleMapper,
                                  SecurityHelper securityHelper) {
         this.vehicleService = vehicleService;
-        this.vehicleMapper = vehicleMapper;
         this.securityHelper = securityHelper;
     }
 
@@ -56,13 +46,12 @@ public class VehicleControllerRest {
     public ResponseEntity<?> createVehicle(@Valid @RequestBody VehicleDTO vehicleDTO,
                                                  BindingResult bindingResult){
         try {
-            // Check for validation errors
-            ValidationHelper.validate(bindingResult);
+            if(bindingResult.hasErrors()){
+                ValidationHelper.validate(bindingResult);
+            }
 
             User currentUser = securityHelper.getCurrentUser();
-            Vehicle vehicle = vehicleMapper.fromDto(vehicleDTO);
-
-            return ResponseEntity.ok(vehicleService.createNewVehicle(currentUser, vehicle));
+            return ResponseEntity.ok(vehicleService.createNewVehicle(currentUser, vehicleDTO));
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
@@ -73,12 +62,12 @@ public class VehicleControllerRest {
                                                  @PathVariable Long id,
                                                  BindingResult bindingResult){
         try {
-            ValidationHelper.validate(bindingResult);
+            if(bindingResult.hasErrors()){
+                ValidationHelper.validate(bindingResult);
+            }
 
             User currentUser = securityHelper.getCurrentUser();
-            Vehicle vehicle = vehicleMapper.fromDto(vehicleDTO);
-
-            return ResponseEntity.ok(vehicleService.update(currentUser, id , vehicle));
+            return ResponseEntity.ok(vehicleService.update(currentUser, id , vehicleDTO));
         }
         catch (AuthorizationException e){
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());

@@ -26,7 +26,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-import { Visit } from "@/types/visit";
+import {Visit, VisitItemType} from "@/types/visit";
 import { format } from "date-fns";
 import React from "react";
 
@@ -163,49 +163,61 @@ export const getColumns = ({
     {
         id: "pack",
         accessorFn: (row) => {
-            // Return the pack name if exists, otherwise "Custom Pack"
-            return row.pack?.packName ?? "Custom Pack";
+            const visitItems = row.visitItems || [];
+            const packItem = visitItems.find(item => item && item.pack != null);
+            return packItem?.pack?.packName || "Custom Pack";
         },
         header: ({ column }) => <DataTableColumnHeader column={column} title="Pack" />,
         cell: ({ row }) => {
-            const pack = row.original.pack;
+            const visit = row.original;
+            const visitItems = visit.visitItems || [];
+            const allServices = visit.allServices || [];
 
-            // If no pack object, it's a custom pack
-            if (!pack) {
+            // Debug
+            console.log("=== PACK COLUMN DEBUG ===");
+            console.log("Visit ID:", visit.id);
+            console.log("All services:", allServices);
+
+            // Find pack item
+            const packItem = visitItems.find(item => item && item.pack != null);
+
+            if (packItem?.pack) {
+                console.log("📦 Found pack:", packItem.pack.packName);
+                console.log("📋 Pack ID:", packItem.pack.id);
+
+                // Count how many services in allServices belong to this pack
+                const packServicesCount = allServices.filter(service =>
+                    service.packs?.some(pack => pack.id === packItem.pack.id)
+                ).length;
+
+                console.log("🔢 Services count for pack:", packServicesCount);
+
                 return (
                     <div className="flex flex-col">
                         <div className="flex items-center text-sm font-medium">
-                            <span>Custom Pack</span>
+                            <span>{packItem.pack.packName}</span>
                         </div>
                         <div className="text-xs text-muted-foreground">
-                            {row.original.visitServices?.length ?? 0} services
+                            {packServicesCount} service{packServicesCount !== 1 ? 's' : ''}
                         </div>
                     </div>
                 );
             }
 
-            // If pack exists but no packName (shouldn't happen, but safe check)
-            if (!pack.packName) {
-                return (
-                    <div className="flex flex-col">
-                        <div className="flex items-center text-sm font-medium">
-                            <span>Custom Pack</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                            {row.original.visitServices?.length ?? 0} services
-                        </div>
-                    </div>
-                );
-            }
+            // For custom packs, count services in visit items
+            const serviceCount = visitItems.filter(item =>
+                item && (item.serviceItem || item.itemType === 'SERVICE')
+            ).length;
 
-            // Regular pack with packName
+            console.log("🛠️ Custom pack with", serviceCount, "services");
+
             return (
                 <div className="flex flex-col">
-                    <div className="flex items-center text-sm font-medium capitalize">
-                        <span>{pack.packName.toLowerCase()}</span>
+                    <div className="flex items-center text-sm font-medium">
+                        <span>Custom Pack</span>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                        {(pack.services?.length ?? 0)} services
+                        {serviceCount} service{serviceCount !== 1 ? 's' : ''}
                     </div>
                 </div>
             );

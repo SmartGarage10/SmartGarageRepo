@@ -1,15 +1,18 @@
 package com.example.demo.filter;
 
+import com.example.demo.models.Visit;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 
+@Component
 public class VisitSpecification extends BaseSpecifications {
     // Transformer method for visitDate
     private static Object transformVisitDate(Object value) {
@@ -42,9 +45,26 @@ public class VisitSpecification extends BaseSpecifications {
             "client", RelationConfig.of(List.of("vehicle", "client"), "name"),
             "brand", RelationConfig.of(List.of("vehicle"), "brand"),
             "employee", RelationConfig.of(List.of("employee"), "name"),
-            "pack", RelationConfig.of(List.of("pack"), "packName"),
+            "pack", RelationConfig.of(List.of("visitItems", "pack"), "packName"),
             "visitDate", RelationConfig.of(List.of(), "visitDate", VisitSpecification::transformVisitDate)
     );
+    @Override
+    public <T> Specification<T> createSearchSpecification(String search, String fieldName) {
+        return (root, query, cb) -> {
+            if (search == null || search.trim().isEmpty()) {
+                return cb.conjunction();
+            }
+            String searchPattern = search.toLowerCase() + "%";
+            try {
+                return cb.like(
+                        cb.lower(root.get("vehicle").get("client").get("name")),
+                        searchPattern
+                );
+            } catch (Exception e) {
+                return cb.conjunction();
+            }
+        };
+    }
 
     @Override
     public <T> Specification<T> createSpecification(List<Filter> filters) {
@@ -75,11 +95,20 @@ public class VisitSpecification extends BaseSpecifications {
                         System.out.println("No transformer applied");
                     }
                     // SPECIAL HANDLING FOR CUSTOM PACK FILTER - FIXED
-                    if ("pack".equals(filter.getId()) && "CUSTOM PACK".equalsIgnoreCase(filter.getValue().toString())) {
+                    if ("pack".equals(filter.getId()) && filter.getValue() != null &&
+                            "CUSTOM PACK".equalsIgnoreCase(filter.getValue().toString())) {
                         System.out.println("=== CUSTOM PACK FILTER ACTIVATED ===");
-                        // For custom packs, we want visits where pack IS NULL
-                        Predicate customPackPredicate = cb.isNull(root.get("pack"));
+
+                        // For custom packs, we want visits where ALL visitItems have pack = null
+                        // OR the visit has no pack items at all
+                        Join<Object, Object> visitItemsJoin = root.join("visitItems", JoinType.LEFT);
+                        Predicate customPackPredicate = cb.isNull(visitItemsJoin.get("pack"));
                         predicates.add(customPackPredicate);
+
+                        // Ensure the visit has at least one item
+                        Predicate hasItems = cb.isNotEmpty(root.get("visitItems"));
+                        predicates.add(hasItems);
+
                         System.out.println("=== CUSTOM PACK FILTER COMPLETE ===\n");
                         continue; // Skip normal processing for this filter
                     }

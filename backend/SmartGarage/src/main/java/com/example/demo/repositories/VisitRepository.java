@@ -15,4 +15,5 @@ public interface VisitRepository extends JpaRepository<Visit, Long>, JpaSpecific
     List<Visit> findByVisitDate(LocalDateTime dateTime);
 
     boolean existsByVisitDate(LocalDateTime dateTime);
+
 }

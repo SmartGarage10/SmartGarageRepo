@@ -8,7 +8,6 @@ import org.springframework.validation.FieldError;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Component
 public class ValidationHelper {
 
     public static ResponseEntity<Map<String, String>> validate(BindingResult bindingResult) {
@@ -20,7 +19,7 @@ public class ValidationHelper {
                 .collect(Collectors.toMap(
                         FieldError::getField,
                         FieldError::getDefaultMessage,
-                        (msg1, msg2) -> msg1 + "; " + msg2 // merge duplicates
+                        (msg1, msg2) -> msg1 + "; " + msg2
                 ));
 
         return ResponseEntity.badRequest().body(errors);

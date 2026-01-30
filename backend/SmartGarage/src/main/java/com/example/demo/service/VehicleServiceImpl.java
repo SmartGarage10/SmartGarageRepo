@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.DTO.VehicleDTO;
 import com.example.demo.exceptions.ResourceConflictException;
 import com.example.demo.exceptions.ResourceNotFoundException;
 import com.example.demo.filter.EntitySpecificationProvider;
@@ -9,8 +10,10 @@ import com.example.demo.filter.FilterHelper;
 import com.example.demo.helpers.EntityServiceHelper;
 import com.example.demo.helpers.FieldUpdateHelper;
 import com.example.demo.helpers.RestrictHelper;
+import com.example.demo.mappers.VehicleMapper;
 import com.example.demo.models.User;
 import com.example.demo.models.Vehicle;
+import com.example.demo.repositories.UserRepository;
 import com.example.demo.repositories.VehicleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
@@ -26,20 +29,21 @@ import java.util.Optional;
 @Service
 public class VehicleServiceImpl implements VehicleService, EntitySpecificationProvider<Vehicle> {
     private final VehicleRepository vehicleRepository;
-    private final RestrictHelper restrictHelper;
-    private final FilterHelper filterHelper;
     private final VehicleSpecifications vehicleSpecs;
     private final EntityServiceHelper<Vehicle, Long, VehicleRepository> entityHelper;
+    private final VehicleMapper vehicleMapper;
+    private final UserRepository userRepository;
 
     @Autowired
     public VehicleServiceImpl(VehicleRepository vehicleRepository,
-                              RestrictHelper restrictHelper,
-                              FilterHelper filterHelper) {
+                              FilterHelper filterHelper,
+                              VehicleMapper vehicleMapper,
+                              VehicleSpecifications vehicleSpecs,
+                              UserRepository userRepository) {
         this.vehicleRepository = vehicleRepository;
-        this.restrictHelper = restrictHelper;
-        this.filterHelper = filterHelper;
-        this.vehicleSpecs = new VehicleSpecifications();
-
+        this.vehicleSpecs = vehicleSpecs;
+        this.vehicleMapper = vehicleMapper;
+        this.userRepository = userRepository;
         // Create EntityServiceHelper instance
         this.entityHelper = new EntityServiceHelper<>(
                 vehicleRepository,
@@ -77,8 +81,12 @@ public class VehicleServiceImpl implements VehicleService, EntitySpecificationPr
     }
 
     @Override
-    public Vehicle createNewVehicle(User user, Vehicle vehicle) {
-        restrictHelper.isUserAdminOrEmployee(user);
+    public Vehicle createNewVehicle(User user, VehicleDTO vehicleDTO) {
+        // 1. Check User permissions
+        User carOwner = userRepository.findUserByEmail(vehicleDTO.getUser().getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format("User with id %s not found", vehicleDTO.getUser().getEmail())));
+        Vehicle vehicle = vehicleMapper.vehicleDtoToVehicleWithUser(vehicleDTO, carOwner);
 
         if (vehicleRepository.existsByVehiclePlate(vehicle.getVehiclePlate())) {
             throw new ResourceConflictException(String.format("Vehicle with plate %s already exists", vehicle.getVehiclePlate()));
@@ -91,10 +99,8 @@ public class VehicleServiceImpl implements VehicleService, EntitySpecificationPr
     }
 
     @Override
-    public Vehicle update(User user, Long vehicleId, Vehicle changes) {
-        // 1. Check User permissions
-        restrictHelper.isUserAdminOrEmployee(user);
-
+    public Vehicle update(User user, Long vehicleId, VehicleDTO changes) {
+        Vehicle vehicleDetails = vehicleMapper.vehicleDtoToVehicle(changes);
         // 2. Find existing vehicle
         Vehicle existingVehicle = vehicleRepository.findById(vehicleId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -107,11 +113,11 @@ public class VehicleServiceImpl implements VehicleService, EntitySpecificationPr
                 new FieldUpdateHelper<>("vehiclePlate",
                         Vehicle::getVehiclePlate,
                         Vehicle::setVehiclePlate,
-                        changes.getVehiclePlate()),
+                        vehicleDetails.getVehiclePlate()),
                 new FieldUpdateHelper<>("vin",
                         Vehicle::getVin,
                         Vehicle::setVin,
-                        changes.getVin())
+                        vehicleDetails.getVin())
         );
 
         // Mixed types - you can't have different types in the same generic list!
@@ -121,21 +127,21 @@ public class VehicleServiceImpl implements VehicleService, EntitySpecificationPr
                 new FieldUpdateHelper<>("brand",
                         Vehicle::getBrand,
                         Vehicle::setBrand,
-                        changes.getBrand()),
+                        vehicleDetails.getBrand()),
                 new FieldUpdateHelper<>("model",
                         Vehicle::getModel,
                         Vehicle::setModel,
-                        changes.getModel()),
+                        vehicleDetails.getModel()),
                 new FieldUpdateHelper<>("client",
                         Vehicle::getClient,
                         Vehicle::setClient,
-                        changes.getClient()),
+                        vehicleDetails.getClient()),
 
                 // Integer field - THIS IS THE PROBLEM!
                 new FieldUpdateHelper<>("year",
                         Vehicle::getYear,
                         Vehicle::setYear,
-                        changes.getYear()!= null ? Year.of(changes.getYear().getValue()) : null)
+                        vehicleDetails.getYear()!= null ? Year.of(vehicleDetails.getYear().getValue()) : null)
         );
 
         // 4. Use entityHelper.update()
@@ -150,13 +156,9 @@ public class VehicleServiceImpl implements VehicleService, EntitySpecificationPr
 
     @Override
     public void deleteVehicle(User user, Long vehicleId) {
-        // 1. Check if the target vehicle exists
-        Vehicle targetVehicle = vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("Vehicle with id %s not found", vehicleId)));
-        // 2. Use entityHelper.delete()
+        // 1. Use entityHelper.delete()
         entityHelper.delete(vehicleId);
     }
-
     @Override
     public void deleteVehicles(User user, List<Long> ids) {
         // 1. Use entityHelper.deleteAllById()

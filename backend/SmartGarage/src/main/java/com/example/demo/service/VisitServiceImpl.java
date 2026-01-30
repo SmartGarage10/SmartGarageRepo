@@ -1,14 +1,19 @@
 package com.example.demo.service;
 
+import com.example.demo.DTO.VisitDTO;
 import com.example.demo.exceptions.ResourceConflictException;
 import com.example.demo.exceptions.ResourceNotFoundException;
+import com.example.demo.filter.EntitySpecificationProvider;
 import com.example.demo.filter.Filter;
 import com.example.demo.filter.VisitSpecification;
 import com.example.demo.filter.FilterHelper;
-import com.example.demo.helpers.GenericFieldAccessor;
+import com.example.demo.helpers.EntityServiceHelper;
+import com.example.demo.helpers.FieldUpdateHelper;
 import com.example.demo.helpers.RestrictHelper;
+import com.example.demo.mappers.VisitMapper;
 import com.example.demo.models.*;
 import com.example.demo.repositories.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,57 +21,73 @@ import org.springframework.util.MultiValueMap;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 @Service
-public class VisitServiceImpl implements VisitService{
+public class VisitServiceImpl implements VisitService, EntitySpecificationProvider<Visit> {
 
     private final RestrictHelper restrictHelper;
-    private final FilterHelper filterHelper;
     private final VisitRepository visitRepository;
+    private final VisitMapper visitMapper;
+    private final EntityServiceHelper<Visit, Long, VisitRepository> entityHelper;
+    private final VisitSpecification visitSpecification;
+    private final VehicleRepository vehicleRepository;
+    private final UserRepository userRepository;
     private final ServiceRepository serviceItemRepository;
     private final PackRepository packRepository;
 
+    @Autowired
     public VisitServiceImpl(RestrictHelper restrictHelper,
-                            FilterHelper filterHelper,
                             VisitRepository visitRepository,
+                            VisitMapper visitMapper,
+                            VehicleRepository vehicleRepository,
+                            UserRepository userRepository,
                             ServiceRepository serviceItemRepository,
-                            PackRepository packRepository) {
+                            PackRepository packRepository,
+                            FilterHelper filterHelper,
+                            VisitSpecification visitSpecification) {
         this.restrictHelper = restrictHelper;
-        this.filterHelper = filterHelper;
         this.visitRepository = visitRepository;
+        this.visitMapper = visitMapper;
+        this.vehicleRepository = vehicleRepository;
+        this.userRepository = userRepository;
         this.serviceItemRepository = serviceItemRepository;
         this.packRepository = packRepository;
+        this.visitSpecification = visitSpecification;
+
+        // Create EntityServiceHelper instance
+        this.entityHelper = new EntityServiceHelper<>(
+                visitRepository,
+                filterHelper,
+                Visit.class,
+                this  // Pass 'this' as specification provider
+        );
     }
 
+    // ========== SPECIFICATION PROVIDER IMPLEMENTATION ==========
+    @Override
+    public Specification<Visit> createFilterSpecification(List<Filter> filters) {
+        return visitSpecification.createSpecification(filters);
+    }
 
     @Override
+    public Specification<Visit> createSearchSpecification(String search) {
+        String searchField = getSearchField();
+        return visitSpecification.createSearchSpecification(search, searchField);
+    }
+
+    @Override
+    public String getSearchField() {
+        return "vehicle.client.name";
+    }
+
+    // ========== SERVICE METHODS USING HELPER ==========
+    @Override
     public List<Visit> getAllVisits(MultiValueMap<String, String> allParams) {
-        Specification<Visit> spec = Specification.where(null);
-        VisitSpecification visitSpecification = new VisitSpecification();
-
-        // 1. Apply search filter if present
-        if (allParams.containsKey("search")) {
-            String search = allParams.getFirst("search");
-            if (search != null && !search.trim().isEmpty()) {
-                Specification<Visit> searchSpec = visitSpecification.createSearchSpecification(search, "name");
-                spec = spec.and(searchSpec);
-            }
-        }
-
-        // 2. Apply other filters
-        if (allParams.containsKey("filters")) {
-            List<Filter> filters = filterHelper.convertToFilters(allParams);
-            if (filters != null && !filters.isEmpty()) {
-                Specification<Visit> filterSpec = visitSpecification.createSpecification(filters);
-                spec = spec.and(filterSpec);
-            }
-        }
-
-        return visitRepository.findAll(spec);
+        // Use entityHelper.getAll() - specifications are handled automatically
+        return entityHelper.getAll(allParams);
     }
 
     @Override
@@ -85,15 +106,31 @@ public class VisitServiceImpl implements VisitService{
     }
 
     @Override
-    @Transactional
-    public Visit createVisit(User user, Visit visit) {
+    public Visit createVisit(User user, VisitDTO visitDTO) {
         restrictHelper.isUserAdminOrEmployee(user);
 
-        if (visitRepository.existsByVisitDate(visit.getVisitDate())) {
-            throw new ResourceConflictException(String.format("Visit with id %s is already exists", visit.getVisitDate()));
+        // Check if visit already exists with the same date
+        if (visitRepository.existsByVisitDate(visitDTO.getVisitDate())) {
+            throw new ResourceConflictException(String.format("Visit with date %s already exists", visitDTO.getVisitDate()));
         }
 
-        // Validate and calculate total for visit items
+        // Map DTO to entity
+        Visit visit = visitMapper.toEntity(visitDTO);
+
+        // Fetch and set related entities
+        if (visitDTO.getVehicle() != null && visitDTO.getVehicle().getId() != null) {
+            Vehicle vehicle = vehicleRepository.findById(visitDTO.getVehicle().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
+            visit.setVehicle(vehicle);
+        }
+
+        if (visitDTO.getEmployee() != null && visitDTO.getEmployee().getId() != null) {
+            User employee = userRepository.findById(visitDTO.getEmployee().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+            visit.setEmployee(employee);
+        }
+
+        // Validate and process visit items
         validateAndProcessVisitItems(visit);
 
         // Calculate total amount from visit items
@@ -103,7 +140,6 @@ public class VisitServiceImpl implements VisitService{
     }
 
     @Override
-    @Transactional
     public Visit update(User user, Long visitId, Visit changes) {
         // 1. Check User permissions
         restrictHelper.isUserAdminOrEmployee(user);
@@ -112,80 +148,76 @@ public class VisitServiceImpl implements VisitService{
         Visit existingVisit = visitRepository.findById(visitId)
                 .orElseThrow(() -> new ResourceNotFoundException(String.format("Visit with id %s not found", visitId)));
 
-        // 3. Get all visits (for duplicate checking)
-        List<Visit> allVisits = visitRepository.findAll();
+        // 3. Prepare FieldUpdateHelper lists
+        List<FieldUpdateHelper<Visit, ?>> duplicateCheckFields = Arrays.asList(
+                new FieldUpdateHelper<>("visitDate",
+                        Visit::getVisitDate,
+                        Visit::setVisitDate,
+                        changes.getVisitDate())
+        );
 
-        // 4. Process all updatable fields
-        Stream.of(
-                        Map.entry("visitDate", changes.getVisitDate())
-                )
-                .forEach(entry -> {
-                    String currentValue = GenericFieldAccessor.getFieldValue(existingVisit, entry.getKey());
-                    Optional.ofNullable(entry.getValue())
-                            .filter(newValue -> !newValue.equals(currentValue)) // Skip if unchanged
-                            .filter(newValue -> !GenericFieldAccessor.isDuplicateField(allVisits, entry.getKey(), newValue, visitId))
-                            .ifPresent(newValue -> GenericFieldAccessor.setFieldValue(existingVisit, entry.getKey(), newValue));
-                });
+        List<FieldUpdateHelper<Visit, ?>> nonDuplicateCheckFields = Arrays.asList(
+                new FieldUpdateHelper<>("employee",
+                        Visit::getEmployee,
+                        Visit::setEmployee,
+                        changes.getEmployee()),
+                new FieldUpdateHelper<>("status",
+                        Visit::getStatus,
+                        Visit::setStatus,
+                        changes.getStatus()),
+                new FieldUpdateHelper<>("currency",
+                        Visit::getCurrency,
+                        Visit::setCurrency,
+                        changes.getCurrency()),
+                new FieldUpdateHelper<>("vehicle",
+                        Visit::getVehicle,
+                        Visit::setVehicle,
+                        changes.getVehicle())
+        );
 
-        // 5. Process fields without duplicate checking
-        Stream.of(
-                        Map.entry("employee", changes.getEmployee()),
-                        Map.entry("status", changes.getStatus()),
-                        Map.entry("currency", changes.getCurrency())
-                )
-                .forEach(entry -> {
-                    String currentValue = GenericFieldAccessor.getFieldValue(existingVisit, entry.getKey());
-                    Optional.ofNullable(entry.getValue())
-                            .filter(newValue -> !newValue.equals(currentValue)) // Skip if unchanged
-                            .ifPresent(newValue -> GenericFieldAccessor.setFieldValue(existingVisit, entry.getKey(), newValue));
-                });
+        // 4. Use entityHelper.update()
+        Visit updatedVisit = entityHelper.update(
+                visitId,
+                existingVisit,
+                duplicateCheckFields,
+                nonDuplicateCheckFields,
+                Visit::getId
+        );
 
-        // 6. Handle vehicle update
-        if (changes.getVehicle() != null) {
-            existingVisit.setVehicle(changes.getVehicle());
-        }
-
-        // 7. Handle visit items update (NEW LOGIC)
-        if (changes.getVisitItems() != null) {
+        // 5. Handle visit items update if provided
+        if (changes.getVisitItems() != null && !changes.getVisitItems().isEmpty()) {
             // Clear existing items
-            existingVisit.getVisitItems().clear();
+            updatedVisit.getVisitItems().clear();
 
             // Add new items
             for (VisitItem item : changes.getVisitItems()) {
-                item.setVisit(existingVisit);
+                item.setVisit(updatedVisit);
                 validateVisitItem(item);
-                existingVisit.getVisitItems().add(item);
+                updatedVisit.getVisitItems().add(item);
             }
+
+            // Recalculate total
+            updatedVisit.calculateTotal();
         }
 
-        // 8. Recalculate amount from visit items
-        existingVisit.calculateTotal();
-
-        return visitRepository.save(existingVisit);
+        return visitRepository.save(updatedVisit);
     }
 
     @Override
-    @Transactional
     public void deleteVisit(User user, Long visitId) {
-        // 1. Validate permissions (admin or employee)
+        // 1. Validate permissions
         restrictHelper.isUserAdminOrEmployee(user);
-
-        // 2. Check if the target user exists
-        Visit targetVisit = visitRepository.findById(visitId)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("Visit with id %s not found", visitId)));
-
-        // 3. Perform deletion (cascade will delete visit items)
-        visitRepository.delete(targetVisit);
+        // 2. Use entityHelper.delete()
+        entityHelper.delete(visitId);
     }
 
     @Override
-    @Transactional
     public void deleteVisits(User user, List<Long> ids) {
-        // 1. Validate permissions (admin or employee)
+        // 1. Validate permissions
         restrictHelper.isUserAdminOrEmployee(user);
 
-        // 2. Perform deletion
-        visitRepository.deleteAllById(ids);
+        // 2. Use entityHelper.deleteAllById()
+        entityHelper.deleteAllById(ids);
     }
 
     // ========== HELPER METHODS ==========
@@ -198,6 +230,19 @@ public class VisitServiceImpl implements VisitService{
         for (VisitItem item : visit.getVisitItems()) {
             item.setVisit(visit); // Set the bidirectional relationship
             validateVisitItem(item);
+
+            // Fetch and set related entities if only IDs are provided
+            if (item.getServiceItem() != null && item.getServiceItem().getId() != null) {
+                ServiceItem service = serviceItemRepository.findById(item.getServiceItem().getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Service not found"));
+                item.setServiceItem(service);
+            }
+
+            if (item.getPack() != null && item.getPack().getId() != null) {
+                Pack pack = packRepository.findById(item.getPack().getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Pack not found"));
+                item.setPack(pack);
+            }
         }
     }
 
@@ -217,20 +262,30 @@ public class VisitServiceImpl implements VisitService{
         // Set item type and defaults
         if (item.getServiceItem() != null) {
             item.setItemType(VisitItem.ItemType.SERVICE);
-            if (item.getPrice() == null) item.setPrice(item.getServiceItem().getPrice());
-            if (item.getItemName() == null) item.setItemName(item.getServiceItem().getServiceName());
+            if (item.getPrice() == null && item.getServiceItem().getPrice() != null) {
+                item.setPrice(item.getServiceItem().getPrice());
+            }
+            if (item.getItemName() == null && item.getServiceItem().getServiceName() != null) {
+                item.setItemName(item.getServiceItem().getServiceName());
+            }
         } else {
             item.setItemType(VisitItem.ItemType.PACK);
-            if (item.getPrice() == null) item.setPrice(
-                    item.getPack().getAmount() != null ? item.getPack().getAmount() : BigDecimal.ZERO
-            );
-            if (item.getItemName() == null) item.setItemName(item.getPack().getPackName());
+            if (item.getPrice() == null && item.getPack().getAmount() != null) {
+                item.setPrice(item.getPack().getAmount());
+            }
+            if (item.getItemName() == null && item.getPack().getPackName() != null) {
+                item.setItemName(item.getPack().getPackName());
+            }
         }
 
         // Default quantity
         if (item.getQuantity() == null) {
             item.setQuantity(1);
         }
-    }
 
+        // Validate price
+        if (item.getPrice() == null || item.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Visit item must have a valid price greater than 0");
+        }
+    }
 }

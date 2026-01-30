@@ -1,10 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.DTO.LoginDTO;
-import com.example.demo.DTO.UserDTO;
 import com.example.demo.models.User;
-import com.example.demo.response.AuthenticationResponse;
-import com.example.demo.response.RegistrationResponse;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Optional;

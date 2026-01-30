@@ -21,7 +21,5 @@ public class VisitDTO {
     private LocalDateTime visitDate;
     private String status;
     private BigDecimal amount;
-    private String currency;
-    private Pack pack;
-    private List<ServiceItem> visitServices;
+    private List<VisitItem> visitItems;
 }

@@ -1,7 +1,7 @@
 import { User } from './user';
 import { Vehicle } from './vehicle';
-import { Pack } from './pack';
-import {Service} from "@/types/service";
+import { Service } from "@/types/service";
+import { Pack } from "@/types/pack";
 
 export type Visit = {
     id: string;
@@ -12,9 +12,27 @@ export type Visit = {
     status: string;
     amount: number;
     currency: string;
-    pack ?: Pack;
-    visitServices ?: Service[];
+    visitItems: VisitItem [];
 };
+
+// visit-item.ts
+
+export enum VisitItemType {
+    SERVICE = "SERVICE",
+    PACK = "PACK"
+}
+
+export type VisitItem = {
+    visitId?: string;
+    serviceItem?: Service;
+    pack?: Pack;
+    itemType: VisitItemType;
+    itemName?: string;
+    price: number;
+    quantity: number;
+    subtotal?: number;
+};
+
 
 export enum Status {
     SCHEDULED = "SCHEDULED",

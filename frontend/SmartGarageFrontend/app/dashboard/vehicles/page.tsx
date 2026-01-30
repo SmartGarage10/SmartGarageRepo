@@ -1,11 +1,10 @@
-// frontend/SmartGarageFrontend/src/app/dashboard/vehicles/page.tsx
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import { getColumns } from '@/app/dashboard/vehicles/column';
 import { Vehicle } from '@/types/vehicle';
-import { User } from '@/types/user';
+import {User, UserRole} from '@/types/user';
 
 import { DataTable } from '@/components/data-table/data-table';
 import { DataTableAdvancedToolbar } from '@/components/data-table/data-table-advanced-toolbar';
@@ -13,15 +12,15 @@ import { DataTableFilterList } from '@/components/data-table/data-table-filter-l
 import { SearchInput } from '@/components/data-table/data-search';
 import { Toaster } from 'sonner';
 
-import { VehicleForm } from '@/components/forms/edit-create-vehicle-form';
 import { useDataTable } from '@/hooks/useDataTable';
+import { VehicleForm } from '@/components/forms/edit-create-vehicle-form';
 import { CarService } from '@/services/CarService';
 import { createApi } from '@/api/genericApi';
 
 export default function VehiclesPage() {
     const [isMounted, setIsMounted] = useState(false);
-
     const [clients, setClients] = useState<User[]>([]);
+    const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
     const [brandOptions, setBrandOptions] = useState<{ label: string; value: string }[]>([]);
     const [modelOptions, setModelOptions] = useState<{ label: string; value: string }[]>([]);
@@ -29,35 +28,48 @@ export default function VehiclesPage() {
 
     const [isBrandsLoading, setIsBrandsLoading] = useState(false);
     const [isModelsLoading, setIsModelsLoading] = useState(false);
+    const [isDataLoading, setIsDataLoading] = useState(true);
 
     const [selectedRow, setSelectedRow] = useState<Vehicle | null>(null);
 
+    // APIs
+    const vehicleApi = createApi<Vehicle>('vehicles');
     const userApi = createApi<User>('users');
 
-    // -------------------------
-    // Load clients
+    // -----------------------------
+    // Load initial data: clients & vehicles
     useEffect(() => {
-        const loadClients = async () => {
+        const loadData = async () => {
+            setIsDataLoading(true);
             try {
-                const users = await userApi.getAll();
-                setClients(users.filter(u => u.role?.roleName === 'CLIENT'));
+                const [fetchedUsers, fetchedVehicles] = await Promise.all([
+                    userApi.getAll(),
+                    vehicleApi.getAll(),
+                ]);
+
+                setClients(fetchedUsers.filter(u => u.role?.roleName === 'CLIENT'));
+                setVehicles(fetchedVehicles);
             } catch (error) {
-                console.error('Failed to load clients', error);
+                console.error('Failed to load initial vehicle data', error);
+            } finally {
+                setIsDataLoading(false);
             }
         };
-        loadClients();
+        loadData();
     }, []);
 
-    // -------------------------
+    // -----------------------------
     // Load brands
     useEffect(() => {
         const loadBrands = async () => {
             setIsBrandsLoading(true);
             try {
                 const brands = await CarService.fetchBrands();
-                setBrandOptions(brands.map(b => ({ label: b, value: b })));
-            } catch (error) {
-                console.error('Failed to load brands', error);
+                console.log('Fetched brands:'+ brands);
+                setBrandOptions(brands.map((brand: string) => ({ label: brand, value: brand })));
+                console.log('Options set for brands:' + brandOptions);
+            } catch (err) {
+                console.error('Error loading brands:', err);
             } finally {
                 setIsBrandsLoading(false);
             }
@@ -65,8 +77,7 @@ export default function VehiclesPage() {
         loadBrands();
     }, []);
 
-    // -------------------------
-    // Load models on brand change
+    // Load models when brand changes
     useEffect(() => {
         const loadModels = async () => {
             if (!selectedBrand) {
@@ -76,9 +87,11 @@ export default function VehiclesPage() {
             setIsModelsLoading(true);
             try {
                 const models = await CarService.fetchModels(selectedBrand);
-                setModelOptions(models.map(m => ({ label: m, value: m })));
-            } catch (error) {
-                console.error('Failed to load models', error);
+                console.log('Fetched models:'+ models);
+                setModelOptions(models.map((model: string) => ({ label: model, value: model })));
+                console.log('Options set for models:' + modelOptions);
+            } catch (err) {
+                console.error('Error loading models:', err);
                 setModelOptions([]);
             } finally {
                 setIsModelsLoading(false);
@@ -92,15 +105,16 @@ export default function VehiclesPage() {
         return () => setIsMounted(false);
     }, []);
 
-    // -------------------------
-    // Edit handler
+    // -----------------------------
+    // Handle edit row
     const handleEdit = useCallback((vehicle: Vehicle) => {
         setSelectedRow(vehicle);
         setSelectedBrand(vehicle.brand);
     }, []);
 
-    // -------------------------
-    // Data table
+
+    // -----------------------------
+    // DataTable hook
     const {
         table,
         globalFilter,
@@ -112,28 +126,26 @@ export default function VehiclesPage() {
         setIsFormOpen,
     } = useDataTable<Vehicle>({
         fetchUrl: 'http://localhost:8080/api/vehicles',
-        getColumns: ({ onDelete }) =>
-            getColumns({
-                onEdit: (row: Vehicle) => {
-                    handleEdit(row);
-                    setIsFormOpen(true);
-                },
-                onDelete,
-                brandOptions,
-                modelOptions,
-            }),
+        getColumns: ({ onDelete }) => getColumns({
+            onEdit: (row: Vehicle) => {
+                handleEdit(row);
+                setIsFormOpen(true);
+            },
+            onDelete,
+            brandOptions,
+            modelOptions
+        }),
     });
 
-    // -------------------------
+    // -----------------------------
     // Submit handler
     const handleSubmit = useCallback(
         async (vehicleData: Omit<Vehicle, 'id'> & { id?: string }) => {
             try {
                 const isEdit = !!selectedRow?.id;
                 const endpoint = isEdit
-                    ? `http://localhost:8080/api/vehicles/${selectedRow!.id}`
+                    ? `http://localhost:8080/api/vehicles/${selectedRow.id}`
                     : 'http://localhost:8080/api/vehicles';
-
                 const method = isEdit ? 'PUT' : 'POST';
 
                 const payload = {
@@ -157,18 +169,15 @@ export default function VehiclesPage() {
                     throw new Error(errorData.message || 'Failed to save vehicle');
                 }
 
+                fetchData();
+                setIsFormOpen(false);
                 return true;
             } catch (error) {
                 console.error('Error saving vehicle:', error);
                 throw error;
             }
         },
-        [selectedRow]
-    );
-
-    const brandSelectOptions = useMemo(
-        () => brandOptions.map(opt => ({ ...opt, disabled: isModelsLoading })),
-        [brandOptions, isModelsLoading]
+        [selectedRow, fetchData]
     );
 
     if (!isMounted) return null;
@@ -177,7 +186,10 @@ export default function VehiclesPage() {
         <div className="space-y-4">
             <Toaster richColors position="top-center" />
 
-            <DataTable table={table} className="px-10">
+            <DataTable
+                table={table}
+                className="px-10"
+                key={`brand-${brandOptions.length}-model-${modelOptions.length}`}>
                 <DataTableAdvancedToolbar
                     table={table}
                     menuLabel="Add Vehicle"
@@ -191,7 +203,6 @@ export default function VehiclesPage() {
                             ? handleDeleteSelected
                             : undefined
                     }
-                    onClearAll={clearAllFilters}
                 >
                     <DataTableFilterList table={table} onClearAll={clearAllFilters} />
                     <SearchInput
@@ -212,15 +223,12 @@ export default function VehiclesPage() {
                     fetchData();
                     setIsFormOpen(false);
                 }}
-                brandOptions={brandSelectOptions}
+                brandOptions={brandOptions}
                 modelOptions={modelOptions}
+                selectedBrand={selectedBrand}
+                onBrandChange={setSelectedBrand}
                 isBrandsLoading={isBrandsLoading}
                 isModelsLoading={isModelsLoading}
-                selectedBrand={selectedBrand}
-                onBrandChange={(brand: string) => {
-                    setSelectedBrand(brand);
-                    setModelOptions([]);
-                }}
             />
         </div>
     );

@@ -2,6 +2,9 @@ package com.example.demo.mappers;
 
 import com.example.demo.DTO.VisitDTO;
 import com.example.demo.models.Visit;
+import com.example.demo.models.VisitItem;
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.processing.Generated;
 import org.springframework.stereotype.Component;
 
@@ -13,24 +16,6 @@ import org.springframework.stereotype.Component;
 public class VisitMapperImpl implements VisitMapper {
 
     @Override
-    public VisitDTO toDto(Visit visit) {
-        if ( visit == null ) {
-            return null;
-        }
-
-        VisitDTO visitDTO = new VisitDTO();
-
-        visitDTO.setVehicle( visit.getVehicle() );
-        visitDTO.setEmployee( visit.getEmployee() );
-        visitDTO.setVisitDate( visit.getVisitDate() );
-        visitDTO.setStatus( visit.getStatus() );
-        visitDTO.setAmount( visit.getAmount() );
-        visitDTO.setCurrency( visit.getCurrency() );
-
-        return visitDTO;
-    }
-
-    @Override
     public Visit toEntity(VisitDTO visitDTO) {
         if ( visitDTO == null ) {
             return null;
@@ -38,12 +23,25 @@ public class VisitMapperImpl implements VisitMapper {
 
         Visit visit = new Visit();
 
-        visit.setVehicle( visitDTO.getVehicle() );
-        visit.setEmployee( visitDTO.getEmployee() );
-        visit.setVisitDate( visitDTO.getVisitDate() );
-        visit.setStatus( visitDTO.getStatus() );
-        visit.setAmount( visitDTO.getAmount() );
-        visit.setCurrency( visitDTO.getCurrency() );
+        if ( visitDTO.getVehicle() != null ) {
+            visit.setVehicle( visitDTO.getVehicle() );
+        }
+        if ( visitDTO.getEmployee() != null ) {
+            visit.setEmployee( visitDTO.getEmployee() );
+        }
+        if ( visitDTO.getVisitDate() != null ) {
+            visit.setVisitDate( visitDTO.getVisitDate() );
+        }
+        if ( visitDTO.getStatus() != null ) {
+            visit.setStatus( visitDTO.getStatus() );
+        }
+        if ( visitDTO.getAmount() != null ) {
+            visit.setAmount( visitDTO.getAmount() );
+        }
+        List<VisitItem> list = visitDTO.getVisitItems();
+        if ( list != null ) {
+            visit.setVisitItems( new ArrayList<VisitItem>( list ) );
+        }
 
         return visit;
     }

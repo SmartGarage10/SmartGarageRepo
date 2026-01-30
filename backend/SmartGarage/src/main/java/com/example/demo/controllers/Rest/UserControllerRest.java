@@ -22,15 +22,12 @@ import java.util.*;
 public class UserControllerRest {
     private final UserService userService;
     private final SecurityHelper securityHelper;
-    private final UserMapper userMapper;
 
     @Autowired
     public UserControllerRest(UserService userService,
-                              SecurityHelper securityHelper,
-                              UserMapper userMapper) {
+                              SecurityHelper securityHelper) {
         this.userService = userService;
         this.securityHelper = securityHelper;
-        this.userMapper = userMapper;
     }
 
     @GetMapping("/users")
@@ -49,7 +46,13 @@ public class UserControllerRest {
             BindingResult bindingResult) {
         try {
             // Check for validation errors
-            ValidationHelper.validate(bindingResult);
+
+            // Add Check for BindingResult
+            // NOW is BROKEN
+            // If statement on BindingResult
+            if(bindingResult.hasErrors()){
+                ValidationHelper.validate(bindingResult);
+            }
 
             User currentUser = securityHelper.getCurrentUser();
 
@@ -67,7 +70,9 @@ public class UserControllerRest {
 
         try {
             // Check for validation errors
-            ValidationHelper.validate(bindingResult);
+            if(bindingResult.hasErrors()){
+                ValidationHelper.validate(bindingResult);
+            }
 
             User currentUser = securityHelper.getCurrentUser();
 

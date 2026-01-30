@@ -119,7 +119,7 @@ class UserServiceImplTest {
             Mockito.when(userRepository.save(mappedUser)).thenReturn(mappedUser);
 
             Mockito.doNothing().when(emailService).sendRegistrationEmail(
-                    anyString(), anyString(), anyString(), anyString()
+                    anyString(), anyString(), anyString()
             );
 
             // WHEN
@@ -134,7 +134,6 @@ class UserServiceImplTest {
                     .sendRegistrationEmail(
                             Mockito.eq(creator.getEmail()),
                             Mockito.eq(userDTO.getEmail()),
-                            anyString(),
                             anyString()
                     );
         }

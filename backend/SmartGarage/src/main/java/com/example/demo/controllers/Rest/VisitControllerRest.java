@@ -41,7 +41,9 @@ public class VisitControllerRest {
     public ResponseEntity<List<Visit>> getAllVisits(@RequestParam MultiValueMap<String, String> allParams){
         try {
             securityHelper.isAuthenticated();
-            return ResponseEntity.ok(visitService.getAllVisits(allParams));
+            List<Visit> visits = visitService.getAllVisits(allParams);
+            System.out.println("Visits: " + visits);
+            return ResponseEntity.ok(visits);
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }
@@ -51,13 +53,12 @@ public class VisitControllerRest {
     public ResponseEntity<?> createVisit(@Valid @RequestBody VisitDTO visitDTO,
                                                  BindingResult bindingResult){
         try {
-            // Check for validation errors
-            ValidationHelper.validate(bindingResult);
+            if(bindingResult.hasErrors()){
+                ValidationHelper.validate(bindingResult);
+            }
 
             User currentUser = securityHelper.getCurrentUser();
-            Visit visit = visitMapper.toEntity(visitDTO);
-
-            return ResponseEntity.ok(visitService.createVisit(currentUser, visit));
+            return ResponseEntity.ok(visitService.createVisit(currentUser, visitDTO));
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
@@ -68,11 +69,12 @@ public class VisitControllerRest {
                                                  @PathVariable Long id,
                                                  BindingResult bindingResult){
         try {
-            ValidationHelper.validate(bindingResult);
+            if(bindingResult.hasErrors()){
+                ValidationHelper.validate(bindingResult);
+            }
 
             User currentUser = securityHelper.getCurrentUser();
             Visit visit = visitMapper.toEntity(visitDTO);
-
             return ResponseEntity.ok(visitService.update(currentUser, id , visit));
         }
         catch (AuthorizationException e){

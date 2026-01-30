@@ -138,7 +138,6 @@ export const getColumns = ({
                 label: "Model",
                 placeholder: "Filter models...",
                 variant: "multiSelect",
-                icon: Text,
                 options: [...new Map(modelOptions.map(item => [item.value, item]))].map(([_, option]) => ({
                     label: option.label,
                     value: option.value
