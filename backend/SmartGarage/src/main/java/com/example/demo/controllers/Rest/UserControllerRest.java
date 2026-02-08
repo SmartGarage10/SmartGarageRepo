@@ -3,7 +3,6 @@ package com.example.demo.controllers.Rest;
 import com.example.demo.DTO.*;
 import com.example.demo.exceptions.AuthorizationException;
 import com.example.demo.helpers.*;
-import com.example.demo.mappers.UserMapper;
 import com.example.demo.models.User;
 import com.example.demo.service.UserService;
 import jakarta.validation.Valid;
@@ -45,11 +44,6 @@ public class UserControllerRest {
             @Valid @RequestBody UserDTO request,
             BindingResult bindingResult) {
         try {
-            // Check for validation errors
-
-            // Add Check for BindingResult
-            // NOW is BROKEN
-            // If statement on BindingResult
             if(bindingResult.hasErrors()){
                 ValidationHelper.validate(bindingResult);
             }

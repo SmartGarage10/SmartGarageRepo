@@ -9,7 +9,6 @@ import com.example.demo.filter.VehicleSpecifications;
 import com.example.demo.filter.FilterHelper;
 import com.example.demo.helpers.EntityServiceHelper;
 import com.example.demo.helpers.FieldUpdateHelper;
-import com.example.demo.helpers.RestrictHelper;
 import com.example.demo.mappers.VehicleMapper;
 import com.example.demo.models.User;
 import com.example.demo.models.Vehicle;
@@ -23,7 +22,6 @@ import org.springframework.util.MultiValueMap;
 import java.time.Year;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service

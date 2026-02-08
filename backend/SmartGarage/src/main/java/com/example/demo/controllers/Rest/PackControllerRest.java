@@ -1,13 +1,10 @@
 package com.example.demo.controllers.Rest;
 
 import com.example.demo.DTO.PackDTO;
-import com.example.demo.DTO.ServiceDTO;
 import com.example.demo.exceptions.AuthorizationException;
-import com.example.demo.helpers.PackMapper;
 import com.example.demo.helpers.SecurityHelper;
 import com.example.demo.helpers.ValidationHelper;
 import com.example.demo.models.Pack;
-import com.example.demo.models.ServiceItem;
 import com.example.demo.models.User;
 import com.example.demo.service.PackService;
 import jakarta.validation.Valid;
@@ -27,15 +24,12 @@ public class PackControllerRest {
 
     private final PackService packService;
     private final SecurityHelper securityHelper;
-    private final PackMapper packMapper;
 
     @Autowired
     public PackControllerRest(PackService packService,
-                              SecurityHelper securityHelper,
-                              PackMapper packMapper) {
+                              SecurityHelper securityHelper) {
         this.packService = packService;
         this.securityHelper = securityHelper;
-        this.packMapper = packMapper;
     }
 
     @GetMapping("/packs")
@@ -57,8 +51,7 @@ public class PackControllerRest {
             }
 
             User currentUser = securityHelper.getCurrentUser();
-            Pack pack = packMapper.fromDto(packDTO);
-            return ResponseEntity.ok(packService.createPack(currentUser, pack));
+            return ResponseEntity.ok(packService.createPack(currentUser, packDTO));
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
@@ -74,8 +67,7 @@ public class PackControllerRest {
             }
 
             User currentUser = securityHelper.getCurrentUser();
-            Pack pack = packMapper.fromDto(packDTO);
-            return ResponseEntity.ok(packService.update(currentUser, id , pack));
+            return ResponseEntity.ok(packService.update(currentUser, id , packDTO));
         }
         catch (AuthorizationException e){
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());

@@ -6,7 +6,6 @@ import com.example.demo.exceptions.ResourceConflictException;
 import com.example.demo.exceptions.ResourceNotFoundException;
 import com.example.demo.filter.FilterHelper;
 import com.example.demo.helpers.PasswordGeneratorHelper;
-import com.example.demo.helpers.RestrictHelper;
 import com.example.demo.mappers.UserMapper;
 import com.example.demo.models.Role;
 import com.example.demo.models.User;
@@ -19,7 +18,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;

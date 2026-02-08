@@ -9,14 +9,12 @@ import com.example.demo.filter.VisitSpecification;
 import com.example.demo.filter.FilterHelper;
 import com.example.demo.helpers.EntityServiceHelper;
 import com.example.demo.helpers.FieldUpdateHelper;
-import com.example.demo.helpers.RestrictHelper;
 import com.example.demo.mappers.VisitMapper;
 import com.example.demo.models.*;
 import com.example.demo.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.MultiValueMap;
 
 import java.math.BigDecimal;
@@ -27,8 +25,6 @@ import java.util.Optional;
 
 @Service
 public class VisitServiceImpl implements VisitService, EntitySpecificationProvider<Visit> {
-
-    private final RestrictHelper restrictHelper;
     private final VisitRepository visitRepository;
     private final VisitMapper visitMapper;
     private final EntityServiceHelper<Visit, Long, VisitRepository> entityHelper;
@@ -39,8 +35,7 @@ public class VisitServiceImpl implements VisitService, EntitySpecificationProvid
     private final PackRepository packRepository;
 
     @Autowired
-    public VisitServiceImpl(RestrictHelper restrictHelper,
-                            VisitRepository visitRepository,
+    public VisitServiceImpl(VisitRepository visitRepository,
                             VisitMapper visitMapper,
                             VehicleRepository vehicleRepository,
                             UserRepository userRepository,
@@ -48,7 +43,6 @@ public class VisitServiceImpl implements VisitService, EntitySpecificationProvid
                             PackRepository packRepository,
                             FilterHelper filterHelper,
                             VisitSpecification visitSpecification) {
-        this.restrictHelper = restrictHelper;
         this.visitRepository = visitRepository;
         this.visitMapper = visitMapper;
         this.vehicleRepository = vehicleRepository;
@@ -107,8 +101,6 @@ public class VisitServiceImpl implements VisitService, EntitySpecificationProvid
 
     @Override
     public Visit createVisit(User user, VisitDTO visitDTO) {
-        restrictHelper.isUserAdminOrEmployee(user);
-
         // Check if visit already exists with the same date
         if (visitRepository.existsByVisitDate(visitDTO.getVisitDate())) {
             throw new ResourceConflictException(String.format("Visit with date %s already exists", visitDTO.getVisitDate()));
@@ -140,15 +132,12 @@ public class VisitServiceImpl implements VisitService, EntitySpecificationProvid
     }
 
     @Override
-    public Visit update(User user, Long visitId, Visit changes) {
-        // 1. Check User permissions
-        restrictHelper.isUserAdminOrEmployee(user);
-
-        // 2. Find existing visit
+    public Visit update(User user, Long visitId, VisitDTO changes) {
+        // 1. Find existing visit
         Visit existingVisit = visitRepository.findById(visitId)
                 .orElseThrow(() -> new ResourceNotFoundException(String.format("Visit with id %s not found", visitId)));
 
-        // 3. Prepare FieldUpdateHelper lists
+        // 2. Prepare FieldUpdateHelper lists
         List<FieldUpdateHelper<Visit, ?>> duplicateCheckFields = Arrays.asList(
                 new FieldUpdateHelper<>("visitDate",
                         Visit::getVisitDate,
@@ -175,7 +164,7 @@ public class VisitServiceImpl implements VisitService, EntitySpecificationProvid
                         changes.getVehicle())
         );
 
-        // 4. Use entityHelper.update()
+        // 3. Use entityHelper.update()
         Visit updatedVisit = entityHelper.update(
                 visitId,
                 existingVisit,
@@ -184,7 +173,7 @@ public class VisitServiceImpl implements VisitService, EntitySpecificationProvid
                 Visit::getId
         );
 
-        // 5. Handle visit items update if provided
+        // 4. Handle visit items update if provided
         if (changes.getVisitItems() != null && !changes.getVisitItems().isEmpty()) {
             // Clear existing items
             updatedVisit.getVisitItems().clear();
@@ -205,18 +194,13 @@ public class VisitServiceImpl implements VisitService, EntitySpecificationProvid
 
     @Override
     public void deleteVisit(User user, Long visitId) {
-        // 1. Validate permissions
-        restrictHelper.isUserAdminOrEmployee(user);
-        // 2. Use entityHelper.delete()
+        // 1. Use entityHelper.delete()
         entityHelper.delete(visitId);
     }
 
     @Override
     public void deleteVisits(User user, List<Long> ids) {
-        // 1. Validate permissions
-        restrictHelper.isUserAdminOrEmployee(user);
-
-        // 2. Use entityHelper.deleteAllById()
+        // 1. Use entityHelper.deleteAllById()
         entityHelper.deleteAllById(ids);
     }
 

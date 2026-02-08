@@ -18,7 +18,7 @@ public interface VisitService {
         List<Visit> getVisitsByDate(LocalDateTime dateTime);
 
         Visit createVisit(User user, VisitDTO visitDTO);
-        Visit update(User user, Long visitId, Visit changes);
+        Visit update(User user, Long visitId, VisitDTO changes);
 
         void deleteVisit(User user ,Long visitId);
         void deleteVisits(User user, List<Long> ids);

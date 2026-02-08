@@ -1,6 +1,5 @@
 package com.example.demo.DTO;
 
-import com.example.demo.models.Pack;
 import com.example.demo.models.ServiceItem;
 import lombok.AllArgsConstructor;
 import lombok.Data;

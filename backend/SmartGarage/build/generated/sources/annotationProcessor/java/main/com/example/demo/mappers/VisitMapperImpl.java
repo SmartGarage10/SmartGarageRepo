@@ -42,6 +42,9 @@ public class VisitMapperImpl implements VisitMapper {
         if ( list != null ) {
             visit.setVisitItems( new ArrayList<VisitItem>( list ) );
         }
+        if ( visitDTO.getCurrency() != null ) {
+            visit.setCurrency( visitDTO.getCurrency() );
+        }
 
         return visit;
     }

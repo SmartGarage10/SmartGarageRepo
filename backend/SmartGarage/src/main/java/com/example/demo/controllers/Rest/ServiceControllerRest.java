@@ -1,9 +1,8 @@
 package com.example.demo.controllers.Rest;
 
-import com.example.demo.DTO.ServiceDTO;
+import com.example.demo.DTO.ServiceItemDTO;
 import com.example.demo.exceptions.AuthorizationException;
 import com.example.demo.helpers.SecurityHelper;
-import com.example.demo.helpers.ServiceMapper;
 import com.example.demo.helpers.ValidationHelper;
 import com.example.demo.models.ServiceItem;
 import com.example.demo.models.User;
@@ -24,12 +23,11 @@ import java.util.Map;
 public class ServiceControllerRest {
 
     private final ServiceService service;
-    private final ServiceMapper serviceMapper;
     private final SecurityHelper securityHelper;
 
-    public ServiceControllerRest(ServiceService service, ServiceMapper serviceMapper, SecurityHelper securityHelper) {
+    public ServiceControllerRest(ServiceService service,
+                                 SecurityHelper securityHelper) {
         this.service = service;
-        this.serviceMapper = serviceMapper;
         this.securityHelper = securityHelper;
     }
     @GetMapping("/services")
@@ -43,7 +41,7 @@ public class ServiceControllerRest {
     }
 
     @PostMapping("/create-service")
-    public ResponseEntity<?> createService(@Valid @RequestBody ServiceDTO serviceDTO,
+    public ResponseEntity<?> createService(@Valid @RequestBody ServiceItemDTO serviceDTO,
                                            BindingResult bindingResult){
         try {
             if(bindingResult.hasErrors()){
@@ -51,15 +49,14 @@ public class ServiceControllerRest {
             }
 
             User currentUser = securityHelper.getCurrentUser();
-            ServiceItem serviceItem = serviceMapper.fromDto(serviceDTO);
-            return ResponseEntity.ok(service.createNewService(currentUser, serviceItem));
+            return ResponseEntity.ok(service.createNewService(currentUser, serviceDTO));
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
     }
 
     @PutMapping("update-service/{id}")
-    public ResponseEntity<?> updateService(@Valid @RequestBody ServiceDTO serviceDTO,
+    public ResponseEntity<?> updateService(@Valid @RequestBody ServiceItemDTO serviceDTO,
                                            @PathVariable Long id,
                                            BindingResult bindingResult){
         try {
@@ -68,8 +65,7 @@ public class ServiceControllerRest {
             }
 
             User currentUser = securityHelper.getCurrentUser();
-            ServiceItem serviceItem = serviceMapper.fromDto(serviceDTO);
-            return ResponseEntity.ok(service.update(currentUser, id , serviceItem));
+            return ResponseEntity.ok(service.update(currentUser, id , serviceDTO));
         }
         catch (AuthorizationException e){
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());

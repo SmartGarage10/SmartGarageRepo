@@ -22,4 +22,5 @@ public class VisitDTO {
     private String status;
     private BigDecimal amount;
     private List<VisitItem> visitItems;
+    private String currency = "EUR";
 }

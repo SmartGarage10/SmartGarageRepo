@@ -25,15 +25,12 @@ import java.util.Map;
 public class VisitControllerRest {
     private final VisitService visitService;
     private final SecurityHelper securityHelper;
-    private final VisitMapper visitMapper;
 
     @Autowired
     public VisitControllerRest(VisitService visitService,
-                               SecurityHelper securityHelper,
-                               VisitMapper visitMapper) {
+                               SecurityHelper securityHelper) {
         this.visitService = visitService;
         this.securityHelper = securityHelper;
-        this.visitMapper = visitMapper;
     }
 
 
@@ -74,8 +71,7 @@ public class VisitControllerRest {
             }
 
             User currentUser = securityHelper.getCurrentUser();
-            Visit visit = visitMapper.toEntity(visitDTO);
-            return ResponseEntity.ok(visitService.update(currentUser, id , visit));
+            return ResponseEntity.ok(visitService.update(currentUser, id , visitDTO));
         }
         catch (AuthorizationException e){
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
