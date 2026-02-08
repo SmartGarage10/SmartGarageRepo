@@ -51,7 +51,7 @@ export function NavUser() {
       }
 
       setUser(null)
-      router.push("/login")
+      router.push("/")
     } catch (err) {
       console.error("Logout error:", err)
       toast.error("Failed to logout. Please try again.")
