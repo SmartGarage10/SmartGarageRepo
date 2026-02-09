@@ -1,10 +1,9 @@
-package com.example.demo.controllers.Rest;
+package com.example.demo.controllers;
 
 import com.example.demo.DTO.VisitDTO;
 import com.example.demo.exceptions.AuthorizationException;
 import com.example.demo.helpers.SecurityHelper;
 import com.example.demo.helpers.ValidationHelper;
-import com.example.demo.mappers.VisitMapper;
 import com.example.demo.models.User;
 import com.example.demo.models.Visit;
 import com.example.demo.service.VisitService;

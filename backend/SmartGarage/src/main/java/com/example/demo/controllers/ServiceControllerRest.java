@@ -1,4 +1,4 @@
-package com.example.demo.controllers.Rest;
+package com.example.demo.controllers;
 
 import com.example.demo.DTO.ServiceItemDTO;
 import com.example.demo.exceptions.AuthorizationException;

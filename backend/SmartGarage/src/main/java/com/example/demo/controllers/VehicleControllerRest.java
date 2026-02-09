@@ -1,16 +1,17 @@
-package com.example.demo.controllers.Rest;
+package com.example.demo.controllers;
 
-import com.example.demo.DTO.PackDTO;
+import com.example.demo.DTO.VehicleDTO;
 import com.example.demo.exceptions.AuthorizationException;
 import com.example.demo.helpers.SecurityHelper;
 import com.example.demo.helpers.ValidationHelper;
-import com.example.demo.models.Pack;
 import com.example.demo.models.User;
-import com.example.demo.service.PackService;
+import com.example.demo.models.Vehicle;
+import com.example.demo.service.VehicleService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -20,76 +21,75 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
-public class PackControllerRest {
-
-    private final PackService packService;
+public class VehicleControllerRest {
+    private final VehicleService vehicleService;
     private final SecurityHelper securityHelper;
 
     @Autowired
-    public PackControllerRest(PackService packService,
-                              SecurityHelper securityHelper) {
-        this.packService = packService;
+    public VehicleControllerRest(VehicleService vehicleService,
+                                 SecurityHelper securityHelper) {
+        this.vehicleService = vehicleService;
         this.securityHelper = securityHelper;
     }
 
-    @GetMapping("/packs")
-    public ResponseEntity<List<Pack>> getAllVehicles() {
+    @GetMapping("/vehicles")
+    public ResponseEntity<List<Vehicle>> getAllVehicles(@RequestParam MultiValueMap<String, String> allParams){
         try {
             securityHelper.isAuthenticated();
-            return ResponseEntity.ok(packService.getAllPacks());
+            return ResponseEntity.ok(vehicleService.getAllVehicles(allParams));
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }
     }
 
-    @PostMapping("/create-pack")
-    public ResponseEntity<?> createService(@Valid @RequestBody PackDTO packDTO,
-                                           BindingResult bindingResult){
+    @PostMapping("/create-vehicle")
+    public ResponseEntity<?> createVehicle(@Valid @RequestBody VehicleDTO vehicleDTO,
+                                                 BindingResult bindingResult){
         try {
             if(bindingResult.hasErrors()){
                 ValidationHelper.validate(bindingResult);
             }
 
             User currentUser = securityHelper.getCurrentUser();
-            return ResponseEntity.ok(packService.createPack(currentUser, packDTO));
+            return ResponseEntity.ok(vehicleService.createNewVehicle(currentUser, vehicleDTO));
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
     }
 
-    @PutMapping("update-pack/{id}")
-    public ResponseEntity<?> updateService(@Valid @RequestBody PackDTO packDTO,
-                                           @PathVariable Long id,
-                                           BindingResult bindingResult){
+    @PutMapping("update-vehicle/{id}")
+    public ResponseEntity<?> updateVehicle(@Valid @RequestBody VehicleDTO vehicleDTO,
+                                                 @PathVariable Long id,
+                                                 BindingResult bindingResult){
         try {
             if(bindingResult.hasErrors()){
                 ValidationHelper.validate(bindingResult);
             }
 
             User currentUser = securityHelper.getCurrentUser();
-            return ResponseEntity.ok(packService.update(currentUser, id , packDTO));
+            return ResponseEntity.ok(vehicleService.update(currentUser, id , vehicleDTO));
         }
         catch (AuthorizationException e){
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
     }
 
-    @DeleteMapping("/packs/{id}")
-    public ResponseEntity<?> deleteSingleService(@PathVariable Long id) {
+    @DeleteMapping("/vehicles/{id}")
+    public ResponseEntity<?> deleteSingleVehicle(@PathVariable Long id) {
         try {
             User currentUser = securityHelper.getCurrentUser();
-            packService.deletePack(currentUser, id);
-            return ResponseEntity.ok(Map.of("status", "success", "message", "Service deleted successfully"));
+            vehicleService.deleteVehicle(currentUser, id);
+            return ResponseEntity.ok(Map.of("status", "success", "message", "User deleted successfully"));
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
     }
 
-    @DeleteMapping("/packs/delete")
-    public ResponseEntity<?> deleteManyService(@RequestBody List<Long> ids) {
+    @DeleteMapping("/vehicles/delete")
+    public ResponseEntity<?> deleteManyVehicles(@RequestBody List<Long> ids) {
         try {
             User currentUser = securityHelper.getCurrentUser();
-            packService.deletePacks(currentUser, ids);
+            vehicleService.deleteVehicles(currentUser, ids);
             return ResponseEntity.ok(Map.of("status", "success", "message", "User deleted successfully"));
         } catch (AuthorizationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
