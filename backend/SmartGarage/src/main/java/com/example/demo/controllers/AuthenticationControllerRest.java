@@ -38,5 +38,4 @@ public class AuthenticationControllerRest {
         securityHelper.isAuthenticated();
         return ResponseEntity.ok().body(securityHelper.getCurrentUser());
     }
-
 }

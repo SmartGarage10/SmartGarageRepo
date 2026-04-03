@@ -212,7 +212,7 @@ public class UserServiceImpl implements UserService, EntitySpecificationProvider
                         String.format("User with email %s not found", email)));
 
         return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())  // or user.getUsername() if needed
+                .username(user.getEmail())
                 .password(user.getPassword())
                 .authorities(user.getRole() != null ?
                         Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().getRoleName())) :

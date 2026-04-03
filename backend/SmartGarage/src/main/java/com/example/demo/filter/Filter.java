@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Filter {
-    private String id;          // Field name (e.g., "email")
-    private Object value;       // Filter value (e.g., "eva@example.com")
-    private String variant;     // UI variant (e.g., "text", "select")
-    private String operator;    // Operator (e.g., "iLike", "equals")
+    private String id;
+    private Object value;
+    private String variant;
+    private String operator;
 
     @JsonProperty("filterId")
-    private String filterId;    // Frontend-generated filter ID
+    private String filterId;
 
 }
