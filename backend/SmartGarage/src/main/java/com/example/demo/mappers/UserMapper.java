@@ -1,32 +1,24 @@
 package com.example.demo.mappers;
 
-import com.example.demo.DTO.LoginDTO;
-import com.example.demo.DTO.UserDTO;
-import com.example.demo.models.Role;
+import com.example.demo.DTO.user.UserCreateDTO;
+import com.example.demo.DTO.user.UserLoginDTO;
+import com.example.demo.DTO.user.UserResponseDTO;
+import com.example.demo.DTO.user.UserUpdateDTO;
 import com.example.demo.models.User;
-import com.example.demo.repositories.RoleRepository;
-import lombok.NoArgsConstructor;
 import org.mapstruct.*;
-import org.springframework.beans.factory.annotation.Autowired;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {RoleMapper.class})
 public interface UserMapper {
 
-    @Mapping(target = "password", ignore = true)
-    @Mapping(target = "vehicles", ignore = true)
-    User userDtoToUser(UserDTO userDTO);
+    @Mapping(target = "role", ignore = true)
+    User toEntity(UserCreateDTO dto);
 
-//    @Mapping(target = "id", ignore = true)
-//    @Mapping(target = "name", ignore = true)
-//    @Mapping(target = "username", ignore = true)
-//    @Mapping(target = "phone", ignore = true)
-//    @Mapping(target = "address", ignore = true)
-//    @Mapping(target = "vehicles", ignore = true)
-    User userDtoToUserLogin(LoginDTO userDTO);
+    @Mapping(target = "role", ignore = true)
+    User toEntity(UserUpdateDTO dto);
 
-    @Mapping(target = "password", ignore = true)
-    @Mapping(target = "vehicles", ignore = true)
-    @Mapping(target = "role", source = "role")  // This will map the role parameter!
-    User userDtoToUserWithRole(UserDTO userDTO, Role role);
+    User toEntity(UserLoginDTO dto);
+
+    @Mapping(target = "role", source = "role")
+    UserResponseDTO toDTO(User user);
 }
 

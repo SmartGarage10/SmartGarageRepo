@@ -103,6 +103,8 @@ export default function UsersPage() {
                 setIsFormOpen(false);
                 setSelectedRow(null);
 
+                console.log("Submitting user:", userData);
+
                 return true;
             } catch (error) {
                 toast.error(

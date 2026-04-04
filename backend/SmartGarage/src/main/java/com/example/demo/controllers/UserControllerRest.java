@@ -1,6 +1,9 @@
 package com.example.demo.controllers;
 
 import com.example.demo.DTO.*;
+import com.example.demo.DTO.user.UserCreateDTO;
+import com.example.demo.DTO.user.UserResponseDTO;
+import com.example.demo.DTO.user.UserUpdateDTO;
 import com.example.demo.exceptions.AuthorizationException;
 import com.example.demo.helpers.*;
 import com.example.demo.models.User;
@@ -30,7 +33,7 @@ public class UserControllerRest {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers(@RequestParam MultiValueMap<String, String> allParams) {
+    public ResponseEntity<List<UserResponseDTO>> getAllUsers(@RequestParam MultiValueMap<String, String> allParams) {
         try {
             securityHelper.isAuthenticated();
             return ResponseEntity.ok(userService.getAllUsers(allParams));
@@ -41,7 +44,7 @@ public class UserControllerRest {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(
-            @Valid @RequestBody UserDTO request,
+            @Valid @RequestBody UserCreateDTO request,
             BindingResult bindingResult) {
         try {
             if(bindingResult.hasErrors()){
@@ -59,7 +62,7 @@ public class UserControllerRest {
     @PutMapping("/user/{id}")
     public ResponseEntity<?> updateUser(
             @PathVariable Long id,
-            @Valid @RequestBody UserDTO request,
+            @Valid @RequestBody UserUpdateDTO request,
             BindingResult bindingResult) {
 
         try {

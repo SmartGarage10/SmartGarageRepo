@@ -1,6 +1,9 @@
 package com.example.demo.service;
 
 import com.example.demo.DTO.UserDTO;
+import com.example.demo.DTO.user.UserCreateDTO;
+import com.example.demo.DTO.user.UserResponseDTO;
+import com.example.demo.DTO.user.UserUpdateDTO;
 import com.example.demo.exceptions.ResourceConflictException;
 import com.example.demo.filter.EntitySpecificationProvider;
 import com.example.demo.filter.Filter;
@@ -80,15 +83,17 @@ public class UserServiceImpl implements UserService, EntitySpecificationProvider
     }
 
     @Override
-    public List<User> getAllUsers(MultiValueMap<String, String> params) {
-        return entityHelper.getAll(params);
+    public List<UserResponseDTO> getAllUsers(MultiValueMap<String, String> params) {
+        List<User> users = entityHelper.getAll(params);
+        return users.stream().map(userMapper::toDTO).toList();
     }
     @Override
-    public RegistrationResponse register(User user, UserDTO requestDTO) {
-        // Find Role entity by role name
-        Role role = roleRepository.findRoleByRoleName(Role.RoleType.valueOf(requestDTO.getRole().getRoleName()))
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("Role %s not found", requestDTO.getRole().getRoleName())));
-        User request = userMapper.userDtoToUserWithRole(requestDTO, role);
+    public UserResponseDTO register(User user, UserCreateDTO userDTO) {
+        User request = userMapper.toEntity(userDTO);
+
+        Role role = roleRepository.findRoleByRoleName(Role.RoleType.valueOf(userDTO.role())).orElseThrow(
+                () -> new ResourceNotFoundException(String.format("Role with name %s wasn't found", userDTO.role())));
+        request.setRole(role);
 
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new ResourceConflictException(String.format("User with username %s already exists", request.getUsername()));
@@ -105,11 +110,8 @@ public class UserServiceImpl implements UserService, EntitySpecificationProvider
         emailService.sendRegistrationEmail(toEmail, request.getUsername(), tempPass);
         userRepository.save(request);
 
-        return new RegistrationResponse(
-                "Registration successful. User can now login with their credentials",
-                request.getEmail(), LocalDateTime.now());
+        return userMapper.toDTO(request);
     }
-
     @Override
     public Optional<User> getUserById(Long userId) {
         return userRepository.findById(userId);
@@ -130,9 +132,10 @@ public class UserServiceImpl implements UserService, EntitySpecificationProvider
     }
 
     @Override
-    public User updateUser(User user, Long userId, UserDTO userDTO) {
+    public UserResponseDTO updateUser(User user, Long userId, UserUpdateDTO userDTO) {
         // 1. Convert DTO to User entity
-        User userDetails = userMapper.userDtoToUser(userDTO);
+        User userDetails = userMapper.toEntity(userDTO);
+
         // 2. Find existing user
         User existingUser = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -151,25 +154,17 @@ public class UserServiceImpl implements UserService, EntitySpecificationProvider
                 new FieldUpdateHelper<>("name", User::getName, User::setName,
                         userDetails.getName()),
                 new FieldUpdateHelper<>("address", User::getAddress, User::setAddress,
-                        userDetails.getAddress())
-        );
+                        userDetails.getAddress()),
+                new FieldUpdateHelper<>("role", User::getRole, User::setRole,
+                        roleRepository.findRoleByRoleName(Role.RoleType.valueOf(userDTO.role())).orElseThrow(
+                                () -> new ResourceNotFoundException(
+                                        String.format("Role with name %s not found", userDTO.role())
+                                )
+                        )
+        ));
 
-        // 4. Handle role update by NAME (not ID)
-        if (userDetails.getRole() != null) {
-            String newRoleName = userDetails.getRole().getRoleName().toString(); // Assuming it's enum
-            // Check if role is actually changing
-            if (existingUser.getRole() == null ||
-                    !newRoleName.equals(existingUser.getRole().getRoleName().toString())) {
-                // Fetch role from database by NAME
-                Role.RoleType roleType = Role.RoleType.valueOf(newRoleName);
-                Role role = roleRepository.findRoleByRoleName(roleType)
-                        .orElseThrow(() -> new ResourceNotFoundException(
-                                "Role not found with name: " + newRoleName));
-                existingUser.setRole(role);
-            }
-        }
-
-        return entityHelper.update(userId, existingUser, duplicateCheckFields, nonDuplicateCheckFields, User::getId);
+        entityHelper.update(userId, existingUser, duplicateCheckFields, nonDuplicateCheckFields, User::getId);
+        return userMapper.toDTO(existingUser);
     }
     @Override
     public void changePassword(User user, String oldPassword, String newPassword) {

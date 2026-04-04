@@ -22,7 +22,7 @@ public final class EntityServiceHelper<T, ID,
     private final R repository;
     private final FilterHelper filterHelper;
     private static final Map<Class<?>, String> ENTITY_NAME_CACHE = new ConcurrentHashMap<>();
-    // Make this method final so it can't be overridden
+    // Make this method final so it can't be overriddend
     @Getter
     private final String entityName;
     private final EntitySpecificationProvider<T> specificationProvider;
@@ -74,11 +74,6 @@ public final class EntityServiceHelper<T, ID,
         }
 
         return result.toString().trim();
-    }
-
-    // Optional: Helper method for error messages
-    public String getEntityNotFoundMessage(ID id) {
-        return String.format("%s with id %s not found", getEntityName(), id);
     }
 
     // ========== PUBLIC INTERFACE METHODS ==========

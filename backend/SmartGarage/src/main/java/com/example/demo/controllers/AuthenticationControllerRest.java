@@ -1,6 +1,7 @@
 package com.example.demo.controllers;
 
 import com.example.demo.DTO.LoginDTO;
+import com.example.demo.DTO.user.UserLoginDTO;
 import com.example.demo.exceptions.AuthorizationException;
 import com.example.demo.helpers.SecurityHelper;
 import com.example.demo.service.AuthenticationService;
@@ -25,7 +26,7 @@ public class AuthenticationControllerRest {
 
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginDTO userDTO, HttpServletRequest request) {
+    public ResponseEntity<?> login(@RequestBody UserLoginDTO userDTO, HttpServletRequest request) {
         try {
             return ResponseEntity.ok(authenticationService.authenticate(userDTO, request));
         } catch (AuthorizationException e) {

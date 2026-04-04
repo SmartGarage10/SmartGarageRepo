@@ -1,6 +1,9 @@
 package com.example.demo.service;
 
 import com.example.demo.DTO.LoginDTO;
+import com.example.demo.DTO.user.UserLoginDTO;
+import com.example.demo.DTO.user.UserResponseDTO;
+import com.example.demo.exceptions.ResourceNotFoundException;
 import com.example.demo.mappers.UserMapper;
 import com.example.demo.models.User;
 import com.example.demo.repositories.UserRepository;
@@ -29,13 +32,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public Optional<User> authenticate(LoginDTO userDTO, HttpServletRequest request) {
-        User user = userMapper.userDtoToUserLogin(userDTO);
+    public UserResponseDTO authenticate(UserLoginDTO userDTO, HttpServletRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        user.getEmail(),
-                        user.getPassword())
-        );
+                        userDTO.email(),
+                        userDTO.password()
+        ));
         // Create new security context and set authentication
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(authentication);
@@ -45,6 +47,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         HttpSession session = request.getSession(true);
         session.setAttribute("SPRING_SECURITY_CONTEXT", context);
 
-        return userRepository.findUserByEmail(user.getEmail());
+        return userMapper.toDTO(userRepository.findUserByEmail(userDTO.email())
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("User with email %s wasn't found", userDTO.email()))));
     }
 }

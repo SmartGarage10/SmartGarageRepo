@@ -1,8 +1,10 @@
 package com.example.demo.mappers;
 
-import com.example.demo.DTO.LoginDTO;
-import com.example.demo.DTO.RoleDTO;
-import com.example.demo.DTO.UserDTO;
+import com.example.demo.DTO.role.RoleResponseDTO;
+import com.example.demo.DTO.user.UserCreateDTO;
+import com.example.demo.DTO.user.UserLoginDTO;
+import com.example.demo.DTO.user.UserResponseDTO;
+import com.example.demo.DTO.user.UserUpdateDTO;
 import com.example.demo.models.Role;
 import com.example.demo.models.User;
 import javax.annotation.processing.Generated;
@@ -16,68 +18,84 @@ import org.springframework.stereotype.Component;
 public class UserMapperImpl implements UserMapper {
 
     @Override
-    public User userDtoToUser(UserDTO userDTO) {
-        if ( userDTO == null ) {
+    public User toEntity(UserCreateDTO dto) {
+        if ( dto == null ) {
             return null;
         }
 
         User.UserBuilder user = User.builder();
 
-        user.name( userDTO.getName() );
-        user.address( userDTO.getAddress() );
-        user.username( userDTO.getUsername() );
-        user.email( userDTO.getEmail() );
-        user.phone( userDTO.getPhone() );
-        user.role( roleDTOToRole( userDTO.getRole() ) );
+        user.name( dto.name() );
+        user.address( dto.address() );
+        user.username( dto.username() );
+        user.email( dto.email() );
+        user.phone( dto.phone() );
 
         return user.build();
     }
 
     @Override
-    public User userDtoToUserLogin(LoginDTO userDTO) {
-        if ( userDTO == null ) {
+    public User toEntity(UserUpdateDTO dto) {
+        if ( dto == null ) {
             return null;
         }
 
         User.UserBuilder user = User.builder();
 
-        user.password( userDTO.getPassword() );
-        user.email( userDTO.getEmail() );
+        user.name( dto.name() );
+        user.address( dto.address() );
+        user.username( dto.username() );
+        user.email( dto.email() );
+        user.phone( dto.phone() );
 
         return user.build();
     }
 
     @Override
-    public User userDtoToUserWithRole(UserDTO userDTO, Role role) {
-        if ( userDTO == null && role == null ) {
+    public User toEntity(UserLoginDTO dto) {
+        if ( dto == null ) {
             return null;
         }
 
         User.UserBuilder user = User.builder();
 
-        if ( userDTO != null ) {
-            user.name( userDTO.getName() );
-            user.address( userDTO.getAddress() );
-            user.username( userDTO.getUsername() );
-            user.email( userDTO.getEmail() );
-            user.phone( userDTO.getPhone() );
-        }
-        user.role( role );
+        user.password( dto.password() );
+        user.email( dto.email() );
 
         return user.build();
     }
 
-    protected Role roleDTOToRole(RoleDTO roleDTO) {
-        if ( roleDTO == null ) {
+    @Override
+    public UserResponseDTO toDTO(User user) {
+        if ( user == null ) {
             return null;
         }
 
-        Role role = new Role();
+        UserResponseDTO.UserResponseDTOBuilder userResponseDTO = UserResponseDTO.builder();
 
-        if ( roleDTO.getRoleName() != null ) {
-            role.setRoleName( Enum.valueOf( Role.RoleType.class, roleDTO.getRoleName() ) );
+        userResponseDTO.role( roleToRoleResponseDTO( user.getRole() ) );
+        userResponseDTO.id( user.getId() );
+        userResponseDTO.name( user.getName() );
+        userResponseDTO.username( user.getUsername() );
+        userResponseDTO.email( user.getEmail() );
+        userResponseDTO.phone( user.getPhone() );
+        userResponseDTO.address( user.getAddress() );
+
+        return userResponseDTO.build();
+    }
+
+    protected RoleResponseDTO roleToRoleResponseDTO(Role role) {
+        if ( role == null ) {
+            return null;
         }
 
-        return role;
+        RoleResponseDTO.RoleResponseDTOBuilder roleResponseDTO = RoleResponseDTO.builder();
+
+        roleResponseDTO.id( role.getId() );
+        if ( role.getRoleName() != null ) {
+            roleResponseDTO.roleName( role.getRoleName().name() );
+        }
+
+        return roleResponseDTO.build();
     }
 }

@@ -12,8 +12,8 @@ public class FieldHelper {
     // Generic version for ANY type
     public static <T, ID, V> boolean hasDuplicateField(
             List<T> entities,
-            Function<T, V> fieldGetter,  // Generic V instead of String
-            V value,                     // Generic V instead of String
+            Function<T, V> fieldGetter,
+            V value,
             ID currentEntityId,
             Function<T, ID> idExtractor) {
 
@@ -41,9 +41,9 @@ public class FieldHelper {
     public static <T, ID, V> void updateWithDuplicateCheck(
             T item,
             List<T> allItems,
-            Function<T, V> getter,     // Generic V
-            BiConsumer<T, V> setter,   // Generic V
-            V newValue,                // Generic V
+            Function<T, V> getter,
+            BiConsumer<T, V> setter,
+            V newValue,
             ID itemId,
             Function<T, ID> idGetter,
             String fieldName) {
