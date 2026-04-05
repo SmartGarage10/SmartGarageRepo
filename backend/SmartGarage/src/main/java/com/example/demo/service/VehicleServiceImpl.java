@@ -1,6 +1,8 @@
 package com.example.demo.service;
 
-import com.example.demo.DTO.VehicleDTO;
+import com.example.demo.DTO.vehicle.VehicleCreateDTO;
+import com.example.demo.DTO.vehicle.VehicleResponseDTO;
+import com.example.demo.DTO.vehicle.VehicleUpdateDTO;
 import com.example.demo.exceptions.ResourceConflictException;
 import com.example.demo.exceptions.ResourceNotFoundException;
 import com.example.demo.filter.EntitySpecificationProvider;
@@ -68,23 +70,25 @@ public class VehicleServiceImpl implements VehicleService, EntitySpecificationPr
 
     // ========== SERVICE METHODS USING HELPER ==========
     @Override
-    public List<Vehicle> getAllVehicles(MultiValueMap<String, String> allParams) {
+    public List<VehicleResponseDTO> getAllVehicles(MultiValueMap<String, String> allParams) {
         // Use entityHelper.getAll() - specifications are handled automatically
-        return entityHelper.getAll(allParams);
+        List<Vehicle> vehicles = entityHelper.getAll(allParams);
+        return vehicles.stream().map(vehicleMapper::toDto).toList();
     }
 
     @Override
-    public Optional<Vehicle> getVehicleById(Long vehicleId) {
-        return vehicleRepository.findById(vehicleId);
+    public Optional<VehicleResponseDTO> getVehicleById(Long vehicleId) {
+        return Optional.ofNullable(vehicleMapper.toDto(vehicleRepository.findById(vehicleId).orElseThrow(
+                () -> new ResourceNotFoundException(String.format("Vehicle with id %s not found", vehicleId)))));
     }
 
     @Override
-    public Vehicle createNewVehicle(User user, VehicleDTO vehicleDTO) {
+    public VehicleResponseDTO createNewVehicle(VehicleCreateDTO vehicleDTO) {
         // 1. Check User permissions
-        User carOwner = userRepository.findUserByEmail(vehicleDTO.getUser().getEmail())
+        User carOwner = userRepository.findUserById(vehicleDTO.userId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        String.format("User with id %s not found", vehicleDTO.getUser().getEmail())));
-        Vehicle vehicle = vehicleMapper.vehicleDtoToVehicleWithUser(vehicleDTO, carOwner);
+                        String.format("User with id %s not found", vehicleDTO.userId())));
+        Vehicle vehicle = vehicleMapper.toEntityWithUser(vehicleDTO, carOwner);
 
         if (vehicleRepository.existsByVehiclePlate(vehicle.getVehiclePlate())) {
             throw new ResourceConflictException(String.format("Vehicle with plate %s already exists", vehicle.getVehiclePlate()));
@@ -93,19 +97,19 @@ public class VehicleServiceImpl implements VehicleService, EntitySpecificationPr
             throw new ResourceConflictException(String.format("Vehicle with VIN %s already exists", vehicle.getVin()));
         }
 
-        return vehicleRepository.save(vehicle);
+        vehicleRepository.save(vehicle);
+        return vehicleMapper.toDto(vehicle);
     }
 
     @Override
-    public Vehicle update(User user, Long vehicleId, VehicleDTO changes) {
-        Vehicle vehicleDetails = vehicleMapper.vehicleDtoToVehicle(changes);
+    public VehicleResponseDTO update(Long vehicleId, VehicleUpdateDTO changes) {
+        Vehicle vehicleDetails = vehicleMapper.toEntity(changes);
         // 2. Find existing vehicle
         Vehicle existingVehicle = vehicleRepository.findById(vehicleId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         String.format("Vehicle with id %s not found", vehicleId)));
 
         // 3. Prepare FieldUpdateHelper lists WITH CORRECT TYPES
-
         // String fields with duplicate checking
         List<FieldUpdateHelper<Vehicle, ?>> duplicateCheckFields = Arrays.asList(
                 new FieldUpdateHelper<>("vehiclePlate",
@@ -143,13 +147,15 @@ public class VehicleServiceImpl implements VehicleService, EntitySpecificationPr
         );
 
         // 4. Use entityHelper.update()
-        return entityHelper.update(
+        entityHelper.update(
                 vehicleId,
                 existingVehicle,
                 duplicateCheckFields,
                 nonDuplicateCheckFields,
                 Vehicle::getId
         );
+
+        return vehicleMapper.toDto(existingVehicle);
     }
 
     @Override

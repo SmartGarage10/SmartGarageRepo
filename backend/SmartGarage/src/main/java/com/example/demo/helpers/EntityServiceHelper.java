@@ -116,8 +116,8 @@ public final class EntityServiceHelper<T, ID,
     public T update(
             ID id,
             T existing,
-            List<FieldUpdateHelper<T, ?>> duplicateCheckFields,  // Wildcard here
-            List<FieldUpdateHelper<T, ?>> nonDuplicateCheckFields,  // Wildcard here
+            List<FieldUpdateHelper<T, ?>> duplicateCheckFields,
+            List<FieldUpdateHelper<T, ?>> nonDuplicateCheckFields,
             Function<T, ID> idExtractor) {
 
         List<T> allEntities = repository.findAll();

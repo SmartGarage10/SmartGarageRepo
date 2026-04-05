@@ -127,20 +127,23 @@ export default function VehiclesPage() {
         async (vehicleData: Omit<Vehicle, 'id'> & { id?: string }) => {
             try {
                 const isEdit = !!selectedRow?.id;
+
                 const endpoint = isEdit
                     ? `http://localhost:8080/api/update-vehicle/${selectedRow.id}`
                     : 'http://localhost:8080/api/create-vehicle';
+
                 const method = isEdit ? 'PUT' : 'POST';
 
-                const fullUser = isEdit ? selectedRow?.client : vehicleData.client;
+                // FIX: use selectedRow.user, not selectedRow.client
+                const fullUser = isEdit ? selectedRow?.user : vehicleData.client;
 
                 const payload = {
                     vehiclePlate: vehicleData.vehiclePlate,
                     vin: vehicleData.vin,
                     brand: vehicleData.brand,
                     model: vehicleData.model,
-                    year: vehicleData.year,
-                    user: fullUser,
+                    yearOfCreation: vehicleData.year,
+                    userId: fullUser.id, // FIX: backend expects userId
                 };
 
                 const res = await fetch(endpoint, {
@@ -155,8 +158,11 @@ export default function VehiclesPage() {
                     throw new Error(errorData.message || 'Failed to save vehicle');
                 }
 
-                fetchData();
+                await fetchData();
                 setIsFormOpen(false);
+
+                console.log(vehicleData);
+
                 return true;
             } catch (error) {
                 console.error('Error saving vehicle:', error);
@@ -185,6 +191,7 @@ export default function VehiclesPage() {
                         setSelectedBrand('');
                         setIsFormOpen(true);
                     }}
+                    deleteMessage={"This action cannot be undone. This will permanently delete the vehicles and remove all associated data."}
                     onDeleteClick={
                         table.getSelectedRowModel().rows.length > 0 ? handleDeleteSelected : undefined
                     }

@@ -37,6 +37,7 @@ export function DataTableAdvancedToolbar({
                                            menuLabel,
                                            onCreateClick, // Handler for create button click
                                            onDeleteClick, // Handler for delete click
+                                           deleteMessage,
                                            ...props
                                          }) {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -115,8 +116,7 @@ export function DataTableAdvancedToolbar({
             <AlertDialogHeader>
               <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete
-                the user account and remove all associated data.
+                  {deleteMessage}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

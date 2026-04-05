@@ -1,9 +1,12 @@
 package com.example.demo.mappers;
 
-import com.example.demo.DTO.VehicleDTO;
+import com.example.demo.DTO.vehicle.VehicleCreateDTO;
+import com.example.demo.DTO.vehicle.VehicleResponseDTO;
+import com.example.demo.DTO.vehicle.VehicleUpdateDTO;
 import com.example.demo.models.User;
 import com.example.demo.models.Vehicle;
 import javax.annotation.processing.Generated;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Generated(
@@ -13,54 +16,76 @@ import org.springframework.stereotype.Component;
 @Component
 public class VehicleMapperImpl implements VehicleMapper {
 
+    @Autowired
+    private UserMapper userMapper;
+
     @Override
-    public VehicleDTO toDto(Vehicle vehicle) {
+    public VehicleResponseDTO toDto(Vehicle vehicle) {
         if ( vehicle == null ) {
             return null;
         }
 
-        VehicleDTO vehicleDTO = new VehicleDTO();
+        VehicleResponseDTO.VehicleResponseDTOBuilder vehicleResponseDTO = VehicleResponseDTO.builder();
 
-        vehicleDTO.setVehiclePlate( vehicle.getVehiclePlate() );
-        vehicleDTO.setVin( vehicle.getVin() );
-        vehicleDTO.setModel( vehicle.getModel() );
-        vehicleDTO.setBrand( vehicle.getBrand() );
+        vehicleResponseDTO.user( userMapper.toDTO( vehicle.getClient() ) );
+        vehicleResponseDTO.yearOfCreation( vehicle.getYear() );
+        vehicleResponseDTO.id( vehicle.getId() );
+        vehicleResponseDTO.vehiclePlate( vehicle.getVehiclePlate() );
+        vehicleResponseDTO.vin( vehicle.getVin() );
+        vehicleResponseDTO.model( vehicle.getModel() );
+        vehicleResponseDTO.brand( vehicle.getBrand() );
 
-        return vehicleDTO;
+        return vehicleResponseDTO.build();
     }
 
     @Override
-    public Vehicle vehicleDtoToVehicle(VehicleDTO vehicleDTO) {
-        if ( vehicleDTO == null ) {
+    public Vehicle toEntity(VehicleCreateDTO dto) {
+        if ( dto == null ) {
             return null;
         }
 
         Vehicle vehicle = new Vehicle();
 
-        vehicle.setClient( vehicleDTO.getUser() );
-        vehicle.setYear( vehicleDTO.getYearOfCreation() );
-        vehicle.setVehiclePlate( vehicleDTO.getVehiclePlate() );
-        vehicle.setVin( vehicleDTO.getVin() );
-        vehicle.setBrand( vehicleDTO.getBrand() );
-        vehicle.setModel( vehicleDTO.getModel() );
+        vehicle.setYear( dto.yearOfCreation() );
+        vehicle.setVehiclePlate( dto.vehiclePlate() );
+        vehicle.setVin( dto.vin() );
+        vehicle.setBrand( dto.brand() );
+        vehicle.setModel( dto.model() );
 
         return vehicle;
     }
 
     @Override
-    public Vehicle vehicleDtoToVehicleWithUser(VehicleDTO vehicleDTO, User user) {
-        if ( vehicleDTO == null && user == null ) {
+    public Vehicle toEntity(VehicleUpdateDTO dto) {
+        if ( dto == null ) {
             return null;
         }
 
         Vehicle vehicle = new Vehicle();
 
-        if ( vehicleDTO != null ) {
-            vehicle.setYear( vehicleDTO.getYearOfCreation() );
-            vehicle.setVehiclePlate( vehicleDTO.getVehiclePlate() );
-            vehicle.setVin( vehicleDTO.getVin() );
-            vehicle.setBrand( vehicleDTO.getBrand() );
-            vehicle.setModel( vehicleDTO.getModel() );
+        vehicle.setYear( dto.yearOfCreation() );
+        vehicle.setVehiclePlate( dto.vehiclePlate() );
+        vehicle.setVin( dto.vin() );
+        vehicle.setBrand( dto.brand() );
+        vehicle.setModel( dto.model() );
+
+        return vehicle;
+    }
+
+    @Override
+    public Vehicle toEntityWithUser(VehicleCreateDTO dto, User user) {
+        if ( dto == null && user == null ) {
+            return null;
+        }
+
+        Vehicle vehicle = new Vehicle();
+
+        if ( dto != null ) {
+            vehicle.setYear( dto.yearOfCreation() );
+            vehicle.setVehiclePlate( dto.vehiclePlate() );
+            vehicle.setVin( dto.vin() );
+            vehicle.setBrand( dto.brand() );
+            vehicle.setModel( dto.model() );
         }
         vehicle.setClient( user );
 

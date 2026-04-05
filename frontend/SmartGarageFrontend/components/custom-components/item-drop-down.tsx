@@ -48,11 +48,11 @@ export const Dropdown = ({
     };
 
     return (
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="group-hover:opacity-100 transition-opacity duration-200">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <button
-                        className="p-2 rounded-full hover:bg-gray-100/80 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
+                        className="p-2 rounded-full hover:bg-gray-100/80 transition-colors focus:outline-none"
                         aria-label={`${itemType} options`}
                     >
                         <MoreHorizontal className="h-4 w-4" />

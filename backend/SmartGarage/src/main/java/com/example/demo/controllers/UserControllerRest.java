@@ -1,23 +1,20 @@
 package com.example.demo.controllers;
 
-import com.example.demo.DTO.*;
 import com.example.demo.DTO.user.UserCreateDTO;
 import com.example.demo.DTO.user.UserResponseDTO;
 import com.example.demo.DTO.user.UserUpdateDTO;
-import com.example.demo.exceptions.AuthorizationException;
-import com.example.demo.helpers.*;
-import com.example.demo.models.User;
+import com.example.demo.helpers.SecurityHelper;
+import com.example.demo.helpers.ValidationHelper;
 import com.example.demo.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -34,29 +31,20 @@ public class UserControllerRest {
 
     @GetMapping("/users")
     public ResponseEntity<List<UserResponseDTO>> getAllUsers(@RequestParam MultiValueMap<String, String> allParams) {
-        try {
-            securityHelper.isAuthenticated();
-            return ResponseEntity.ok(userService.getAllUsers(allParams));
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+        securityHelper.isAuthenticated();
+        return ResponseEntity.ok(userService.getAllUsers(allParams));
     }
 
     @PostMapping("/register")
     public ResponseEntity<?> register(
             @Valid @RequestBody UserCreateDTO request,
             BindingResult bindingResult) {
-        try {
-            if(bindingResult.hasErrors()){
-                ValidationHelper.validate(bindingResult);
-            }
 
-            User currentUser = securityHelper.getCurrentUser();
-
-            return ResponseEntity.ok(userService.register(currentUser, request));
-        } catch (AuthorizationException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
+        if(bindingResult.hasErrors()){
+            ValidationHelper.validate(bindingResult);
         }
+
+        return ResponseEntity.ok(userService.register(securityHelper.getCurrentUser(), request));
     }
 
     @PutMapping("/user/{id}")
@@ -65,18 +53,11 @@ public class UserControllerRest {
             @Valid @RequestBody UserUpdateDTO request,
             BindingResult bindingResult) {
 
-        try {
-            // Check for validation errors
-            if(bindingResult.hasErrors()){
-                ValidationHelper.validate(bindingResult);
-            }
-
-            User currentUser = securityHelper.getCurrentUser();
-
-            return ResponseEntity.ok(userService.updateUser(currentUser, id, request));
-        } catch (AuthorizationException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
+        if(bindingResult.hasErrors()){
+            ValidationHelper.validate(bindingResult);
         }
+
+        return ResponseEntity.ok(userService.updateUser(securityHelper.getCurrentUser(), id, request));
     }
 
     //    @PutMapping("/password")
@@ -93,23 +74,13 @@ public class UserControllerRest {
 //
     @DeleteMapping("/users/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
-        try {
-            User currentUser = securityHelper.getCurrentUser();
-            userService.deleteUser(currentUser, id);
-            return ResponseEntity.ok(Map.of("status", "success", "message", "User deleted successfully"));
-        } catch (AuthorizationException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
-        }
+        userService.deleteUser(securityHelper.getCurrentUser(), id);
+        return ResponseEntity.ok(Map.of("status", "success", "message", "User deleted successfully"));
     }
 
     @DeleteMapping("/users/delete")
     public ResponseEntity<?> deleteUser(@RequestBody List<Long> ids) {
-        try {
-            User currentUser = securityHelper.getCurrentUser();
-            userService.deleteUsers(currentUser, ids);
-            return ResponseEntity.ok(Map.of("status", "success", "message", "User deleted successfully"));
-        } catch (AuthorizationException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
-        }
+        userService.deleteUsers(securityHelper.getCurrentUser(), ids);
+        return ResponseEntity.ok(Map.of("status", "success", "message", "Users deleted successfully"));
     }
 }

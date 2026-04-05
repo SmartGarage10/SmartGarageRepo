@@ -1,11 +1,9 @@
 package com.example.demo.service;
 
-import com.example.demo.DTO.LoginDTO;
 import com.example.demo.DTO.user.UserLoginDTO;
 import com.example.demo.DTO.user.UserResponseDTO;
 import com.example.demo.exceptions.ResourceNotFoundException;
 import com.example.demo.mappers.UserMapper;
-import com.example.demo.models.User;
 import com.example.demo.repositories.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -16,8 +14,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 @Service
 public class AuthenticationServiceImpl implements AuthenticationService {

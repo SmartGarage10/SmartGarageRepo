@@ -1,22 +1,22 @@
 package com.example.demo.service;
 
-import com.example.demo.DTO.UserDTO;
 import com.example.demo.DTO.user.UserCreateDTO;
 import com.example.demo.DTO.user.UserResponseDTO;
 import com.example.demo.DTO.user.UserUpdateDTO;
 import com.example.demo.exceptions.ResourceConflictException;
+import com.example.demo.exceptions.ResourceNotFoundException;
 import com.example.demo.filter.EntitySpecificationProvider;
 import com.example.demo.filter.Filter;
-import com.example.demo.exceptions.ResourceNotFoundException;
-import com.example.demo.filter.UserSpecifications;
 import com.example.demo.filter.FilterHelper;
-import com.example.demo.helpers.*;
+import com.example.demo.filter.UserSpecifications;
+import com.example.demo.helpers.EntityServiceHelper;
+import com.example.demo.helpers.FieldUpdateHelper;
+import com.example.demo.helpers.PasswordGeneratorHelper;
 import com.example.demo.mappers.UserMapper;
 import com.example.demo.models.Role;
 import com.example.demo.models.User;
 import com.example.demo.repositories.RoleRepository;
 import com.example.demo.repositories.UserRepository;
-import com.example.demo.response.RegistrationResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.jpa.domain.Specification;
@@ -27,8 +27,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UserServiceImpl implements UserService, EntitySpecificationProvider<User> {

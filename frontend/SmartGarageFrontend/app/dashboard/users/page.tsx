@@ -135,6 +135,7 @@ export default function UsersPage() {
                         setSelectedRow(null);
                         setIsFormOpen(true);
                     }}
+                    deleteMessage={"This action cannot be undone. This will permanently delete the user accounts and remove all associated data."}
                     onDeleteClick={
                         table.getSelectedRowModel().rows.length > 0
                             ? async () => {
