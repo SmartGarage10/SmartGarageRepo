@@ -1,7 +1,10 @@
 package com.example.demo.mappers;
 
-import com.example.demo.DTO.ServiceItemDTO;
+import com.example.demo.DTO.serviceItem.ServiceItemCreateDTO;
+import com.example.demo.DTO.serviceItem.ServiceItemResponseDTO;
+import com.example.demo.DTO.serviceItem.ServiceItemUpdateDTO;
 import com.example.demo.models.ServiceItem;
+import java.math.BigDecimal;
 import javax.annotation.processing.Generated;
 import org.springframework.stereotype.Component;
 
@@ -13,33 +16,53 @@ import org.springframework.stereotype.Component;
 public class ServiceItemMapperImpl implements ServiceItemMapper {
 
     @Override
-    public ServiceItemDTO toDto(ServiceItem serviceItem) {
+    public ServiceItemResponseDTO toDto(ServiceItem serviceItem) {
         if ( serviceItem == null ) {
             return null;
         }
 
-        ServiceItemDTO serviceItemDTO = new ServiceItemDTO();
+        ServiceItemResponseDTO.ServiceItemResponseDTOBuilder serviceItemResponseDTO = ServiceItemResponseDTO.builder();
 
-        serviceItemDTO.setId( serviceItem.getId() );
-        serviceItemDTO.setServiceName( serviceItem.getServiceName() );
-        serviceItemDTO.setServiceDescription( serviceItem.getServiceDescription() );
-        serviceItemDTO.setPrice( serviceItem.getPrice() );
+        serviceItemResponseDTO.id( serviceItem.getId() );
+        serviceItemResponseDTO.serviceName( serviceItem.getServiceName() );
+        serviceItemResponseDTO.serviceDescription( serviceItem.getServiceDescription() );
+        if ( serviceItem.getPrice() != null ) {
+            serviceItemResponseDTO.price( serviceItem.getPrice().doubleValue() );
+        }
 
-        return serviceItemDTO;
+        return serviceItemResponseDTO.build();
     }
 
     @Override
-    public ServiceItem toEntity(ServiceItemDTO serviceItemDTO) {
+    public ServiceItem toEntity(ServiceItemCreateDTO serviceItemDTO) {
         if ( serviceItemDTO == null ) {
             return null;
         }
 
         ServiceItem serviceItem = new ServiceItem();
 
-        serviceItem.setId( serviceItemDTO.getId() );
-        serviceItem.setServiceName( serviceItemDTO.getServiceName() );
-        serviceItem.setServiceDescription( serviceItemDTO.getServiceDescription() );
-        serviceItem.setPrice( serviceItemDTO.getPrice() );
+        serviceItem.setServiceName( serviceItemDTO.serviceName() );
+        serviceItem.setServiceDescription( serviceItemDTO.serviceDescription() );
+        if ( serviceItemDTO.price() != null ) {
+            serviceItem.setPrice( BigDecimal.valueOf( serviceItemDTO.price() ) );
+        }
+
+        return serviceItem;
+    }
+
+    @Override
+    public ServiceItem toEntity(ServiceItemUpdateDTO serviceItemDTO) {
+        if ( serviceItemDTO == null ) {
+            return null;
+        }
+
+        ServiceItem serviceItem = new ServiceItem();
+
+        serviceItem.setServiceName( serviceItemDTO.serviceName() );
+        serviceItem.setServiceDescription( serviceItemDTO.serviceDescription() );
+        if ( serviceItemDTO.price() != null ) {
+            serviceItem.setPrice( BigDecimal.valueOf( serviceItemDTO.price() ) );
+        }
 
         return serviceItem;
     }

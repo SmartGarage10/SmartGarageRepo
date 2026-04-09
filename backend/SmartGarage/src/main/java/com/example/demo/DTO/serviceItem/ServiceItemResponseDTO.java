@@ -5,8 +5,8 @@ import lombok.Builder;
 @Builder
 public record ServiceItemResponseDTO(
         Long id,
-        String name,
-        String description,
+        String serviceName,
+        String serviceDescription,
         Double price
 ) {
 }

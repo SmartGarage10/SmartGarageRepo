@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="smart_garage@localhost" uuid="6189d0d4-4ed4-46d0-910b-a59eb1d9f4b7">
+    <data-source source="LOCAL" name="smart_garage@localhost" uuid="89ed4595-a03e-4ecd-bcf2-efa44a6a51a4">
       <driver-ref>mariadb</driver-ref>
       <synchronize>true</synchronize>
       <imported>true</imported>

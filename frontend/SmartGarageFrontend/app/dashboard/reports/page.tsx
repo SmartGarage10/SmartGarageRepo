@@ -620,10 +620,10 @@ export default function InvoicePage() {
                                                 </TableCell>
                                             </TableRow>
                                         )}
-                                        <TableRow className="bg-gray-800 text-white font-bold">
+                                        <TableRow className="bg-gray-800 text-white font-bold hover:text-gray-800!">
                                             <TableCell colSpan={4} className="px-3 py-2">Total Amount</TableCell>
                                             <TableCell className="px-3 py-2 text-right">
-                                                ${totalAmount.toFixed(2)} {currentVisit?.currency || 'USD'}
+                                                {totalAmount.toFixed(2)} {currentVisit?.currency || 'USD'}
                                             </TableCell>
                                         </TableRow>
                                     </TableFooter>

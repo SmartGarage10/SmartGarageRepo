@@ -7,33 +7,39 @@ import com.example.demo.models.User;
 import com.example.demo.models.Vehicle;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+
+import java.time.Year;
 
 @Mapper(componentModel = "spring", uses = {UserMapper.class})
 public interface VehicleMapper {
 
-    // ENTITY → RESPONSE DTO
-    @Mapping(target = "user", source = "client") // MapStruct ще използва UserMapper.toDTO()
-    @Mapping(target = "yearOfCreation", source = "year")
+    // ENTITY → RESPONSE DTO// MapStruct ще използва UserMapper.toDTO()
+    @Mapping(target = "year", source = "year", qualifiedByName = "yearToString")
     VehicleResponseDTO toDto(Vehicle vehicle);
 
     // CREATE DTO → ENTITY (без user)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "client", ignore = true)
     @Mapping(target = "visits", ignore = true)
-    @Mapping(target = "year", source = "yearOfCreation")
+    @Mapping(target = "year", source = "year")
     Vehicle toEntity(VehicleCreateDTO dto);
 
     // UPDATE DTO → ENTITY (без user)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "client", ignore = true)
     @Mapping(target = "visits", ignore = true)
-    @Mapping(target = "year", source = "yearOfCreation")
+    @Mapping(target = "year", source = "year")
     Vehicle toEntity(VehicleUpdateDTO dto);
 
     // CREATE DTO + USER → ENTITY
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "client", source = "user")
     @Mapping(target = "visits", ignore = true)
-    @Mapping(target = "year", source = "dto.yearOfCreation")
     Vehicle toEntityWithUser(VehicleCreateDTO dto, User user);
+
+    @Named("yearToString")
+    default String yearToString(Year year) {
+        return year != null ? year.toString() : null;
+    }
 }

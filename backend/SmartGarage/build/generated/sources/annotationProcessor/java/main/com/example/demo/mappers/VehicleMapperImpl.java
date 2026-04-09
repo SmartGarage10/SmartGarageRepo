@@ -27,13 +27,13 @@ public class VehicleMapperImpl implements VehicleMapper {
 
         VehicleResponseDTO.VehicleResponseDTOBuilder vehicleResponseDTO = VehicleResponseDTO.builder();
 
-        vehicleResponseDTO.user( userMapper.toDTO( vehicle.getClient() ) );
-        vehicleResponseDTO.yearOfCreation( vehicle.getYear() );
+        vehicleResponseDTO.year( yearToString( vehicle.getYear() ) );
         vehicleResponseDTO.id( vehicle.getId() );
         vehicleResponseDTO.vehiclePlate( vehicle.getVehiclePlate() );
         vehicleResponseDTO.vin( vehicle.getVin() );
         vehicleResponseDTO.model( vehicle.getModel() );
         vehicleResponseDTO.brand( vehicle.getBrand() );
+        vehicleResponseDTO.client( userMapper.toDTO( vehicle.getClient() ) );
 
         return vehicleResponseDTO.build();
     }
@@ -46,7 +46,7 @@ public class VehicleMapperImpl implements VehicleMapper {
 
         Vehicle vehicle = new Vehicle();
 
-        vehicle.setYear( dto.yearOfCreation() );
+        vehicle.setYear( dto.year() );
         vehicle.setVehiclePlate( dto.vehiclePlate() );
         vehicle.setVin( dto.vin() );
         vehicle.setBrand( dto.brand() );
@@ -63,7 +63,7 @@ public class VehicleMapperImpl implements VehicleMapper {
 
         Vehicle vehicle = new Vehicle();
 
-        vehicle.setYear( dto.yearOfCreation() );
+        vehicle.setYear( dto.year() );
         vehicle.setVehiclePlate( dto.vehiclePlate() );
         vehicle.setVin( dto.vin() );
         vehicle.setBrand( dto.brand() );
@@ -81,11 +81,11 @@ public class VehicleMapperImpl implements VehicleMapper {
         Vehicle vehicle = new Vehicle();
 
         if ( dto != null ) {
-            vehicle.setYear( dto.yearOfCreation() );
             vehicle.setVehiclePlate( dto.vehiclePlate() );
             vehicle.setVin( dto.vin() );
             vehicle.setBrand( dto.brand() );
             vehicle.setModel( dto.model() );
+            vehicle.setYear( dto.year() );
         }
         vehicle.setClient( user );
 

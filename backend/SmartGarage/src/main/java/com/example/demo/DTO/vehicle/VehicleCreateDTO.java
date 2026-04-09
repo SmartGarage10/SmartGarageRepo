@@ -24,7 +24,7 @@ public record VehicleCreateDTO(
 
         @NotNull(message = "Year of creation is mandatory.")
         @ValidYear(min = 1950, message = "Year must be 1950 or newer.")
-        Year yearOfCreation,
+        Year year,
 
         @Size(min = 2, max = 50, message = "Model must be between 2 and 50 characters.")
         @NotBlank(message = "Model is mandatory.")

@@ -47,19 +47,15 @@ export const getColumns = ({
         enableHiding: false,
     },
     {
-        id: "user",
-        accessorFn: (row) => row.user?.name,
-        header: ({ column }) => (
-            <DataTableColumnHeader column={column} title="Client" />
-        ),
+        id: "client",
+        accessorFn: (row) => row.client?.name,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Client" />,
         cell: ({ row }) => {
-            const user = row.original.user;
+            const client = row.original.client;
             return (
                 <div>
-                    <div className="font-medium">{user?.name ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground">
-                        {user?.email ?? ""}
-                    </div>
+                    <div className="font-medium">{client?.name ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground">{client?.email ?? ""}</div>
                 </div>
             );
         },
@@ -154,14 +150,14 @@ export const getColumns = ({
         enableColumnFilter: true,
     },
     {
-        id: "yearOfCreation",
-        accessorKey: "yearOfCreation",
+        id: "year",
+        accessorKey: "year",
         header: ({ column }) => (
             <DataTableColumnHeader column={column} title="Year" />
         ),
         cell: ({ row }) => (
             <div className="font-medium">
-                {row.getValue("yearOfCreation")}
+                {row.getValue("year")}
             </div>
         ),
         meta: {

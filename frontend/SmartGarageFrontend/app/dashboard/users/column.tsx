@@ -32,6 +32,7 @@ import {
     Text,
 } from "lucide-react";
 import { User, UserRole } from "@/types/user";
+import {Dropdown} from "@/components/custom-components/item-drop-down";
 
 interface ColumnsConfig {
     onEdit: (user: User) => void;
@@ -212,54 +213,13 @@ export const getColumns = ({
         id: "actions",
         cell: ({ row }) => {
             const user = row.original;
-
             return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                            onClick={() => onEdit(user)}
-                            className="cursor-pointer"
-                        >
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Edit
-                        </DropdownMenuItem>
-
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <DropdownMenuItem
-                                    onSelect={(e) => e.preventDefault()}
-                                    className="text-red-600 cursor-pointer"
-                                >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete
-                                        the user account and remove all associated data.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                        onClick={async () => await onDelete(user.id)}
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                        Delete
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <Dropdown
+                    itemType="User"
+                    onEdit={() => onEdit(user)}
+                    onDelete={() => onDelete(user.id)}
+                    showDuplicate={false}
+                />
             );
         },
         size: 32

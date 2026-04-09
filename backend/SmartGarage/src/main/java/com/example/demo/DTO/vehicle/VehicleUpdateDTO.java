@@ -19,7 +19,7 @@ public record VehicleUpdateDTO(
         String vin,
 
         @ValidYear(min = 1950, message = "Year must be 1950 or newer.")
-        Year yearOfCreation,
+        Year year,
 
         @Size(min = 2, max = 50, message = "Model must be between 2 and 50 characters.")
         String model,

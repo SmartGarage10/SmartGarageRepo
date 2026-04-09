@@ -1,6 +1,8 @@
 package com.example.demo.service;
 
-import com.example.demo.DTO.ServiceItemDTO;
+import com.example.demo.DTO.serviceItem.ServiceItemCreateDTO;
+import com.example.demo.DTO.serviceItem.ServiceItemResponseDTO;
+import com.example.demo.DTO.serviceItem.ServiceItemUpdateDTO;
 import com.example.demo.exceptions.ResourceConflictException;
 import com.example.demo.exceptions.ResourceNotFoundException;
 import com.example.demo.filter.EntitySpecificationProvider;
@@ -62,34 +64,37 @@ public class ServiceServiceImpl
     // ========== READ ==========
 
     @Override
-    public List<ServiceItem> getAllServices(MultiValueMap<String, String> allParams) {
-        return entityHelper.getAll(allParams);
+    public List<ServiceItemResponseDTO> getAllServices(MultiValueMap<String, String> allParams) {
+        List<ServiceItem> serviceItems = entityHelper.getAll(allParams);
+        return serviceItems.stream().map(serviceMapper::toDto).toList();
     }
 
     // ========== CREATE ==========
 
     @Override
-    public ServiceItem createNewService(User user, ServiceItemDTO serviceDTO) {
-        if (serviceRepository.existsByServiceName(serviceDTO.getServiceName())) {
+    public ServiceItemResponseDTO createNewService(User user, ServiceItemCreateDTO serviceDTO) {
+        if (serviceRepository.existsByServiceName(serviceDTO.serviceName())) {
             throw new ResourceConflictException(
-                    String.format("Service with name %s already exists", serviceDTO.getServiceName())
+                    String.format("Service with name %s already exists", serviceDTO.serviceName())
             );
         }
-        ServiceItem serviceItem = serviceMapper.toEntity(serviceDTO);
-        validate(serviceItem);
-        return serviceRepository.save(serviceItem);
+
+        ServiceItem entity = serviceMapper.toEntity(serviceDTO);
+        serviceRepository.save(entity);
+
+        return serviceMapper.toDto(entity);
     }
 
     // ========== UPDATE ==========
 
     @Override
-    public ServiceItem update(User user, Long serviceId, ServiceItemDTO changes) {
-        ServiceItem existing = serviceRepository.findById(serviceId)
+    public ServiceItemResponseDTO update(Long serviceId, ServiceItemUpdateDTO changes) {
+        ServiceItem serviceDetails = serviceMapper.toEntity(changes);
+        ServiceItem existingService = serviceRepository.findById(serviceId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 String.format("Service with id %s not found", serviceId)
                         ));
-        ServiceItem serviceDetails = serviceMapper.toEntity(changes);
 
         List<FieldUpdateHelper<ServiceItem, ?>> duplicateCheckFields = List.of(
                 new FieldUpdateHelper<>(
@@ -115,16 +120,15 @@ public class ServiceServiceImpl
                 )
         );
 
-        ServiceItem updated = entityHelper.update(
+        entityHelper.update(
                 serviceId,
-                existing,
+                existingService,
                 duplicateCheckFields,
                 nonDuplicateCheckFields,
                 ServiceItem::getId
         );
 
-        validate(updated);
-        return updated;
+        return serviceMapper.toDto(existingService);
     }
 
     // ========== DELETE ==========
@@ -137,17 +141,5 @@ public class ServiceServiceImpl
     @Override
     public void deleteServices(User user, List<Long> ids) {
         entityHelper.deleteAllById(ids);
-    }
-
-    // ========== VALIDATION ==========
-
-    private void validate(ServiceItem serviceItem) {
-        if (serviceItem.getServiceName() == null || serviceItem.getServiceName().isBlank()) {
-            throw new IllegalArgumentException("Service name is required");
-        }
-
-        if (serviceItem.getPrice() == null || serviceItem.getPrice().signum() <= 0) {
-            throw new IllegalArgumentException("Service price must be greater than 0");
-        }
     }
 }

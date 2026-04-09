@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { Toaster } from 'sonner';
 
 import { getColumns } from '@/app/dashboard/vehicles/column';
 import { Vehicle } from '@/types/vehicle';
@@ -10,8 +11,6 @@ import { DataTable } from '@/components/data-table/data-table';
 import { DataTableAdvancedToolbar } from '@/components/data-table/data-table-advanced-toolbar';
 import { DataTableFilterList } from '@/components/data-table/data-table-filter-list';
 import { SearchInput } from '@/components/data-table/data-search';
-import { Toaster } from 'sonner';
-
 import { useDataTable } from '@/hooks/useDataTable';
 import { VehicleForm } from '@/components/forms/edit-create-vehicle-form';
 import { CarService } from '@/services/CarService';
@@ -20,47 +19,55 @@ import { createApi } from '@/api/genericApi';
 export default function VehiclesPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [clients, setClients] = useState<User[]>([]);
-    const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-
     const [brandOptions, setBrandOptions] = useState<{ label: string; value: string }[]>([]);
     const [modelOptions, setModelOptions] = useState<{ label: string; value: string }[]>([]);
     const [selectedBrand, setSelectedBrand] = useState<string>('');
-
     const [isBrandsLoading, setIsBrandsLoading] = useState(false);
     const [isModelsLoading, setIsModelsLoading] = useState(false);
-    const [isDataLoading, setIsDataLoading] = useState(true);
-
     const [selectedRow, setSelectedRow] = useState<Vehicle | null>(null);
 
     const vehicleApi = createApi<Vehicle>('vehicles');
     const userApi = createApi<User>('users');
 
+    // Load clients and vehicles
     useEffect(() => {
         const loadData = async () => {
-            setIsDataLoading(true);
             try {
                 const [fetchedUsers, fetchedVehicles] = await Promise.all([
                     userApi.getAll(),
                     vehicleApi.getAll(),
                 ]);
 
+                // Only clients
                 setClients(fetchedUsers.filter(u => u.role?.roleName === 'CLIENT'));
-                setVehicles(fetchedVehicles);
-            } catch (error) {
-                console.error('Failed to load initial vehicle data', error);
-            } finally {
-                setIsDataLoading(false);
+
+                // Map backend VehicleResponseDTO to frontend Vehicle type
+                const mappedVehicles: Vehicle[] = fetchedVehicles.map(v => ({
+                    id: v.id.toString(),
+                    vehiclePlate: v.vehiclePlate,
+                    vin: v.vin,
+                    brand: v.brand,
+                    model: v.model,
+                    year: v.yearOfCreation.toString(), // DTO returns Year
+                    user: v.user, // matches DTO
+                }));
+
+                // Set vehicles into table
+                setVehicles(mappedVehicles);
+            } catch (err) {
+                console.error('Failed to load data', err);
             }
         };
         loadData();
     }, []);
 
+    // Load brands
     useEffect(() => {
         const loadBrands = async () => {
             setIsBrandsLoading(true);
             try {
                 const brands = await CarService.fetchBrands();
-                setBrandOptions(brands.map((brand: string) => ({ label: brand, value: brand })));
+                setBrandOptions(brands.map(b => ({ label: b, value: b })));
             } catch (err) {
                 console.error('Error loading brands:', err);
             } finally {
@@ -70,6 +77,7 @@ export default function VehiclesPage() {
         loadBrands();
     }, []);
 
+    // Load models when brand changes
     useEffect(() => {
         const loadModels = async () => {
             if (!selectedBrand) {
@@ -79,7 +87,7 @@ export default function VehiclesPage() {
             setIsModelsLoading(true);
             try {
                 const models = await CarService.fetchModels(selectedBrand);
-                setModelOptions(models.map((model: string) => ({ label: model, value: model })));
+                setModelOptions(models.map(m => ({ label: m, value: m })));
             } catch (err) {
                 console.error('Error loading models:', err);
                 setModelOptions([]);
@@ -123,27 +131,26 @@ export default function VehiclesPage() {
             }),
     });
 
+    // Submit handler for create/edit
     const handleSubmit = useCallback(
-        async (vehicleData: Omit<Vehicle, 'id'> & { id?: string }) => {
+        async (vehicleData: Omit<Vehicle, 'id'> & { id?: string; user?: User }) => {
             try {
                 const isEdit = !!selectedRow?.id;
-
                 const endpoint = isEdit
                     ? `http://localhost:8080/api/update-vehicle/${selectedRow.id}`
                     : 'http://localhost:8080/api/create-vehicle';
-
                 const method = isEdit ? 'PUT' : 'POST';
 
-                // FIX: use selectedRow.user, not selectedRow.client
-                const fullUser = isEdit ? selectedRow?.user : vehicleData.client;
+                const fullClient = isEdit ? selectedRow?.client : vehicleData.client;
+                if (!fullClient?.id) throw new Error('Client must be selected');
 
                 const payload = {
                     vehiclePlate: vehicleData.vehiclePlate,
                     vin: vehicleData.vin,
                     brand: vehicleData.brand,
                     model: vehicleData.model,
-                    yearOfCreation: vehicleData.year,
-                    userId: fullUser.id, // FIX: backend expects userId
+                    yearOfCreation: vehicleData.year, // DTO expects this
+                    userId: fullClient.id, // backend expects userId to map to client
                 };
 
                 const res = await fetch(endpoint, {
@@ -160,13 +167,10 @@ export default function VehiclesPage() {
 
                 await fetchData();
                 setIsFormOpen(false);
-
-                console.log(vehicleData);
-
                 return true;
-            } catch (error) {
-                console.error('Error saving vehicle:', error);
-                throw error;
+            } catch (err) {
+                console.error('Error saving vehicle:', err);
+                throw err;
             }
         },
         [selectedRow, fetchData]
@@ -178,11 +182,7 @@ export default function VehiclesPage() {
         <div className="space-y-4">
             <Toaster richColors position="top-center" />
 
-            <DataTable
-                table={table}
-                className="px-10"
-                key={`brand-${brandOptions.length}-model-${modelOptions.length}`}
-            >
+            <DataTable table={table} className="px-10" key={`brand-${brandOptions.length}-model-${modelOptions.length}`}>
                 <DataTableAdvancedToolbar
                     table={table}
                     menuLabel="Add Vehicle"
@@ -191,17 +191,11 @@ export default function VehiclesPage() {
                         setSelectedBrand('');
                         setIsFormOpen(true);
                     }}
-                    deleteMessage={"This action cannot be undone. This will permanently delete the vehicles and remove all associated data."}
-                    onDeleteClick={
-                        table.getSelectedRowModel().rows.length > 0 ? handleDeleteSelected : undefined
-                    }
+                    deleteMessage="This action cannot be undone. This will permanently delete the vehicles and remove all associated data."
+                    onDeleteClick={table.getSelectedRowModel().rows.length > 0 ? handleDeleteSelected : undefined}
                 >
                     <DataTableFilterList table={table} onClearAll={clearAllFilters} />
-                    <SearchInput
-                        value={globalFilter}
-                        onChange={setGlobalFilter}
-                        placeholder="Search vehicles..."
-                    />
+                    <SearchInput value={globalFilter} onChange={setGlobalFilter} placeholder="Search vehicles..." />
                 </DataTableAdvancedToolbar>
             </DataTable>
 
