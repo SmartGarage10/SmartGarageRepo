@@ -1,6 +1,9 @@
 package com.example.demo.mappers;
 
-import com.example.demo.DTO.PackDTO;
+import com.example.demo.DTO.pack.PackCreateDTO;
+import com.example.demo.DTO.pack.PackResponseDTO;
+import com.example.demo.DTO.pack.PackUpdateDTO;
+import com.example.demo.DTO.serviceItem.ServiceItemResponseDTO;
 import com.example.demo.models.Pack;
 import com.example.demo.models.ServiceItem;
 import java.util.ArrayList;
@@ -16,40 +19,80 @@ import org.springframework.stereotype.Component;
 public class PackMapperImpl implements PackMapper {
 
     @Override
-    public PackDTO toDto(Pack pack) {
-        if ( pack == null ) {
-            return null;
-        }
-
-        PackDTO packDTO = new PackDTO();
-
-        packDTO.setPackName( pack.getPackName() );
-        packDTO.setDescription( pack.getDescription() );
-        packDTO.setAmount( pack.getAmount() );
-        List<ServiceItem> list = pack.getServices();
-        if ( list != null ) {
-            packDTO.setServices( new ArrayList<ServiceItem>( list ) );
-        }
-
-        return packDTO;
-    }
-
-    @Override
-    public Pack toEntity(PackDTO packDTO) {
+    public Pack toEntity(PackCreateDTO packDTO) {
         if ( packDTO == null ) {
             return null;
         }
 
         Pack pack = new Pack();
 
-        pack.setPackName( packDTO.getPackName() );
-        pack.setDescription( packDTO.getDescription() );
-        pack.setAmount( packDTO.getAmount() );
-        List<ServiceItem> list = packDTO.getServices();
-        if ( list != null ) {
-            pack.setServices( new ArrayList<ServiceItem>( list ) );
-        }
+        pack.setPackName( packDTO.packName() );
+        pack.setDescription( packDTO.description() );
+        pack.setAmount( packDTO.amount() );
 
         return pack;
+    }
+
+    @Override
+    public Pack toEntity(PackUpdateDTO packDTO) {
+        if ( packDTO == null ) {
+            return null;
+        }
+
+        Pack pack = new Pack();
+
+        pack.setPackName( packDTO.packName() );
+        pack.setDescription( packDTO.description() );
+        pack.setAmount( packDTO.amount() );
+
+        return pack;
+    }
+
+    @Override
+    public PackResponseDTO toDto(Pack pack) {
+        if ( pack == null ) {
+            return null;
+        }
+
+        PackResponseDTO.PackResponseDTOBuilder packResponseDTO = PackResponseDTO.builder();
+
+        packResponseDTO.id( pack.getId() );
+        packResponseDTO.packName( pack.getPackName() );
+        packResponseDTO.description( pack.getDescription() );
+        packResponseDTO.amount( pack.getAmount() );
+        packResponseDTO.services( serviceItemListToServiceItemResponseDTOList( pack.getServices() ) );
+        packResponseDTO.totalPrice( pack.getTotalPrice() );
+
+        return packResponseDTO.build();
+    }
+
+    protected ServiceItemResponseDTO serviceItemToServiceItemResponseDTO(ServiceItem serviceItem) {
+        if ( serviceItem == null ) {
+            return null;
+        }
+
+        ServiceItemResponseDTO.ServiceItemResponseDTOBuilder serviceItemResponseDTO = ServiceItemResponseDTO.builder();
+
+        serviceItemResponseDTO.id( serviceItem.getId() );
+        serviceItemResponseDTO.serviceName( serviceItem.getServiceName() );
+        serviceItemResponseDTO.serviceDescription( serviceItem.getServiceDescription() );
+        if ( serviceItem.getPrice() != null ) {
+            serviceItemResponseDTO.price( serviceItem.getPrice().doubleValue() );
+        }
+
+        return serviceItemResponseDTO.build();
+    }
+
+    protected List<ServiceItemResponseDTO> serviceItemListToServiceItemResponseDTOList(List<ServiceItem> list) {
+        if ( list == null ) {
+            return null;
+        }
+
+        List<ServiceItemResponseDTO> list1 = new ArrayList<ServiceItemResponseDTO>( list.size() );
+        for ( ServiceItem serviceItem : list ) {
+            list1.add( serviceItemToServiceItemResponseDTO( serviceItem ) );
+        }
+
+        return list1;
     }
 }

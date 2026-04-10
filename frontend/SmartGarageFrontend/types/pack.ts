@@ -6,4 +6,5 @@ export interface Pack {
     amount: number;
     description: string;
     services: Service[];
+    totalPrice : number;
 }

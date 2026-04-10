@@ -1,26 +1,26 @@
-import React, { useEffect, useState } from "react";
+'use client';
+
+import React, { useMemo, useCallback, useState } from "react";
 import {
     Card,
     CardContent,
-    CardDescription,
     CardHeader,
     CardTitle,
+    CardDescription
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Euro, Wrench } from "lucide-react";
-import {useUser} from "@/hooks/useUser";
-import {Dropdown} from "@/components/custom-components/item-drop-down";
-import { Pack } from "@/types/pack";
-import {createApi} from "@/api/genericApi";
-import {Service} from "@/types/service";
-import {ServiceForm} from "@/components/forms/edit-create-service-form";
-import {PackForm} from "@/components/forms/edit-create-pack-form";
-import {Button} from "@/components/ui/button";
+import { useUser } from "@/hooks/useUser";
+import { Dropdown } from "@/components/custom-components/item-drop-down";
+import { Button } from "@/components/ui/button";
+import { PackForm } from "@/components/forms/edit-create-pack-form";
+import { createApi } from "@/api/genericApi";
+import type { Pack } from "@/types/pack";
+import type { Service } from "@/types/service";
+import type { Option } from "@/components/ui/multiple-selector";
 
-export default function PackCards() {
-    const [packs, setPacks] = useState<Pack[]>([]);
-    const [loading, setLoading] = useState(true);
+export default function PackCards({ packs, setPacks, services }) {
     const [editingPack, setEditingPack] = useState<Pack | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -29,174 +29,234 @@ export default function PackCards() {
 
     const packApi = createApi<Pack>("packs");
 
-    // Load packs initially
-    useEffect(() => {
-        const loadPacks = async () => {
-            setLoading(true);
+    // Convert services → select options
+    const serviceOptions: Option[] = useMemo(
+        () =>
+            services.map((s) => ({
+                label: s.serviceName,
+                value: s.id,
+            })),
+        [services]
+    );
+
+    // Convert editingPack.services → select options
+    const selectedServiceOptions: Option[] = useMemo(() => {
+        if (!editingPack) return [];
+        return editingPack.services.map((s) => ({
+            label: s.serviceName,
+            value: s.id,
+        }));
+    }, [editingPack]);
+
+    // Calculate amount
+    const calculateAmount = useCallback(
+        (ids: number[]) => {
+            const selected = services.filter((s) => ids.includes(Number(s.id)));
+            const raw = selected.reduce((sum, s) => sum + s.price, 0);
+            const discounted = raw * 0.9;
+            return discounted > 0 ? Math.round(discounted / 5) * 5 - 0.01 : 0;
+        },
+        [services]
+    );
+
+    // When user selects services in form
+    const handleServicesChange = (options: Option[]) => {
+        setEditingPack(prev => {
+            if (!prev) return prev;
+
+            const ids = options.map(o => Number(o.value));
+            const amount = calculateAmount(ids);
+
+            return {
+                ...prev,
+                services: services.filter(s => ids.includes(Number(s.id))),
+                amount,
+            };
+        });
+    };
+
+    // Open form for edit/create
+    const handleData = (pack: Pack | null) => {
+        if (pack) {
+            setEditingPack(pack);
+        } else {
+            setEditingPack({
+                id: "",
+                packName: "",
+                description: "",
+                amount: 0,
+                services: [],
+                totalPrice: 0,
+            });
+        }
+        setIsFormOpen(true);
+    };
+
+    // Submit pack
+    const handleSubmit = useCallback(
+        async (packData: Pack) => {
             try {
-                const data = await packApi.getAll();
-                setPacks(data);
+                const isEdit = !!packData.id;
+
+                const ids = packData.services.map(s => Number(s.id));
+                const amount = calculateAmount(ids);
+
+                const endpoint = isEdit
+                    ? `http://localhost:8080/api/update-pack/${packData.id}`
+                    : "http://localhost:8080/api/create-pack";
+
+                const method = isEdit ? "PUT" : "POST";
+
+                const payload = {
+                    id: packData.id,
+                    packName: packData.packName,
+                    description: packData.description,
+                    amount,
+                    serviceIds: ids
+                };
+
+                const res = await fetch(endpoint, {
+                    method,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                    credentials: "include",
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.message || "Failed to save pack");
+                }
+
+                // 🔥 AUTO REFRESH PACKS
+                setPacks(await packApi.getAll());
+
+                setIsFormOpen(false);
+                setEditingPack(null);
             } catch (err) {
-                console.error("Failed to load packs:", err);
-            } finally {
-                setLoading(false);
+                console.error("Error saving pack:", err);
             }
-        };
-        loadPacks();
-    }, []);
+        },
+        [packApi, calculateAmount, setPacks]
+    );
 
-    const handleEdit = (pack: Pack) => {
-        setEditingPack(pack);
-        setIsFormOpen(true);
+    // Delete pack
+    const handleDelete = async (id: number) => {
+        await packApi.delete(id);
+        setPacks(await packApi.getAll());
     };
-
-    const handleAddNew = () => {
-        setEditingPack(null);
-        setIsFormOpen(true);
-    };
-
-    const handleFormSuccess = async () => {
-        try {
-            const data = await packApi.getAll();
-            setPacks(data);
-        } catch (err) {
-            console.error("Failed to reload packs:", err);
-        } finally {
-            setIsFormOpen(false);
-            setEditingPack(null);
-        }
-    };
-
-    const handleFormOpenChange = (open: boolean) => {
-        setIsFormOpen(open);
-        if (!open) setEditingPack(null);
-    };
-
-    const handleDelete = async (packId: string) => {
-        if (!packId) return alert("Invalid pack ID");
-        try {
-            await packApi.delete(packId);
-            const data = await packApi.getAll();
-            setPacks(data);
-        } catch (error) {
-            console.error("Failed to delete pack:", error);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {[1, 2, 3].map((i) => (
-                    <Card key={i} className="p-5 rounded-2xl">
-                        <Skeleton className="w-32 h-6 mb-3" />
-                        <Skeleton className="w-20 h-5 mb-2" />
-                        <Skeleton className="w-full h-4" />
-                    </Card>
-                ))}
-            </div>
-        );
-    }
 
     return (
         <div className="relative group">
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="scroll-m-20 py-2 text-2xl sm:text-3xl font-semibold tracking-tight first:mt-0">
+            <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
                     Available Service Packs
                 </h2>
+
                 {isAdmin && (
-                    <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
-                        <Button
-                            size="sm"
-                            className="rounded-full text-xs sm:text-sm"
-                            onClick={handleAddNew}
-                        >
+                    <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                        <Button size="sm" onClick={() => handleData(null)}>
                             + Add New Pack
                         </Button>
                     </div>
                 )}
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 auto-rows-[180px]">
                 {packs.map((pack) => (
-                    <HoverCard key={pack.id} openDelay={0} closeDelay={0}>
-                        <HoverCardTrigger asChild>
-                            <Card className="relative overflow-hidden group p-5 rounded-2xl bg-gradient-to-br from-pink-50 to-purple-50
-                             dark:from-gray-800 dark:to-gray-700 border border-gray-100 dark:border-gray-700
-                             transition-shadow hover:shadow-xl flex flex-col h-full">
-                                {/* Background icon */}
-                                <Wrench
-                                    className="absolute -right-1 -top-1 w-40 h-40 text-red-900 dark:text-red-800 opacity-20 pointer-events-none"
-                                />
-
-                                <CardContent className="p-0 flex flex-col justify-between flex-1 relative z-10">
-                                    <CardHeader className="p-0 mb-2 relative z-10">
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <CardTitle className="text-2xl font-bold text-foreground">{pack.packName}</CardTitle>
-                                            {isAdmin && (
-                                                <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
-                                                    <Dropdown
-                                                        itemType="Service"
-                                                        onEdit={() => {
-                                                            console.log('Edit clicked for service:', pack); // Debug log
-                                                            handleEdit(pack);
-                                                        }}
-                                                        onDelete={() => {
-                                                            console.log('Delete clicked for service:', pack); // Debug log
-                                                            console.log('Service ID:', pack.id, 'Type:', typeof pack.id); // Debug log
-                                                            if (!pack.id) {
-                                                                console.error('Pack object has no ID:', pack);
-                                                                alert('Pack ID is missing');
-                                                                return;
-                                                            }
-                                                            handleDelete(pack.id);
-                                                        }}
-                                                        showDuplicate={false}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    </CardHeader>
-                                    <div className="flex items-center text-3xl font-semibold text-foreground">
-                                        <Euro className="mr-1" />
-                                        {pack.amount}
-                                    </div>
-                                    <CardDescription className="text-lg text-muted-foreground mt-1 line-clamp-3">
-                                        {pack.description}
-                                    </CardDescription>
-                                </CardContent>
-                            </Card>
-                        </HoverCardTrigger>
-
-                        <HoverCardContent className="w-80 p-4 space-y-2 rounded-xl shadow-lg">
-                            <h4 className="text-lg font-semibold text-foreground">Services included</h4>
-                            <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
-                                {pack.services.map((service) => (
-                                    <div
-                                        key={service.id}
-                                        className="flex items-start justify-between rounded-md p-2 hover:bg-muted/50 transition"
+                    <HoverCard key={pack.id}>
+                        <div className="relative">
+                            <HoverCardTrigger asChild>
+                                <div onClick={() => handleData(pack)}>
+                                    <Card
+                                        className="relative h-[180px] p-5 rounded-3xl
+                                            bg-gradient-to-br from-white/70 to-white/20
+                                            dark:from-gray-900/60 dark:to-gray-800/40
+                                            backdrop-blur-xl border border-white/20
+                                            dark:border-gray-700/40 shadow-lg hover:shadow-2xl
+                                            transition-all duration-300 flex flex-col"
                                     >
-                                        <div className="flex-1">
-                                            <p className="font-medium text-sm text-foreground">{service.serviceName}</p>
-                                            <p className="text-xs text-muted-foreground line-clamp-2">{service.serviceDescription}</p>
+                                        <Wrench className="absolute right-3 top-3 w-16 h-16 opacity-[0.06]" />
+
+                                        <CardContent className="p-0 flex flex-col">
+                                            <CardHeader className="p-0 mb-1">
+                                                <CardTitle className="text-lg font-semibold tracking-tight leading-tight">
+                                                    {pack.packName}
+                                                </CardTitle>
+                                            </CardHeader>
+
+                                            <div className="flex items-center text-3xl font-bold mb-1">
+                                                <Euro className="mr-1 w-5 h-5" />
+                                                {pack.amount}
+                                            </div>
+
+                                            <CardDescription className="text-sm opacity-80 leading-snug line-clamp-3">
+                                                {pack.description}
+                                            </CardDescription>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </HoverCardTrigger>
+
+                            {isAdmin && (
+                                <div className="absolute top-4 right-4 z-50">
+                                    <Dropdown
+                                        itemType="Pack"
+                                        onEdit={() => handleData(pack)}
+                                        onDelete={() => handleDelete(pack.id)}
+                                        showDuplicate={false}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        <HoverCardContent
+                            className="w-80 p-5 rounded-2xl shadow-xl
+                                bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/20"
+                        >
+                            <h4 className="text-lg font-semibold mb-2">Services included</h4>
+
+                            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                {pack.services.map((s) => (
+                                    <div
+                                        key={s.id}
+                                        className="flex justify-between items-start p-2 rounded-lg
+                                            bg-gray-50 dark:bg-gray-800/40"
+                                    >
+                                        <div>
+                                            <p className="font-medium">{s.serviceName}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {s.serviceDescription}
+                                            </p>
                                         </div>
-                                        <span className="ml-2 text-sm font-semibold text-green-600">${service.price.toFixed(2)}</span>
+                                        <span className="font-semibold text-green-600">
+                                            €{s.price.toFixed(2)}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
-                            <div className="flex justify-between items-center pt-2 border-t text-sm">
-                                <span className="text-muted-foreground">Total</span>
-                                <span className="font-bold text-foreground text-green-600">${pack.totalPrice.toFixed(2)}</span>
+
+                            <div className="flex justify-between pt-3 border-t mt-3 text-sm">
+                                <span>Total</span>
+                                <span className="font-bold text-green-600">
+                                    €{pack.totalPrice.toFixed(2)}
+                                </span>
                             </div>
                         </HoverCardContent>
                     </HoverCard>
                 ))}
 
-                {/* Service Form Modal */}
-                <PackForm
-                    initialData={editingPack}
-                    open={isFormOpen}
-                    onOpenChange={handleFormOpenChange}
-                    onSuccess={handleFormSuccess}
-                />
+                {editingPack && (
+                    <PackForm
+                        open={isFormOpen}
+                        onOpenChange={setIsFormOpen}
+                        initialData={editingPack}
+                        serviceOptions={serviceOptions}
+                        selectedServiceOptions={selectedServiceOptions}
+                        onServicesChange={handleServicesChange}
+                        amount={editingPack.amount}
+                        onSubmit={handleSubmit}
+                    />
+                )}
             </div>
         </div>
     );

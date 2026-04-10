@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 public class RoleMapperImpl implements RoleMapper {
 
     @Override
-    public Role roleDtoToRole(RoleCreateDTO roleDTO) {
+    public Role toDto(RoleCreateDTO roleDTO) {
         if ( roleDTO == null ) {
             return null;
         }
@@ -30,7 +30,7 @@ public class RoleMapperImpl implements RoleMapper {
     }
 
     @Override
-    public Role roleDtoToRole(RoleUpdateDTO roleDTO) {
+    public Role toDto(RoleUpdateDTO roleDTO) {
         if ( roleDTO == null ) {
             return null;
         }

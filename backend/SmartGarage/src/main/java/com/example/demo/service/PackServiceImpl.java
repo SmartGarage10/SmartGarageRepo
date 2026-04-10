@@ -1,6 +1,8 @@
 package com.example.demo.service;
 
-import com.example.demo.DTO.PackDTO;
+import com.example.demo.DTO.pack.PackCreateDTO;
+import com.example.demo.DTO.pack.PackResponseDTO;
+import com.example.demo.DTO.pack.PackUpdateDTO;
 import com.example.demo.exceptions.ResourceConflictException;
 import com.example.demo.exceptions.ResourceNotFoundException;
 import com.example.demo.filter.EntitySpecificationProvider;
@@ -18,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -67,33 +68,34 @@ public class PackServiceImpl implements PackService, EntitySpecificationProvider
     // ========== READ ==========
 
     @Override
-    public List<Pack> getAllPacks() {
-        return packRepository.findAll();
+    public List<PackResponseDTO> getAllPacks() {
+        List<Pack> packs =  packRepository.findAll();
+        return packs.stream().map(packMapper::toDto).toList();
     }
 
     // ========== CREATE ==========
 
     @Override
-    public Pack createPack(User user, PackDTO packDTO) {
-        if (packRepository.existsPacksByPackName(packDTO.getPackName())) {
+    public PackResponseDTO createPack(PackCreateDTO packDTO) {
+        if (packRepository.existsPacksByPackName(packDTO.packName())) {
             throw new ResourceConflictException(
-                    String.format("Pack with name %s already exists", packDTO.getPackName())
+                    String.format("Pack with name %s already exists", packDTO.packName())
             );
         }
 
         Pack pack = packMapper.toEntity(packDTO);
         // Use helper method to resolve services
-        List<ServiceItem> managedServices = resolveAndValidateServices(pack.getServices());
+        List<ServiceItem> managedServices = resolveAndValidateServices(packDTO.serviceIds());
         pack.setServices(managedServices);
 
-        validate(pack);
-        return packRepository.save(pack);
+        packRepository.save(pack);
+        return packMapper.toDto(pack);
     }
 
     // ========== UPDATE ==========
 
     @Override
-    public Pack update(User user, Long packId, PackDTO changes) {
+    public PackResponseDTO update(Long packId, PackUpdateDTO changes) {
         Pack existing = packRepository.findById(packId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         String.format("Pack with id %s not found", packId)
@@ -135,13 +137,13 @@ public class PackServiceImpl implements PackService, EntitySpecificationProvider
 
         // Handle services using helper method
         if (packDetails.getServices() != null) {
-            List<ServiceItem> managedServices = resolveAndValidateServices(packDetails.getServices());
+            List<ServiceItem> managedServices = resolveAndValidateServices(changes.serviceIds());
             updated.getServices().clear();
             updated.getServices().addAll(managedServices);
         }
 
-        validate(updated);
-        return packRepository.save(updated);
+        packRepository.save(updated);
+        return packMapper.toDto(updated);
     }
 
     // ========== DELETE ==========
@@ -156,44 +158,20 @@ public class PackServiceImpl implements PackService, EntitySpecificationProvider
         entityHelper.deleteAllById(ids);
     }
 
-    // ========== VALIDATION ==========
-
-    private void validate(Pack pack) {
-        if (pack.getPackName() == null || pack.getPackName().isBlank()) {
-            throw new IllegalArgumentException("Pack name is required");
-        }
-
-        if (pack.getAmount() == null || pack.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Pack amount must be greater than 0");
-        }
-
-        if (pack.getServices() != null) {
-            for (ServiceItem service : pack.getServices()) {
-                if (!serviceRepository.existsById(service.getId())) {
-                    throw new ResourceNotFoundException(
-                            String.format("Service with id %s does not exist", service.getId())
-                    );
-                }
-            }
-        }
-    }
-
     // ========== PRIVATE HELPER METHOD (EXTRACTED AT BOTTOM) ==========
-
-    private List<ServiceItem> resolveAndValidateServices(List<ServiceItem> requestedServices) {
-        if (requestedServices == null || requestedServices.isEmpty()) {
+    private List<ServiceItem> resolveAndValidateServices(List<Long> serviceIds) {
+        if (serviceIds == null || serviceIds.isEmpty()) {
             return new ArrayList<>();
         }
 
         List<ServiceItem> managedServices = new ArrayList<>();
         Set<String> addedServiceNames = new HashSet<>();
 
-        for (ServiceItem service : requestedServices) {
-            ServiceItem managedService = serviceRepository.findByServiceName(service.getServiceName())
+        for (Long id : serviceIds) {
+            ServiceItem managedService = serviceRepository.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException(
-                            String.format("Service %s not found", service.getServiceName())));
+                            String.format("Service with id %s not found", id)));
 
-            // Check for duplicate service in the request
             if (!addedServiceNames.add(managedService.getServiceName())) {
                 throw new ResourceConflictException(
                         String.format("Duplicate service %s in the pack", managedService.getServiceName())

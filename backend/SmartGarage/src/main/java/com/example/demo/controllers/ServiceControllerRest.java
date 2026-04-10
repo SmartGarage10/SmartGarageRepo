@@ -39,7 +39,8 @@ public class ServiceControllerRest {
             ValidationHelper.validate(bindingResult);
         }
 
-        return ResponseEntity.ok(service.createNewService(securityHelper.getCurrentUser(), serviceDTO));
+        securityHelper.isAuthenticated();
+        return ResponseEntity.ok(service.createNewService(serviceDTO));
     }
 
     @PutMapping("update-service/{id}")

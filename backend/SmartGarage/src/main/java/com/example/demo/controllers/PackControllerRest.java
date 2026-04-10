@@ -1,19 +1,15 @@
 package com.example.demo.controllers;
 
-import com.example.demo.DTO.PackDTO;
-import com.example.demo.exceptions.AuthorizationException;
+import com.example.demo.DTO.pack.PackCreateDTO;
+import com.example.demo.DTO.pack.PackUpdateDTO;
 import com.example.demo.helpers.SecurityHelper;
 import com.example.demo.helpers.ValidationHelper;
-import com.example.demo.models.Pack;
-import com.example.demo.models.User;
 import com.example.demo.service.PackService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -33,66 +29,43 @@ public class PackControllerRest {
     }
 
     @GetMapping("/packs")
-    public ResponseEntity<List<Pack>> getAllVehicles() {
-        try {
-            securityHelper.isAuthenticated();
-            return ResponseEntity.ok(packService.getAllPacks());
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+    public ResponseEntity<?> getAllVehicles() {
+        securityHelper.isAuthenticated();
+        return ResponseEntity.ok(packService.getAllPacks());
     }
 
     @PostMapping("/create-pack")
-    public ResponseEntity<?> createService(@Valid @RequestBody PackDTO packDTO,
+    public ResponseEntity<?> createService(@Valid @RequestBody PackCreateDTO packDTO,
                                            BindingResult bindingResult){
-        try {
-            if(bindingResult.hasErrors()){
-                ValidationHelper.validate(bindingResult);
-            }
-
-            User currentUser = securityHelper.getCurrentUser();
-            return ResponseEntity.ok(packService.createPack(currentUser, packDTO));
-        } catch (AuthorizationException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
+        if(bindingResult.hasErrors()){
+            ValidationHelper.validate(bindingResult);
         }
+
+        securityHelper.isAuthenticated();
+        return ResponseEntity.ok(packService.createPack(packDTO));
     }
 
     @PutMapping("update-pack/{id}")
-    public ResponseEntity<?> updateService(@Valid @RequestBody PackDTO packDTO,
+    public ResponseEntity<?> updateService(@Valid @RequestBody PackUpdateDTO packDTO,
                                            @PathVariable Long id,
                                            BindingResult bindingResult){
-        try {
-            if(bindingResult.hasErrors()){
-                ValidationHelper.validate(bindingResult);
-            }
+        if(bindingResult.hasErrors()){
+            ValidationHelper.validate(bindingResult);
+        }
 
-            User currentUser = securityHelper.getCurrentUser();
-            return ResponseEntity.ok(packService.update(currentUser, id , packDTO));
-        }
-        catch (AuthorizationException e){
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
-        }
+        securityHelper.isAuthenticated();
+        return ResponseEntity.ok(packService.update(id , packDTO));
     }
 
     @DeleteMapping("/packs/{id}")
     public ResponseEntity<?> deleteSingleService(@PathVariable Long id) {
-        try {
-            User currentUser = securityHelper.getCurrentUser();
-            packService.deletePack(currentUser, id);
-            return ResponseEntity.ok(Map.of("status", "success", "message", "Service deleted successfully"));
-        } catch (AuthorizationException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
-        }
+        packService.deletePack(securityHelper.getCurrentUser(), id);
+        return ResponseEntity.ok(Map.of("status", "success", "message", "Pack deleted successfully"));
     }
 
     @DeleteMapping("/packs/delete")
     public ResponseEntity<?> deleteManyService(@RequestBody List<Long> ids) {
-        try {
-            User currentUser = securityHelper.getCurrentUser();
-            packService.deletePacks(currentUser, ids);
-            return ResponseEntity.ok(Map.of("status", "success", "message", "User deleted successfully"));
-        } catch (AuthorizationException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
-        }
+        packService.deletePacks(securityHelper.getCurrentUser(), ids);
+        return ResponseEntity.ok(Map.of("status", "success", "message", "Packs deleted successfully"));
     }
 }

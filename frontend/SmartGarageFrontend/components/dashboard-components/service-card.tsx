@@ -1,0 +1,180 @@
+'use client';
+
+import React, { useState } from 'react';
+import { Service } from '@/types/service';
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Euro } from "lucide-react";
+import { Dropdown } from '@/components/custom-components/item-drop-down';
+
+import { useUser } from "@/hooks/useUser";
+import { ServiceForm } from '@/components/forms/edit-create-service-form';
+import { createApi } from "@/api/genericApi";
+
+export default function ServiceCards({ services, setServices, packs, setPacks }) {
+    const [loading, setLoading] = useState(false);
+    const [editingService, setEditingService] = useState<Service | null>(null);
+    const [isFormOpen, setIsFormOpen] = useState(false);
+
+    const { user } = useUser();
+    const isAdmin = user?.role?.roleName === "ADMIN";
+
+    const serviceApi = createApi<Service>("services");
+    const packApi = createApi("packs");
+
+    const handleEdit = (service: Service) => {
+        setEditingService(service);
+        setIsFormOpen(true);
+    };
+
+    const handleAddNew = () => {
+        setEditingService(null);
+        setIsFormOpen(true);
+    };
+
+    const handleFormSuccess = async () => {
+        setLoading(true);
+        try {
+            const [updatedServices, updatedPacks] = await Promise.all([
+                serviceApi.getAll(),
+                packApi.getAll()
+            ]);
+
+            setServices(updatedServices);
+            setPacks(updatedPacks);
+        } catch (err) {
+            console.error('Failed to reload services:', err);
+        } finally {
+            setLoading(false);
+            setIsFormOpen(false);
+            setEditingService(null);
+        }
+    };
+
+    const handleFormOpenChange = (open: boolean) => {
+        setIsFormOpen(open);
+        if (!open) setEditingService(null);
+    };
+
+    const handleDelete = async (serviceId: string) => {
+        if (!serviceId) return;
+
+        setLoading(true);
+        try {
+            await serviceApi.delete(serviceId);
+
+            const [updatedServices, updatedPacks] = await Promise.all([
+                serviceApi.getAll(),
+                packApi.getAll()
+            ]);
+
+            setServices(updatedServices);
+            setPacks(updatedPacks);
+        } catch (error) {
+            console.error('Failed to delete service:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="relative mt-8 group">
+
+            <ServiceForm
+                initialData={editingService}
+                open={isFormOpen}
+                onOpenChange={handleFormOpenChange}
+                onSuccess={handleFormSuccess}
+            />
+
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="scroll-m-20 py-2 text-2xl sm:text-3xl font-semibold tracking-tight first:mt-0">
+                    Services
+                </h2>
+
+                {isAdmin && (
+                    <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+                        <Button
+                            size="sm"
+                            className="rounded-full text-xs sm:text-sm"
+                            onClick={handleAddNew}
+                        >
+                            + Add New Service
+                        </Button>
+                    </div>
+                )}
+            </div>
+
+            <div className="grid gap-4 sm:gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                {loading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                        <Card key={i} className="rounded-2xl p-4 sm:p-6">
+                            <Skeleton className="h-6 w-28 mb-4" />
+                            <Skeleton className="h-4 w-full mb-2" />
+                            <Skeleton className="h-4 w-3/4" />
+                            <div className="mt-4 flex justify-between">
+                                <Skeleton className="h-6 w-16" />
+                                <Skeleton className="h-8 w-20 rounded-md" />
+                            </div>
+                        </Card>
+                    ))
+                ) : (
+                    services.map((s) => (
+                        <Card
+                            key={s.id}
+                            className="relative group rounded-2xl p-4 sm:p-6 transition-all border hover:shadow-xl md:hover:scale-[1.02] flex flex-col justify-between"
+                        >
+                            <CardHeader className="p-0 mb-1">
+                                <div className="flex items-start justify-between gap-2 flex-wrap">
+                                    <div className="min-w-0 flex-1">
+                                        <CardTitle className="text-xl sm:text-2xl font-semibold break-words leading-tight">
+                                            {s.serviceName}
+                                        </CardTitle>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <Badge variant="secondary"
+                                               className="rounded-full px-2 sm:px-3 py-1 text-xs sm:text-sm whitespace-nowrap">
+                                            New
+                                        </Badge>
+
+                                        {isAdmin && (
+                                            <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+                                                <Dropdown
+                                                    itemType="Service"
+                                                    onEdit={() => handleEdit(s)}
+                                                    onDelete={() => handleDelete(s.id)}
+                                                    showDuplicate={false}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </CardHeader>
+
+                            <CardContent className="p-0 flex flex-col flex-1 justify-between">
+                                <p className="text-sm text-muted-foreground line-clamp-3 mt-2">
+                                    {s.serviceDescription}
+                                </p>
+
+                                <div className="mt-4 flex items-center justify-end">
+                                    <span className="flex items-center font-bold text-primary text-sm sm:text-base">
+                                        <Euro className="h-3 w-3 sm:h-4 sm:w-4 mr-1"/>
+                                        {s.price.toFixed(2)}
+                                    </span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+}

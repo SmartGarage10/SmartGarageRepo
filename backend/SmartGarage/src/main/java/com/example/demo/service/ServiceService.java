@@ -11,7 +11,7 @@ import java.util.List;
 public interface ServiceService {
     List<ServiceItemResponseDTO> getAllServices(MultiValueMap<String, String> allParams);
 
-    ServiceItemResponseDTO createNewService(User user, ServiceItemCreateDTO serviceItem);
+    ServiceItemResponseDTO createNewService(ServiceItemCreateDTO serviceItem);
     ServiceItemResponseDTO update(Long serviceId, ServiceItemUpdateDTO serviceItem);
 
     void deleteService(User user, Long serviceId);
