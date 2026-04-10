@@ -7,8 +7,6 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
-import java.time.Year;
-
 @Builder
 public record VehicleCreateDTO(
         @Pattern(
@@ -24,7 +22,7 @@ public record VehicleCreateDTO(
 
         @NotNull(message = "Year of creation is mandatory.")
         @ValidYear(min = 1950, message = "Year must be 1950 or newer.")
-        Year year,
+        String year,
 
         @Size(min = 2, max = 50, message = "Model must be between 2 and 50 characters.")
         @NotBlank(message = "Model is mandatory.")

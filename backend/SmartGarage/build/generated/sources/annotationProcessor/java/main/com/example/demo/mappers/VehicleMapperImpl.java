@@ -46,7 +46,7 @@ public class VehicleMapperImpl implements VehicleMapper {
 
         Vehicle vehicle = new Vehicle();
 
-        vehicle.setYear( dto.year() );
+        vehicle.setYear( stringToYear( dto.year() ) );
         vehicle.setVehiclePlate( dto.vehiclePlate() );
         vehicle.setVin( dto.vin() );
         vehicle.setBrand( dto.brand() );
@@ -63,7 +63,7 @@ public class VehicleMapperImpl implements VehicleMapper {
 
         Vehicle vehicle = new Vehicle();
 
-        vehicle.setYear( dto.year() );
+        vehicle.setYear( stringToYear( dto.year() ) );
         vehicle.setVehiclePlate( dto.vehiclePlate() );
         vehicle.setVin( dto.vin() );
         vehicle.setBrand( dto.brand() );
@@ -81,11 +81,11 @@ public class VehicleMapperImpl implements VehicleMapper {
         Vehicle vehicle = new Vehicle();
 
         if ( dto != null ) {
+            vehicle.setYear( stringToYear( dto.year() ) );
             vehicle.setVehiclePlate( dto.vehiclePlate() );
             vehicle.setVin( dto.vin() );
             vehicle.setBrand( dto.brand() );
             vehicle.setModel( dto.model() );
-            vehicle.setYear( dto.year() );
         }
         vehicle.setClient( user );
 

@@ -80,7 +80,7 @@ export function VehicleForm({
             vin: "",
             brand: "",
             model: "",
-            year: currentYear,
+            year: currentYear.toString(),
         },
     });
 
@@ -95,7 +95,7 @@ export function VehicleForm({
         if (open) {
             if (initialData) {
                 const matchingClient =
-                    clients.find(c => c.id === initialData.user?.id) || initialData.user;
+                    clients.find(c => c.id === initialData.client?.id) || initialData.client;
 
                 form.reset({
                     id: initialData.id,
@@ -104,7 +104,7 @@ export function VehicleForm({
                     vin: initialData.vin,
                     brand: initialData.brand,
                     model: initialData.model,
-                    year: initialData.yearOfCreation,
+                    year: parseInt(initialData.year.toString(), 10) || currentYear,
                 });
             } else {
                 form.reset({
@@ -114,7 +114,7 @@ export function VehicleForm({
                     vin: "",
                     brand: "",
                     model: "",
-                    year: currentYear,
+                    year: currentYear.toString(),
                 });
             }
         } else {
@@ -125,7 +125,7 @@ export function VehicleForm({
                 vin: "",
                 brand: "",
                 model: "",
-                year: currentYear,
+                year: currentYear.toString(),
             });
         }
     }, [open, initialData, clients, form, currentYear]);

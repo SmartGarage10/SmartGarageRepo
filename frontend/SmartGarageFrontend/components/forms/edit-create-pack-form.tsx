@@ -43,7 +43,6 @@ export function PackForm({
                              onOpenChange,
                              initialData,
                              serviceOptions,
-                             selectedServiceOptions,
                              onServicesChange,
                              amount,
                              onSubmit,

@@ -2,9 +2,9 @@ package com.example.demo.validators;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import java.time.Year;
 
-public class ValidYearValidator implements ConstraintValidator<ValidYear, Year> {
+public class ValidYearValidator implements ConstraintValidator<ValidYear, String> {
+
     private int minYear;
 
     @Override
@@ -13,11 +13,19 @@ public class ValidYearValidator implements ConstraintValidator<ValidYear, Year> 
     }
 
     @Override
-    public boolean isValid(Year value, ConstraintValidatorContext context) {
-        if (value == null) {
+    public boolean isValid(String value, ConstraintValidatorContext context) {
+        if (value == null || value.isBlank()) {
+            return false; // ако year е задължително
+        }
+
+        // трябва да е точно 4 цифри
+        if (!value.matches("^[0-9]{4}$")) {
             return false;
         }
-        int yearValue = value.getValue();
-        return yearValue >= minYear;
+
+        int year = Integer.parseInt(value);
+        int currentYear = java.time.Year.now().getValue();
+
+        return year >= minYear && year <= currentYear;
     }
 }

@@ -22,24 +22,31 @@ public interface VehicleMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "client", ignore = true)
     @Mapping(target = "visits", ignore = true)
-    @Mapping(target = "year", source = "year")
+    @Mapping(target = "year", source = "year", qualifiedByName = "stringToYear")
     Vehicle toEntity(VehicleCreateDTO dto);
 
     // UPDATE DTO → ENTITY (без user)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "client", ignore = true)
     @Mapping(target = "visits", ignore = true)
-    @Mapping(target = "year", source = "year")
+    @Mapping(target = "year", source = "year", qualifiedByName = "stringToYear")
     Vehicle toEntity(VehicleUpdateDTO dto);
 
     // CREATE DTO + USER → ENTITY
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "client", source = "user")
     @Mapping(target = "visits", ignore = true)
+    @Mapping(target = "year", source = "dto.year", qualifiedByName = "stringToYear")
     Vehicle toEntityWithUser(VehicleCreateDTO dto, User user);
 
     @Named("yearToString")
     default String yearToString(Year year) {
         return year != null ? year.toString() : null;
     }
+
+    @Named("stringToYear")
+    default Year stringToYear(String year) {
+        return (year != null && !year.isBlank()) ? Year.parse(year) : null;
+    }
+
 }

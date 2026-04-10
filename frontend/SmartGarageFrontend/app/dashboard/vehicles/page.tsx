@@ -149,8 +149,8 @@ export default function VehiclesPage() {
                     vin: vehicleData.vin,
                     brand: vehicleData.brand,
                     model: vehicleData.model,
-                    yearOfCreation: vehicleData.year, // DTO expects this
-                    userId: fullClient.id, // backend expects userId to map to client
+                    year: vehicleData.year,
+                    userId: fullClient.id,
                 };
 
                 const res = await fetch(endpoint, {
