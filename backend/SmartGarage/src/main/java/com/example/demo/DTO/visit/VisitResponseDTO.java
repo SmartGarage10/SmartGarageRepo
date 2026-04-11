@@ -15,8 +15,9 @@ public record VisitResponseDTO(
         VehicleResponseDTO vehicle,
         UserResponseDTO employee,
         List<VisitItemResponseDTO> visitItems,
-        BigDecimal totalPrice,
+        BigDecimal amount,
         LocalDateTime visitDate,
-        String status
+        String status,
+        String currency
 ) {
 }

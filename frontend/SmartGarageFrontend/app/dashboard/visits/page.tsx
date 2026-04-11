@@ -1,15 +1,14 @@
-// frontend/SmartGarageFrontend/src/app/dashboard/vehicles/page.tsx
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-import { getColumns} from '@/app/dashboard/visits/column';
+import { getColumns } from '@/app/dashboard/visits/column';
 import { Vehicle } from '@/types/vehicle';
 import { User } from '@/types/user';
 import { Pack } from '@/types/pack';
 import { Service } from '@/types/service';
-import {Visit, VISIT_STATUS_OPTIONS, VisitItem, VisitItemType} from '@/types/visit';
+import { Visit, VISIT_STATUS_OPTIONS, VisitItem, VisitItemType } from '@/types/visit';
 
 import { DataTable } from '@/components/data-table/data-table';
 import { DataTableAdvancedToolbar } from '@/components/data-table/data-table-advanced-toolbar';
@@ -22,14 +21,6 @@ import { CarService } from '@/services/CarService';
 import { VisitForm } from '@/components/forms/edit-create-visit-form';
 import { createApi } from '@/api/genericApi';
 
-// interface FilterItem {
-//     id: string;
-//     value: string | string[];
-//     variant: string;
-//     operator: string;
-//     filterId: string;
-// }
-
 export default function VehiclesPage() {
     const [clients, setClients] = useState<User[]>([]);
     const [employees, setEmployees] = useState<User[]>([]);
@@ -40,12 +31,11 @@ export default function VehiclesPage() {
     const [modelOptions, setModelOptions] = useState<{ label: string; value: string }[]>([]);
     const [selectedBrand, setSelectedBrand] = useState<string>('');
     const [isBrandsLoading, setIsBrandsLoading] = useState(false);
+    const [isModelsLoading, setIsModelsLoading] = useState(false);
     const [isDataLoading, setIsDataLoading] = useState(true);
 
-    // Local selected row state for edit form
     const [selectedRow, setSelectedRow] = useState<Visit | null>(null);
 
-    // APIs
     const packApi = createApi<Pack>("packs");
     const userApi = createApi<User>("users");
     const vehicleApi = createApi<Vehicle>("vehicles");
@@ -53,40 +43,17 @@ export default function VehiclesPage() {
 
     const statusFilterOptions = VISIT_STATUS_OPTIONS.map(status => ({
         value: status,
-        label: status.replace('_', ' ') // "IN_PROGRESS" -> "IN PROGRESS"
+        label: status.replace('_', ' ')
     }));
 
-    // FIXED: Add "Custom Pack" to filter options
     const packFilterOptions = [
-        // Regular packs from database
         ...packs.map(pack => ({
             label: pack.packName,
             value: pack.packName
         })),
-        // Custom pack option for filtering
         { label: "CUSTOM PACK", value: "CUSTOM PACK" }
     ];
 
-    // Parse brand filter from URL
-    // useEffect(() => {
-    //     const filtersParam = searchParams.get('filters');
-    //     if (filtersParam) {
-    //         try {
-    //             const filters: FilterItem[] = JSON.parse(decodeURIComponent(filtersParam));
-    //             const brandFilter = filters.find((f) => f.id === 'brand');
-    //             const brand = brandFilter?.value
-    //                 ? Array.isArray(brandFilter.value)
-    //                     ? brandFilter.value[0] || ''
-    //                     : brandFilter.value
-    //                 : '';
-    //             setSelectedBrand(brand);
-    //         } catch (error) {
-    //             console.error('Error parsing filters:', error);
-    //         }
-    //     }
-    // }, [searchParams]);
-
-    // Load all data (clients, employees, vehicles, packs, services)
     useEffect(() => {
         const loadAllData = async () => {
             setIsDataLoading(true);
@@ -98,9 +65,6 @@ export default function VehiclesPage() {
                         vehicleApi.getAll(),
                         serviceApi.getAll(),
                     ]);
-
-                console.log("Loaded packs:", fetchedPacks);
-                console.log("Loaded services:", fetchedServices);
 
                 setPacks(fetchedPacks);
                 setClients(fetchedUsers.filter((u: User) => u.role?.roleName === 'CLIENT'));
@@ -118,15 +82,14 @@ export default function VehiclesPage() {
         loadAllData();
     }, []);
 
-    // Load brands
     useEffect(() => {
         const loadBrands = async () => {
             setIsBrandsLoading(true);
             try {
                 const brands = await CarService.fetchBrands();
-                setBrandOptions(brands.map((brand: string) => ({ label: brand, value: brand })));
+                setBrandOptions(brands.map((b: string) => ({ label: b, value: b })));
             } catch (err) {
-                console.error('Error loading brands:', err);
+                console.error(err);
             } finally {
                 setIsBrandsLoading(false);
             }
@@ -134,35 +97,11 @@ export default function VehiclesPage() {
         loadBrands();
     }, []);
 
-    // Load models when brand changes
-    useEffect(() => {
-        const loadModels = async () => {
-            if (!selectedBrand) {
-                setModelOptions([]);
-                return;
-            }
-            setIsModelsLoading(true);
-            try {
-                const models = await CarService.fetchModels(selectedBrand);
-                setModelOptions(models.map((model: string) => ({ label: model, value: model })));
-            } catch (err) {
-                console.error('Error loading models:', err);
-                setModelOptions([]);
-            } finally {
-                setIsModelsLoading(false);
-            }
-        };
-        loadModels();
-    }, [selectedBrand]);
-
-    // Edit callback
     const handleEdit = useCallback((visit: Visit) => {
-        console.log('[DEBUG] Editing visit', visit);
         setSelectedRow(visit);
         setSelectedBrand(visit.vehicle?.brand || '');
     }, []);
 
-    // DataTable hook
     const {
         table,
         globalFilter,
@@ -174,8 +113,8 @@ export default function VehiclesPage() {
         setIsFormOpen,
     } = useDataTable<Visit>({
         fetchUrl: 'http://localhost:8080/api/visits',
-        getColumns: ({ onDelete }) => {
-            return getColumns({
+        getColumns: ({ onDelete }) =>
+            getColumns({
                 onEdit: (row: Visit) => {
                     handleEdit(row);
                     setIsFormOpen(true);
@@ -186,17 +125,17 @@ export default function VehiclesPage() {
                 brandOptions,
                 statusFilterOptions,
                 packFilterOptions
-            });
-        },
+            }),
     });
 
+    // =========================
+    // ✅ FIXED SUBMIT FUNCTION
+    // =========================
     const handleVisitSubmit = useCallback(
         async (visitData: any) => {
             try {
-                console.log("📋 RAW DATA FROM FORM:", visitData);
-                console.log("🔍 Services data:", visitData.visitServices);
-
                 const isEdit = !!selectedRow?.id;
+
                 const endpoint = isEdit
                     ? `http://localhost:8080/api/update-visit/${selectedRow.id}`
                     : `http://localhost:8080/api/create-visit`;
@@ -205,132 +144,60 @@ export default function VehiclesPage() {
 
                 const visitDate = new Date(visitData.visitDate);
 
-                // ========== CRITICAL FIX: PROPERLY SET SERVICE ID ==========
-                let visitItems: VisitItem[] = [];
-
-                // Get services data from form
                 const servicesFromForm = visitData.visitServices || [];
-                console.log("🔍 Services from form:", servicesFromForm);
 
-                // CASE 1: Custom Pack
+                let visitItems: any[] = [];
+
+                // CASE 1: CUSTOM PACK
                 if (visitData.pack?.packName === "CUSTOM PACK") {
-                    console.log("🛠️ Processing CUSTOM PACK");
-
-                    if (servicesFromForm.length === 0) {
-                        throw new Error("Custom pack must have at least one service");
-                    }
-
-                    visitItems = servicesFromForm.map((service: any) => {
-                        console.log("Service object:", service);
-                        return {
-                            // ✅ CRITICAL: Must include serviceId or serviceItemId
-                            serviceItem: service,
-                            itemType: VisitItemType.SERVICE,
-                            itemName: service.serviceName || service.name,
-                            price: service.price || 0,
-                            quantity: 1
-                        };
-                    });
-                }
-                // CASE 2: Regular Pack
-                else if (visitData.pack && visitData.pack.packName !== "CUSTOM PACK") {
-                    console.log("📦 Processing REGULAR PACK");
-
-                    const selectedPackObj = packs.find(p => p.packName === visitData.pack?.packName);
-
-                    if (!selectedPackObj) {
-                        throw new Error(`Pack "${visitData.pack?.packName}" not found`);
-                    }
-
-                    visitItems = [{
-                        // ✅ CRITICAL: Must include packId
-                        pack: selectedPackObj,
-                        itemType: VisitItemType.PACK,
-                        itemName: selectedPackObj.packName,
-                        price: selectedPackObj.amount || 0,
-                        quantity: 1
-                    }];
-                }
-                // CASE 3: Individual Services
-                else {
-                    console.log("🔧 Processing INDIVIDUAL SERVICES");
-
-                    if (servicesFromForm.length === 0) {
-                        throw new Error("Please add at least one service");
-                    }
-
                     visitItems = servicesFromForm.map((service: any) => ({
-                        // ✅ CRITICAL: Must include serviceId
-                        serviceItem: service, // Include both
-                        itemType: VisitItemType.SERVICE,
-                        itemName: service.serviceName || service.name,
-                        price: service.price || 0,
-                        quantity: 1
+                        serviceItemId: service.id,
+                        quantity: 1,
+                        price: service.price || 0
                     }));
                 }
 
-                // ========== VALIDATE: Check IDs are present ==========
-                console.log("✅ Generated visitItems (BEFORE validation):", visitItems);
+                // CASE 2: REGULAR PACK
+                else if (visitData.pack && visitData.pack.packName !== "CUSTOM PACK") {
+                    const selectedPackObj = packs.find(
+                        p => p.packName === visitData.pack?.packName
+                    );
 
-                // Remove items without proper IDs
-                visitItems = visitItems.filter(item => {
-                    const hasServiceId = item.serviceItem?.id;
-                    const hasPackId = item.pack?.id;
-                    const isValid = (hasServiceId && !hasPackId) || (!hasServiceId && hasPackId);
-
-                    if (!isValid) {
-                        console.warn("❌ Removing invalid item (missing ID):", item);
+                    if (!selectedPackObj) {
+                        throw new Error("Pack not found");
                     }
-                    return isValid;
-                });
 
-                if (visitItems.length === 0) {
-                    throw new Error("No valid items found. Each item must have either serviceId or packId");
+                    visitItems = [{
+                        packId: selectedPackObj.id,
+                        quantity: 1,
+                        price: selectedPackObj.amount || 0
+                    }];
                 }
 
-                console.log("✅ Final visitItems (AFTER validation):", visitItems);
+                // CASE 3: INDIVIDUAL SERVICES
+                else {
+                    visitItems = servicesFromForm.map((service: any) => ({
+                        serviceItemId: service.id,
+                        quantity: 1,
+                        price: service.price || 0
+                    }));
+                }
 
-                // Calculate total
-                const totalAmount = visitItems.reduce((sum, item) =>
-                    sum + (item.price * item.quantity), 0
+                // CLEAN VALIDATION
+                visitItems = visitItems.filter(item =>
+                    (item.serviceItemId && !item.packId) ||
+                    (item.packId && !item.serviceItemId)
                 );
 
-                // ========== BUILD PAYLOAD ==========
                 const payload = {
-                    client: visitData.client,
-                    vehicle: visitData.vehicle,
-                    employee: visitData.employee,
+                    vehicleId: visitData.vehicle?.id,
+                    employeeId: visitData.employee?.id,
                     visitDate: visitDate.toISOString(),
                     status: visitData.status || "SCHEDULED",
-                    amount: visitData.amount || totalAmount,
-                    currency: visitData.currency || "EUR",
-                    pack: visitData.pack?.packName === "CUSTOM PACK" ? null : visitData.pack,
-                    // ✅ Key: Send as visitItems (from your debug output)
-                    visitItems: visitItems
+                    visitItems
                 };
 
-                console.log("📤 Final payload:", JSON.stringify(payload, null, 2));
-
-                // ========== DEBUG: Check what field names backend expects ==========
-                // const testPayloads = [
-                //     { ...payload, visitItems: visitItems },
-                //     { ...payload, visitServices: visitItems },
-                //     {
-                //         ...payload,
-                //         visitItems: visitItems.map(item => ({
-                //             ...item,
-                //             // Try different ID field names
-                //             serviceId: item.serviceItem?.id,
-                //             serviceItem: item.serviceItem
-                //         }))
-                //     }
-                // ];
-
-                // for (const [index, testPayload] of testPayloads.entries()) {
-                //     console.log(`🧪 Test ${index + 1}:`,
-                //         Object.keys(testPayload).filter(k => Array.isArray(testPayload[k]))
-                //     );
-                // }
+                console.log("📤 PAYLOAD:", payload);
 
                 const response = await fetch(endpoint, {
                     method,
@@ -339,52 +206,37 @@ export default function VehiclesPage() {
                     credentials: "include",
                 });
 
-                const responseText = await response.text();
-                console.log("📥 Backend response:", responseText);
+                const text = await response.text();
 
                 if (!response.ok) {
-                    let errorData;
-                    try {
-                        errorData = JSON.parse(responseText);
-                    } catch {
-                        errorData = { message: responseText };
-                    }
-                    console.error("❌ Backend error:", errorData);
-                    throw new Error(errorData.message || "Request failed");
+                    throw new Error(text);
                 }
 
-                console.log("✅ Success!");
+                console.log("✅ SUCCESS");
                 return true;
+
             } catch (error) {
-                console.error('❌ Error:', error);
+                console.error("❌ ERROR:", error);
                 throw error;
             }
         },
         [selectedRow, packs]
     );
 
-    // const brandSelectOptions = useMemo(
-    //     () => brandOptions.map((opt) => ({ ...opt, disabled: isModelsLoading })),
-    //     [brandOptions, isModelsLoading]
-    // );
-    //
-    // if (!isMounted) return null;
-
     return (
         <div className="space-y-4">
             <Toaster richColors position="top-center" />
 
             <DataTable
+                key={packs.length}
                 table={table}
                 className="px-10"
-                key={`brand-${brandOptions.length}-model-${modelOptions.length}`}
             >
                 <DataTableAdvancedToolbar
                     table={table}
                     className="px-0"
                     menuLabel="Add Visit"
                     onCreateClick={() => {
-                        console.log('[DEBUG] Creating new visit');
                         setSelectedRow(null);
                         setSelectedBrand('');
                         setIsFormOpen(true);
@@ -414,14 +266,13 @@ export default function VehiclesPage() {
                     setIsFormOpen(false);
                 }}
                 onSubmit={handleVisitSubmit}
-                // Pass all the pre-fetched data as props
                 clients={clients}
                 employees={employees}
                 vehicles={vehicles}
                 packs={packs}
                 services={services}
                 isLoading={isDataLoading}
-                statusOptions={VISIT_STATUS_OPTIONS} // or statusFilterOptions.map(opt => opt.value)
+                statusOptions={VISIT_STATUS_OPTIONS}
             />
         </div>
     );

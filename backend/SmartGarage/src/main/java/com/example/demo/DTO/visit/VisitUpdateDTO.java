@@ -18,6 +18,8 @@ public record VisitUpdateDTO(
 
         LocalDateTime visitDate,
 
-        String status
+        String status,
+
+        String currency
 ) {
 }

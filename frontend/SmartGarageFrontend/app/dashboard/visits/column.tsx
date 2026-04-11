@@ -171,26 +171,15 @@ export const getColumns = ({
         cell: ({ row }) => {
             const visit = row.original;
             const visitItems = visit.visitItems || [];
-            const allServices = visit.allServices || [];
-
-            // Debug
-            console.log("=== PACK COLUMN DEBUG ===");
-            console.log("Visit ID:", visit.id);
-            console.log("All services:", allServices);
 
             // Find pack item
             const packItem = visitItems.find(item => item && item.pack != null);
 
+            // ✅ CASE 1: VISIT HAS PACK
             if (packItem?.pack) {
-                console.log("📦 Found pack:", packItem.pack.packName);
-                console.log("📋 Pack ID:", packItem.pack.id);
-
-                // Count how many services in allServices belong to this pack
-                const packServicesCount = allServices.filter(service =>
-                    service.packs?.some(pack => pack.id === packItem.pack.id)
-                ).length;
-
-                console.log("🔢 Services count for pack:", packServicesCount);
+                const packServicesCount = packItem.pack.services
+                    ? packItem.pack.services.length
+                    : 0;
 
                 return (
                     <div className="flex flex-col">
@@ -198,18 +187,16 @@ export const getColumns = ({
                             <span>{packItem.pack.packName}</span>
                         </div>
                         <div className="text-xs text-muted-foreground">
-                            {packServicesCount} service{packServicesCount !== 1 ? 's' : ''}
+                            {packServicesCount} service{packServicesCount !== 1 ? "s" : ""}
                         </div>
                     </div>
                 );
             }
 
-            // For custom packs, count services in visit items
+            // ✅ CASE 2: CUSTOM PACK (NO PACK, ONLY SERVICES)
             const serviceCount = visitItems.filter(item =>
-                item && (item.serviceItem || item.itemType === 'SERVICE')
+                item && (item.serviceItem || item.itemType === "SERVICE")
             ).length;
-
-            console.log("🛠️ Custom pack with", serviceCount, "services");
 
             return (
                 <div className="flex flex-col">
@@ -217,7 +204,7 @@ export const getColumns = ({
                         <span>Custom Pack</span>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                        {serviceCount} service{serviceCount !== 1 ? 's' : ''}
+                        {serviceCount} service{serviceCount !== 1 ? "s" : ""}
                     </div>
                 </div>
             );

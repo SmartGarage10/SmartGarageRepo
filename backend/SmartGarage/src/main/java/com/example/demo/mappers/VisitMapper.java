@@ -1,45 +1,46 @@
 package com.example.demo.mappers;
 
-import com.example.demo.DTO.VisitDTO;
-import com.example.demo.models.*;
-import org.mapstruct.*;
+import com.example.demo.DTO.visit.VisitCreateDTO;
+import com.example.demo.DTO.visit.VisitResponseDTO;
+import com.example.demo.DTO.visit.VisitUpdateDTO;
+import com.example.demo.models.Visit;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper(
         componentModel = "spring",
-        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
-        nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS
+        uses = {
+                VehicleMapper.class,
+                UserMapper.class,
+                VisitItemMapper.class
+        }
 )
 public interface VisitMapper {
-    // ========== VisitDTO -> Visit ==========
-    @Mapping(target = "id", ignore = true) // ID is auto-generated
-    @Mapping(target = "vehicle", source = "vehicle")
-    @Mapping(target = "employee", source = "employee")
-    @Mapping(target = "visitDate", source = "visitDate")
-    @Mapping(target = "status", source = "status")
-    @Mapping(target = "amount", source = "amount")
-    @Mapping(target = "visitItems", source = "visitItems")
-    Visit toEntity(VisitDTO visitDTO);
 
-    // ========== Custom Mapping Methods ==========
+    // ENTITY → RESPONSE DTO
+    VisitResponseDTO toDto(Visit visit);
 
-    // Helper to get client from vehicle's user
-    default User getClientFromVehicle(Vehicle vehicle) {
-        if (vehicle == null) return null;
-        return vehicle.getClient();
-    }
+    List<VisitResponseDTO> toDtoList(List<Visit> visits);
 
-    // Optional: Map pack from visit items if needed
-    default Pack extractPackFromVisitItems(List<VisitItem> visitItems) {
-        if (visitItems == null || visitItems.isEmpty()) return null;
 
-        return visitItems.stream()
-                .filter(item -> item.getItemType() == VisitItem.ItemType.PACK && item.getPack() != null)
-                .map(VisitItem::getPack)
-                .findFirst()
-                .orElse(null);
-    }
+    // CREATE DTO → ENTITY
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "vehicle", ignore = true)
+    @Mapping(target = "employee", ignore = true)
+    @Mapping(target = "visitItems", ignore = true)
+    @Mapping(target = "amount", ignore = true)
+    @Mapping(target = "currency", constant = "EUR")
+    Visit toEntity(VisitCreateDTO dto);
+
+
+    // UPDATE DTO → ENTITY
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "vehicle", ignore = true)
+    @Mapping(target = "employee", ignore = true)
+    @Mapping(target = "visitItems", ignore = true)
+    @Mapping(target = "amount", ignore = true)
+    @Mapping(target = "currency", ignore = true)
+    Visit toEntity(VisitUpdateDTO dto);
 }

@@ -1,18 +1,18 @@
 "use client";
 
-import React, {useEffect, useMemo, useState} from "react";
-import {useForm, useWatch} from "react-hook-form";
+import React, { useEffect, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import MultipleSelector from "@/components/ui/multiple-selector";
 import {
     Form,
     FormControl,
-    FormDescription,
     FormField,
     FormItem,
     FormLabel,
     FormMessage,
+    FormDescription
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Check, ChevronsUpDown, X } from "lucide-react";
@@ -23,15 +23,15 @@ import {
     CommandEmpty,
     CommandGroup,
     CommandInput,
-    CommandItem,
+    CommandItem
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-import { Visit, Status } from "@/types/visit"
-import {User} from "@/types/user";
-import {Vehicle} from "@/types/vehicle";
-import {Pack} from "@/types/pack";
-import {Service} from "@/types/service";
+import { Visit, Status } from "@/types/visit";
+import { User } from "@/types/user";
+import { Vehicle } from "@/types/vehicle";
+import { Pack } from "@/types/pack";
+import { Service } from "@/types/service";
 
 interface VisitFormProps {
     initialData?: Visit | null;
@@ -41,7 +41,6 @@ interface VisitFormProps {
     onSuccess?: () => void;
     onSubmit?: (data: Visit) => Promise<boolean>;
     isSubmitting?: boolean;
-    // New props for pre-fetched data
     clients?: User[];
     employees?: User[];
     vehicles?: Vehicle[];
@@ -59,15 +58,13 @@ export function VisitForm({
                               onSuccess,
                               onSubmit,
                               isSubmitting = false,
-                              // New props with defaults
                               clients = [],
                               employees = [],
                               vehicles = [],
                               packs = [],
                               services = [],
                               isLoading = false,
-                              // Add statusOptions with default
-                              statusOptions = Object.values(Status),
+                              statusOptions = Object.values(Status)
                           }: VisitFormProps) {
     const router = useRouter();
 
@@ -82,79 +79,59 @@ export function VisitForm({
                 client: { id: "", name: "", email: "" },
                 brand: "",
                 model: "",
-                year: "",
+                year: ""
             },
             employee: { id: "", name: "", email: "" },
             visitDate: "",
             status: statusOptions[0] || "SCHEDULED",
             amount: 0,
-            pack: undefined,
-        },
+            pack: { packName: "" }
+        }
     });
 
     const [selectedServices, setSelectedServices] = useState<Service[]>([]);
-
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
     const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
     const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState(false);
     const [packDropdownOpen, setPackDropdownOpen] = useState(false);
     const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
-    // Reset form when initialData changes - FIXED FOR CLIENT FROM VEHICLE
     useEffect(() => {
         if (open && initialData) {
-            console.log("=== FORM RESET DEBUG ===");
-            console.log("InitialData:", initialData);
-            console.log("Vehicle client:", initialData.vehicle?.client);
+            if (clients.length === 0 || vehicles.length === 0 || employees.length === 0) return;
 
-            // Wait for data to load
-            if (clients.length === 0 || vehicles.length === 0 || employees.length === 0) {
-                console.log("Waiting for data to load...");
-                return;
-            }
-
-            // Get client from vehicle (since client field is undefined)
             const vehicleClient = initialData.vehicle?.client;
-
-            // Find matching client from pre-fetched data
-            const matchingClient = clients.find(client =>
-                client.id === vehicleClient?.id
-            );
-
-            console.log("Vehicle client:", vehicleClient);
-            console.log("Matching client:", matchingClient);
-
-            // Use the client from vehicle or find a match
+            const matchingClient = clients.find(c => c.id === vehicleClient?.id);
             const finalClient = matchingClient || vehicleClient;
 
-            // Find other matching objects
-            const matchingVehicle = vehicles.find(vehicle => vehicle.id === initialData.vehicle?.id);
-            const matchingEmployee = employees.find(employee => employee.id === initialData.employee?.id);
-            const matchingPack = packs.find(pack => pack.id === initialData.pack?.id);
+            const matchingVehicle = vehicles.find(v => v.id === initialData.vehicle?.id);
+            const matchingEmployee = employees.find(e => e.id === initialData.employee?.id);
+
+            const visitPack = initialData.visitItems?.find(item => item.pack)?.pack;
+            const matchingPack = packs.find(p => p.id === visitPack?.id);
 
             const formData = {
                 ...initialData,
-                client: finalClient, // Use the client from vehicle
+                client: finalClient,
                 vehicle: matchingVehicle || initialData.vehicle,
                 employee: matchingEmployee || initialData.employee,
-                pack: matchingPack || initialData.pack,
+                pack: matchingPack || visitPack || { packName: "" }
             };
-
-            console.log("Final form data with client:", formData);
 
             const timer = setTimeout(() => {
                 form.reset(formData);
 
-                if (initialData.pack?.packName === "CUSTOM PACK" && initialData.visitServices) {
+                if (visitPack?.packName === "CUSTOM PACK" && initialData.visitServices) {
                     setSelectedServices(initialData.visitServices);
                 } else {
                     setSelectedServices([]);
                 }
-            }, 100);
+            }, 50);
 
             return () => clearTimeout(timer);
-        } else if (!open) {
-            // Reset form when dialog closes
+        }
+
+        if (!open) {
             form.reset({
                 id: "",
                 client: { id: "", name: "", email: "" },
@@ -165,31 +142,30 @@ export function VisitForm({
                     client: { id: "", name: "", email: "" },
                     brand: "",
                     model: "",
-                    year: "",
+                    year: ""
                 },
                 employee: { id: "", name: "", email: "" },
                 visitDate: "",
                 status: statusOptions[0] || "SCHEDULED",
                 amount: 0,
-                currency: "EUR",
-                pack: undefined,
+                pack: { packName: "" }
             });
             setSelectedServices([]);
         }
-    }, [initialData, open, form, clients, vehicles, employees, packs, statusOptions]);
+    }, [initialData, open, clients, vehicles, employees, packs, statusOptions, form]);
 
-    // --- Amount logic ---
     const [amount, setAmount] = useState<number>(0);
+
     const selectedPack = useWatch({
         control: form.control,
-        name: "pack.packName",
+        name: "pack.packName"
     });
 
     useEffect(() => {
         let newAmount = 0;
 
         if (selectedPack && selectedPack !== "CUSTOM PACK") {
-            const packObj = packs.find((p) => p.packName === selectedPack);
+            const packObj = packs.find(p => p.packName === selectedPack);
             newAmount = packObj?.amount ?? 0;
         } else if (selectedPack === "CUSTOM PACK") {
             newAmount = selectedServices.reduce((sum, s) => sum + (s.price ?? 0), 0);
@@ -198,54 +174,33 @@ export function VisitForm({
         setAmount(newAmount);
         form.setValue("amount", newAmount, { shouldValidate: true, shouldDirty: true });
     }, [selectedPack, selectedServices, packs, form]);
-
-    // SIMPLIFIED SUBMIT HANDLER - ONLY VALIDATION AND CALLS PARENT
     const handleSubmit = async (data: Visit) => {
         try {
-            // Validate required fields
             if (!data.visitDate) {
-                form.setError("visitDate", {
-                    type: "manual",
-                    message: "Visit date is required"
-                });
+                form.setError("visitDate", { type: "manual", message: "Visit date is required" });
                 return;
             }
-
             if (!data.client?.id) {
-                form.setError("client", {
-                    type: "manual",
-                    message: "Client is required"
-                });
+                form.setError("client", { type: "manual", message: "Client is required" });
                 return;
             }
-
             if (!data.vehicle?.id) {
-                form.setError("vehicle", {
-                    type: "manual",
-                    message: "Vehicle is required"
-                });
+                form.setError("vehicle", { type: "manual", message: "Vehicle is required" });
                 return;
             }
-
             if (!data.employee?.id) {
-                form.setError("employee", {
-                    type: "manual",
-                    message: "Employee is required"
-                });
+                form.setError("employee", { type: "manual", message: "Employee is required" });
                 return;
             }
 
-            // Add selected services to data for custom packs
             const formDataWithServices = {
                 ...data,
                 visitServices: selectedPack === "CUSTOM PACK" ? selectedServices : []
             };
 
-            // Call the parent's onSubmit function
             if (onSubmit) {
                 const success = await onSubmit(formDataWithServices);
                 if (success) {
-                    // Reset form if it was a create operation
                     if (!initialData) {
                         form.reset();
                         setSelectedServices([]);
@@ -256,22 +211,18 @@ export function VisitForm({
                 }
             }
         } catch (error) {
-            console.error("Operation error:", error);
             form.setError("root", {
                 type: "manual",
-                message: error instanceof Error ? error.message : "An error occurred",
+                message: error instanceof Error ? error.message : "An error occurred"
             });
         }
     };
 
-    const formatVehicleLabel = (vehicle: Vehicle) => {
-        return `${vehicle.vehiclePlate} - ${vehicle.brand} ${vehicle.model} (${vehicle.year})`;
-    };
+    const formatVehicleLabel = (vehicle: Vehicle) =>
+        `${vehicle.vehiclePlate} - ${vehicle.brand} ${vehicle.model} (${vehicle.year})`;
 
-    // Get selected pack object for displaying price below
-    const selectedPackObj = packs.find((p) => p.packName === selectedPack);
+    const selectedPackObj = packs.find(p => p.packName === selectedPack);
 
-    // Show loading state if data is still loading
     if (isLoading) {
         return (
             <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -279,10 +230,8 @@ export function VisitForm({
                 <Dialog.Portal>
                     <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
                     <Dialog.Content className="fixed right-0 top-0 z-50 h-full w-full max-w-sm border-l bg-background shadow-lg">
-                        <div className="h-full overflow-y-auto p-6">
-                            <div className="flex justify-center items-center h-32">
-                                <p>Loading form data...</p>
-                            </div>
+                        <div className="h-full overflow-y-auto p-6 flex justify-center items-center">
+                            <p>Loading form data...</p>
                         </div>
                     </Dialog.Content>
                 </Dialog.Portal>
@@ -309,9 +258,7 @@ export function VisitForm({
                                     {initialData ? "Edit Vehicle Visit" : "Add Vehicle Visit"}
                                 </Dialog.Title>
                                 <Dialog.Description className="text-sm text-muted-foreground">
-                                    {initialData
-                                        ? "Update visit details."
-                                        : "Fill in the details to add a new visit."}
+                                    {initialData ? "Update visit details." : "Fill in the details to add a new visit."}
                                 </Dialog.Description>
                             </div>
                             <Dialog.Close className="opacity-70 hover:opacity-100">
@@ -321,7 +268,7 @@ export function VisitForm({
 
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                                {/* Client Field */}
+
                                 <FormField
                                     control={form.control}
                                     name="client"
@@ -345,16 +292,12 @@ export function VisitForm({
                                                         </Button>
                                                     </FormControl>
                                                 </PopoverTrigger>
-                                                <PopoverContent
-                                                    className="w-full p-0"
-                                                    style={{ width: "var(--radix-popover-trigger-width)" }}
-                                                    align="start"
-                                                >
+                                                <PopoverContent className="w-full p-0" align="start">
                                                     <Command>
                                                         <CommandInput placeholder="Search clients..." />
                                                         <CommandEmpty>No clients found.</CommandEmpty>
                                                         <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                                            {clients.map((client) => (
+                                                            {clients.map(client => (
                                                                 <CommandItem
                                                                     key={client.id}
                                                                     value={client.name}
@@ -390,25 +333,21 @@ export function VisitForm({
                                     )}
                                 />
 
-                                {/* Vehicle Field - FORCE SAME WIDTH */}
                                 <FormField
                                     control={form.control}
                                     name="vehicle"
                                     rules={{ required: "Vehicle is required" }}
                                     render={({ field }) => {
                                         const clientId = form.watch("client.id");
-                                        const clientSelected = !!clientId;
-                                        const filteredVehicles = vehicles.filter(
-                                            (vehicle) => vehicle.client?.id === clientId
-                                        );
+                                        const filteredVehicles = vehicles.filter(v => v.client?.id === clientId);
 
                                         return (
                                             <FormItem className="flex flex-col">
                                                 <FormLabel>Vehicle *</FormLabel>
                                                 <Popover
                                                     open={vehicleDropdownOpen}
-                                                    onOpenChange={(open) => {
-                                                        if (!clientSelected && open) return;
+                                                    onOpenChange={open => {
+                                                        if (!clientId && open) return;
                                                         setVehicleDropdownOpen(open);
                                                     }}
                                                 >
@@ -417,33 +356,30 @@ export function VisitForm({
                                                             <Button
                                                                 variant="outline"
                                                                 role="combobox"
+                                                                disabled={!clientId}
                                                                 className={cn(
                                                                     "w-full min-h-10 justify-between",
                                                                     !field.value?.id && "text-muted-foreground",
-                                                                    !clientSelected && "opacity-50 cursor-not-allowed"
+                                                                    !clientId && "opacity-50 cursor-not-allowed"
                                                                 )}
-                                                                disabled={!clientSelected}
                                                             >
-                                <span className="truncate flex-1 text-left">
-                                    {!clientSelected
-                                        ? "Select a client first"
-                                        : field.value?.id
-                                            ? formatVehicleLabel(field.value)
-                                            : "Select vehicle"}
-                                </span>
+                                                                <span className="truncate flex-1 text-left">
+                                                                    {!clientId
+                                                                        ? "Select a client first"
+                                                                        : field.value?.id
+                                                                            ? formatVehicleLabel(field.value)
+                                                                            : "Select vehicle"}
+                                                                </span>
                                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                             </Button>
                                                         </FormControl>
                                                     </PopoverTrigger>
-                                                    <PopoverContent
-                                                        className="w-[var(--radix-popover-trigger-width)] p-0" // Force same width
-                                                        align="start"
-                                                    >
+                                                    <PopoverContent className="w-full p-0" align="start">
                                                         <Command>
                                                             <CommandInput placeholder="Search vehicles..." />
                                                             <CommandEmpty>No vehicles found.</CommandEmpty>
                                                             <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                                                {filteredVehicles.map((vehicle) => (
+                                                                {filteredVehicles.map(vehicle => (
                                                                     <CommandItem
                                                                         key={vehicle.id}
                                                                         value={vehicle.vehiclePlate}
@@ -453,16 +389,16 @@ export function VisitForm({
                                                                         }}
                                                                         className="flex items-center justify-between"
                                                                     >
-                                        <span className="flex-1 min-w-0">
-                                            <div className="font-medium truncate">
-                                                {formatVehicleLabel(vehicle)}
-                                            </div>
-                                            {vehicle.vin && (
-                                                <div className="text-xs text-muted-foreground truncate">
-                                                    VIN: {vehicle.vin}
-                                                </div>
-                                            )}
-                                        </span>
+                                                                        <span className="flex-1 min-w-0">
+                                                                            <div className="font-medium truncate">
+                                                                                {formatVehicleLabel(vehicle)}
+                                                                            </div>
+                                                                            {vehicle.vin && (
+                                                                                <div className="text-xs text-muted-foreground truncate">
+                                                                                    VIN: {vehicle.vin}
+                                                                                </div>
+                                                                            )}
+                                                                        </span>
                                                                         <Check
                                                                             className={cn(
                                                                                 "ml-2 h-4 w-4 shrink-0",
@@ -482,8 +418,6 @@ export function VisitForm({
                                         );
                                     }}
                                 />
-
-                                {/* Employee Field */}
                                 <FormField
                                     control={form.control}
                                     name="employee"
@@ -507,16 +441,12 @@ export function VisitForm({
                                                         </Button>
                                                     </FormControl>
                                                 </PopoverTrigger>
-                                                <PopoverContent
-                                                    className="w-full p-0"
-                                                    style={{ width: "var(--radix-popover-trigger-width)" }}
-                                                    align="start"
-                                                >
+                                                <PopoverContent className="w-full p-0" align="start">
                                                     <Command>
                                                         <CommandInput placeholder="Search employees..." />
                                                         <CommandEmpty>No employees found.</CommandEmpty>
                                                         <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                                            {employees.map((employee) => (
+                                                            {employees.map(employee => (
                                                                 <CommandItem
                                                                     key={employee.id}
                                                                     value={employee.name}
@@ -552,7 +482,6 @@ export function VisitForm({
                                     )}
                                 />
 
-                                {/* Visit Date Field */}
                                 <FormField
                                     control={form.control}
                                     name="visitDate"
@@ -570,8 +499,10 @@ export function VisitForm({
                                                                 ? new Date(field.value).toISOString().slice(0, 16)
                                                                 : ""
                                                     }
-                                                    onChange={(e) =>
-                                                        field.onChange(e.target.value ? new Date(e.target.value) : undefined)
+                                                    onChange={e =>
+                                                        field.onChange(
+                                                            e.target.value ? new Date(e.target.value) : undefined
+                                                        )
                                                     }
                                                 />
                                             </FormControl>
@@ -580,7 +511,6 @@ export function VisitForm({
                                     )}
                                 />
 
-                                {/* Status Field */}
                                 <FormField
                                     control={form.control}
                                     name="status"
@@ -603,11 +533,11 @@ export function VisitForm({
                                                         </Button>
                                                     </FormControl>
                                                 </PopoverTrigger>
-                                                <PopoverContent className="w-full p-0" style={{ width: "var(--radix-popover-trigger-width)" }} align="start">
+                                                <PopoverContent className="w-full p-0" align="start">
                                                     <Command>
                                                         <CommandEmpty>No status found.</CommandEmpty>
                                                         <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                                            {statusOptions.map((status) => (
+                                                            {statusOptions.map(status => (
                                                                 <CommandItem
                                                                     key={status}
                                                                     value={status}
@@ -617,10 +547,14 @@ export function VisitForm({
                                                                     }}
                                                                 >
                                                                     {status}
-                                                                    <Check className={cn(
-                                                                        "ml-auto h-4 w-4",
-                                                                        field.value === status ? "opacity-100" : "opacity-0"
-                                                                    )}/>
+                                                                    <Check
+                                                                        className={cn(
+                                                                            "ml-auto h-4 w-4",
+                                                                            field.value === status
+                                                                                ? "opacity-100"
+                                                                                : "opacity-0"
+                                                                        )}
+                                                                    />
                                                                 </CommandItem>
                                                             ))}
                                                         </CommandGroup>
@@ -632,25 +566,21 @@ export function VisitForm({
                                     )}
                                 />
 
-                                {/* Pack Select with Custom Option */}
                                 <FormField
                                     control={form.control}
                                     name="pack.packName"
                                     render={({ field }) => {
                                         const isCustomPack = field.value === "CUSTOM PACK";
                                         const availablePacks = [
-                                            ...packs.map((p) => p.packName),
-                                            ...(packs.some((p) => p.packName === "CUSTOM PACK")
+                                            ...packs.map(p => p.packName),
+                                            ...(packs.some(p => p.packName === "CUSTOM PACK")
                                                 ? []
-                                                : ["CUSTOM PACK"]),
+                                                : ["CUSTOM PACK"])
                                         ];
                                         return (
                                             <FormItem className="flex flex-col w-full">
                                                 <FormLabel>Pack</FormLabel>
-                                                <Popover
-                                                    open={packDropdownOpen}
-                                                    onOpenChange={setPackDropdownOpen}
-                                                >
+                                                <Popover open={packDropdownOpen} onOpenChange={setPackDropdownOpen}>
                                                     <PopoverTrigger asChild>
                                                         <FormControl>
                                                             <Button
@@ -668,18 +598,15 @@ export function VisitForm({
                                                     </PopoverTrigger>
                                                     <PopoverContent
                                                         className="w-full p-0"
-                                                        style={{
-                                                            width: "var(--radix-popover-trigger-width)",
-                                                        }}
                                                         align="start"
                                                     >
                                                         <Command>
                                                             <CommandInput placeholder="Search packs..." />
                                                             <CommandEmpty>No packs found.</CommandEmpty>
                                                             <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                                                {availablePacks.map((p) => {
-                                                                    const pack = packs.find(pack => pack.packName === p);
-                                                                    const packPrice = pack?.amount ?? pack?.amount ?? 0;
+                                                                {availablePacks.map(p => {
+                                                                    const pack = packs.find(x => x.packName === p);
+                                                                    const packPrice = pack?.amount ?? 0;
                                                                     return (
                                                                         <CommandItem
                                                                             key={p}
@@ -709,7 +636,6 @@ export function VisitForm({
                                                     </PopoverContent>
                                                 </Popover>
 
-                                                {/* Show pack description and price below the dropdown */}
                                                 {selectedPack && selectedPack !== "CUSTOM PACK" && selectedPackObj && (
                                                     <div className="mt-2 p-3 bg-muted rounded-md">
                                                         <div className="flex justify-between items-start">
@@ -722,7 +648,7 @@ export function VisitForm({
                                                                 )}
                                                             </div>
                                                             <p className="font-bold text-sm">
-                                                                €{(selectedPackObj.amount ?? selectedPackObj.amount ?? 0).toFixed(2)}
+                                                                €{(selectedPackObj.amount ?? 0).toFixed(2)}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -732,26 +658,21 @@ export function VisitForm({
                                                     <div className="mt-4 w-full">
                                                         <FormLabel>Services</FormLabel>
                                                         <MultipleSelector
-                                                            options={services.map((s) => ({
+                                                            options={services.map(s => ({
                                                                 label: `${s.serviceName} (€${s.price})`,
-                                                                value: s.id || "",
+                                                                value: s.id || ""
                                                             }))}
                                                             value={selectedServices.map(s => ({
                                                                 label: `${s.serviceName} (€${s.price})`,
-                                                                value: s.id || "",
+                                                                value: s.id || ""
                                                             }))}
-                                                            onChange={(newValue) => {
-                                                                const selectedServiceObjects = newValue.map(item =>
-                                                                    services.find(s => s.id === item.value)!
-                                                                ).filter(Boolean);
+                                                            onChange={newValue => {
+                                                                const selectedServiceObjects = newValue
+                                                                    .map(item => services.find(s => s.id === item.value)!)
+                                                                    .filter(Boolean);
                                                                 setSelectedServices(selectedServiceObjects);
                                                             }}
                                                             placeholder="Select services..."
-                                                            emptyIndicator={
-                                                                <p className="text-center text-lg leading-10 text-gray-600 dark:text-gray-400">
-                                                                    no results found.
-                                                                </p>
-                                                            }
                                                             className="w-full mt-2"
                                                         />
                                                     </div>
@@ -761,8 +682,6 @@ export function VisitForm({
                                         );
                                     }}
                                 />
-
-                                {/* Amount */}
                                 <FormField
                                     control={form.control}
                                     name="amount"
@@ -798,14 +717,12 @@ export function VisitForm({
                                     )}
                                 />
 
-                                {/* Root Error Display */}
                                 {form.formState.errors.root && (
                                     <div className="text-sm font-medium text-destructive">
                                         {form.formState.errors.root.message}
                                     </div>
                                 )}
 
-                                {/* Buttons */}
                                 <div className="flex flex-col gap-2 pt-4">
                                     <Dialog.Close asChild>
                                         <Button type="button" variant="outline" className="w-full">

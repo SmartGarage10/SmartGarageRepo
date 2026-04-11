@@ -1,11 +1,13 @@
 package com.example.demo.mappers;
 
-import com.example.demo.DTO.VisitDTO;
+import com.example.demo.DTO.visit.VisitCreateDTO;
+import com.example.demo.DTO.visit.VisitResponseDTO;
+import com.example.demo.DTO.visit.VisitUpdateDTO;
 import com.example.demo.models.Visit;
-import com.example.demo.models.VisitItem;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.processing.Generated;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Generated(
@@ -15,36 +17,73 @@ import org.springframework.stereotype.Component;
 @Component
 public class VisitMapperImpl implements VisitMapper {
 
+    @Autowired
+    private VehicleMapper vehicleMapper;
+    @Autowired
+    private UserMapper userMapper;
+    @Autowired
+    private VisitItemMapper visitItemMapper;
+
     @Override
-    public Visit toEntity(VisitDTO visitDTO) {
-        if ( visitDTO == null ) {
+    public VisitResponseDTO toDto(Visit visit) {
+        if ( visit == null ) {
+            return null;
+        }
+
+        VisitResponseDTO.VisitResponseDTOBuilder visitResponseDTO = VisitResponseDTO.builder();
+
+        visitResponseDTO.id( visit.getId() );
+        visitResponseDTO.vehicle( vehicleMapper.toDto( visit.getVehicle() ) );
+        visitResponseDTO.employee( userMapper.toDTO( visit.getEmployee() ) );
+        visitResponseDTO.visitItems( visitItemMapper.toDtoList( visit.getVisitItems() ) );
+        visitResponseDTO.amount( visit.getAmount() );
+        visitResponseDTO.visitDate( visit.getVisitDate() );
+        visitResponseDTO.status( visit.getStatus() );
+        visitResponseDTO.currency( visit.getCurrency() );
+
+        return visitResponseDTO.build();
+    }
+
+    @Override
+    public List<VisitResponseDTO> toDtoList(List<Visit> visits) {
+        if ( visits == null ) {
+            return null;
+        }
+
+        List<VisitResponseDTO> list = new ArrayList<VisitResponseDTO>( visits.size() );
+        for ( Visit visit : visits ) {
+            list.add( toDto( visit ) );
+        }
+
+        return list;
+    }
+
+    @Override
+    public Visit toEntity(VisitCreateDTO dto) {
+        if ( dto == null ) {
             return null;
         }
 
         Visit visit = new Visit();
 
-        if ( visitDTO.getVehicle() != null ) {
-            visit.setVehicle( visitDTO.getVehicle() );
+        visit.setVisitDate( dto.visitDate() );
+        visit.setStatus( dto.status() );
+
+        visit.setCurrency( "EUR" );
+
+        return visit;
+    }
+
+    @Override
+    public Visit toEntity(VisitUpdateDTO dto) {
+        if ( dto == null ) {
+            return null;
         }
-        if ( visitDTO.getEmployee() != null ) {
-            visit.setEmployee( visitDTO.getEmployee() );
-        }
-        if ( visitDTO.getVisitDate() != null ) {
-            visit.setVisitDate( visitDTO.getVisitDate() );
-        }
-        if ( visitDTO.getStatus() != null ) {
-            visit.setStatus( visitDTO.getStatus() );
-        }
-        if ( visitDTO.getAmount() != null ) {
-            visit.setAmount( visitDTO.getAmount() );
-        }
-        List<VisitItem> list = visitDTO.getVisitItems();
-        if ( list != null ) {
-            visit.setVisitItems( new ArrayList<VisitItem>( list ) );
-        }
-        if ( visitDTO.getCurrency() != null ) {
-            visit.setCurrency( visitDTO.getCurrency() );
-        }
+
+        Visit visit = new Visit();
+
+        visit.setVisitDate( dto.visitDate() );
+        visit.setStatus( dto.status() );
 
         return visit;
     }

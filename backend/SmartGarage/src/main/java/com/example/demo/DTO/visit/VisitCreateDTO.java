@@ -22,6 +22,10 @@ public record VisitCreateDTO(
         @Size(min = 1, message = "At least one visit item is required.")
         List<VisitItemCreateDTO> visitItems,
 
-        String status
+        @NotNull
+        String status,
+
+        @NotNull
+        String currency
 ) {
 }
